@@ -341,3 +341,4 @@ INSERT INTO notifications (utilisateur_id, type_notification, contenu, lien, lu)
 -- Email : momo.kouassi@epi-yakro.ci
 -- Mot de passe : password123
 -- ============================================================
+
