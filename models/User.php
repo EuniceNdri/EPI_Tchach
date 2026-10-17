@@ -20,3 +20,4 @@
 //     public function findById($id) { }
 //     public function updatePassword($id, $password) { }
 // }
+

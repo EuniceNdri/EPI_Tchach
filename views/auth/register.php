@@ -19,3 +19,4 @@
 
 <!-- Page d'inscription -->
 <!-- TODO: Implémenter le HTML -->
+
