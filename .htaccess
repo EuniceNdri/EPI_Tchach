@@ -1,0 +1,53 @@
+# =============================================================
+# .htaccess RACINE – Sécurité + Redirection vers public/
+# =============================================================
+# Ce fichier protège les dossiers sensibles (config/, controllers/,
+# models/, views/) en redirigeant TOUT le trafic vers public/.
+# Seul le dossier public/ est accessible depuis le navigateur.
+# =============================================================
+
+# Activer le moteur de réécriture d'URL
+RewriteEngine On
+
+# Définir la base de réécriture
+RewriteBase /
+
+# Interdire l'accès direct aux dossiers sensibles
+RewriteRule ^config/ - [F,L]
+RewriteRule ^controllers/ - [F,L]
+RewriteRule ^models/ - [F,L]
+RewriteRule ^views/ - [F,L]
+
+# Si la requête ne cible pas déjà un fichier dans public/
+RewriteCond %{REQUEST_URI} !^/public/
+
+# Rediriger vers public/
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Désactiver le listing des dossiers
+Options -Indexes
+
+# Protéger les fichiers .htaccess eux-mêmes
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Protéger les fichiers sensibles
+<FilesMatch "\.(env|log|md|gitignore)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protéger les fichiers .htaccess eux-mêmes
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Protéger les fichiers sensibles
+<FilesMatch "\.(env|log|md|gitignore)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

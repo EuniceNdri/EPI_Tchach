@@ -1,0 +1,28 @@
+# =============================================================
+# .htaccess PUBLIC – Front Controller (tout passe par index.php)
+# =============================================================
+# Ce fichier redirige toutes les requêtes vers index.php,
+# SAUF les fichiers qui existent déjà (CSS, JS, images).
+# =============================================================
+
+# Activer le moteur de réécriture
+RewriteEngine On
+
+# Si le fichier existe physiquement → le servir directement (CSS, JS, images)
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# Si le dossier existe physiquement → le servir directement
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Sinon → tout redirige vers index.php avec l'URL en paramètre
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+
+# Désactiver le listing des dossiers
+Options -Indexes
+
+# Charset par défaut
+AddDefaultCharset UTF-8
+
+# Charset par défaut
+AddDefaultCharset UTF-8
+
