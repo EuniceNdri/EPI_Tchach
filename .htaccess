@@ -1,0 +1,9 @@
+# Redirige tout le trafic vers le dossier public/
+# C'est une couche de sécurité : les dossiers config/, controllers/, models/, views/
+# ne sont PAS accessibles directement depuis le navigateur.
+
+RewriteEngine On
+
+# Si la requête ne cible pas un fichier ou dossier existant dans public/
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]

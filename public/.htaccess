@@ -1,0 +1,12 @@
+# Réécriture d'URL dans le dossier public/
+# Toutes les requêtes passent par index.php (Front Controller)
+# Sauf les fichiers statiques qui existent déjà (CSS, JS, images)
+
+RewriteEngine On
+
+# Si le fichier ou dossier existe physiquement, on le sert directement
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Sinon, on redirige vers index.php avec l'URL en paramètre
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
