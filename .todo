@@ -1,0 +1,98 @@
+# =============================================
+# 📋 TODO – Projet EPI Tchach (Forum de l'École)
+# =============================================
+# Dernière mise à jour : Octobre 2026
+#
+# ✅ = Fait  |  🔧 = En cours  |  ❌ = À faire
+# =============================================
+
+
+# ─────────────────────────────────────────────
+# 🏗️  STRUCTURE DU PROJET
+# ─────────────────────────────────────────────
+✅ Créer la structure MVC (config/, controllers/, models/, views/, public/)
+✅ Configurer le .htaccess racine (sécurité + redirection vers public/)
+✅ Configurer le .htaccess public (Front Controller → index.php)
+✅ Créer le routeur dans public/index.php
+✅ Créer le fichier .env.example
+✅ Créer le fichier .gitignore
+✅ Rédiger le README.md complet
+
+
+# ─────────────────────────────────────────────
+# 🔐  AUTHENTIFICATION (Shadow)
+# ─────────────────────────────────────────────
+🔧 Créer les pages (views/auth/) : login, register, forgot-password, reset-password
+❌ Implémenter AuthController.php (login, register, logout, forgot/reset password)
+❌ Implémenter le modèle User.php (requêtes SQL)
+❌ Créer la table `users` dans la BDD
+❌ Validation de l'email institutionnel
+❌ Hashage du mot de passe (password_hash / password_verify)
+❌ Gestion des sessions (connexion/déconnexion)
+❌ Protection CSRF sur les formulaires
+❌ CSS des pages d'authentification (desktop + smartphone)
+
+
+# ─────────────────────────────────────────────
+# 📝  PUBLICATIONS
+# ─────────────────────────────────────────────
+❌ Créer PublicationController.php
+❌ Créer le modèle Publication.php
+❌ Créer la table `publications` dans la BDD
+❌ Page de création d'une publication
+❌ Page de liste des publications
+❌ Page de détail d'une publication
+❌ Système d'upload de fichiers/images
+
+
+# ─────────────────────────────────────────────
+# 🗂️  ZONES / CATÉGORIES
+# ─────────────────────────────────────────────
+❌ Créer ZoneController.php
+❌ Créer le modèle Zone.php
+❌ Créer la table `zones` dans la BDD
+❌ Page de liste des zones
+❌ Filtrage des publications par zone
+
+
+# ─────────────────────────────────────────────
+# 💬  COMMENTAIRES
+# ─────────────────────────────────────────────
+❌ Créer CommentaireController.php
+❌ Créer le modèle Commentaire.php
+❌ Créer la table `commentaires` dans la BDD
+❌ Formulaire d'ajout de commentaire sous une publication
+❌ Affichage des commentaires
+
+
+# ─────────────────────────────────────────────
+# 👍  RÉACTIONS
+# ─────────────────────────────────────────────
+❌ Système de likes/réactions sur les publications
+❌ Créer la table `reactions` dans la BDD
+
+
+# ─────────────────────────────────────────────
+# 🎨  DESIGN / CSS
+# ─────────────────────────────────────────────
+❌ Design desktop (public/assets/css/desktop/)
+❌ Design smartphone (public/assets/css/smartphone/)
+❌ Header / Navigation
+❌ Footer
+❌ Design responsive
+
+
+# ─────────────────────────────────────────────
+# 🗄️  BASE DE DONNÉES
+# ─────────────────────────────────────────────
+❌ Créer la base de données `epi_tchach`
+❌ Configurer config/database.php avec PDO
+❌ Créer toutes les tables (users, publications, zones, commentaires, reactions)
+
+
+# ─────────────────────────────────────────────
+# 🚀  DÉPLOIEMENT
+# ─────────────────────────────────────────────
+❌ Tests finaux
+❌ Mise en production
+
