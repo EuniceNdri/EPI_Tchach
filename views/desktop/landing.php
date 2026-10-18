@@ -506,21 +506,32 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
             <li>🏨 En face de l'Hôtel Concorde</li>
             <li>📬 BP 1912 Yamoussoukro</li>
             <li>🌐 www.epiglobalgroup.com</li>
+            <li style="margin-top:0.5rem;"><a href="#policyModal" class="open-policy-modal" style="color:var(--primary); font-weight:700;">📜 Charte & Politique</a></li>
           </ul>
         </div>
       </div>
 
       <div class="footer-bottom">
         <p>© 2026 École Polytechnique Internationale (EPI) — Tous droits réservés.</p>
-        <p>Projet Forum Académique MVC · EPI Tchach</p>
+        <div style="display:flex; align-items:center; gap:1.25rem;">
+          <a href="#policyModal" class="open-policy-modal" style="color:var(--muted-foreground); text-decoration:underline;">Charte de l'école & Confidentialité</a>
+          <span>Projet Forum Académique MVC · EPI Tchach</span>
+        </div>
       </div>
     </div>
   </footer>
 
   <div class="tricolor-bar"></div>
 
+  <!-- Bouton Retour en haut -->
+  <button type="button" class="back-to-top" id="backToTop" aria-label="Retour en haut de page">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
+  </button>
+
+  <!-- Modal Règlement & Charte -->
+  <?php include ROOT_PATH . '/views/partials/policy-modal.php'; ?>
+
   <!-- Scripts JavaScript Desktop -->
   <script src="<?= $base ?>/public/assets/js/desktop/landing.js" defer></script>
-  <script src="<?= $base ?>/assets/js/desktop/landing.js" defer></script>
 </body>
 </html>

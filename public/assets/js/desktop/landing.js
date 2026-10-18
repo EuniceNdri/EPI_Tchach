@@ -1,7 +1,8 @@
 /**
  * ============================================================
  * EPI TCHACH – Script JavaScript Desktop Landing (landing.js)
- * Interactions riches : FAQ accordéon, compteurs animés & animations
+ * Interactions riches : Animations, Parallaxe, Accordéon FAQ, 
+ * Compteurs animés, Transitions de page & Modale Charte/Politique
  * ============================================================
  */
 
@@ -46,11 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // 3. Défilement doux vers les ancres internes
+  // 3. Défilement doux vers les ancres internes (excluant les modales)
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener("click", function (e) {
       const targetId = this.getAttribute("href");
-      if (targetId && targetId !== "#") {
+      if (targetId && targetId !== "#" && targetId !== "#policyModal") {
         const targetElement = document.querySelector(targetId);
         if (targetElement) {
           e.preventDefault();
@@ -148,6 +149,116 @@ document.addEventListener("DOMContentLoaded", () => {
     const statsSection = document.querySelector(".stats-banner");
     if (statsSection) {
       statsObserver.observe(statsSection);
+    }
+  }
+
+  // 7. Bouton Retour en Haut (Back-to-top)
+  const backToTopBtn = document.getElementById("backToTop");
+  if (backToTopBtn) {
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (window.scrollY > 400) {
+          backToTopBtn.classList.add("show");
+        } else {
+          backToTopBtn.classList.remove("show");
+        }
+      },
+      { passive: true }
+    );
+
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  }
+
+  // 8. Transitions douces entre les pages
+  const internalLinks = document.querySelectorAll(
+    'a[href]:not([href^="#"]):not([target="_blank"]):not([href^="javascript:"]):not([href^="mailto:"]):not([href^="tel:"])'
+  );
+
+  internalLinks.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const destination = link.getAttribute("href");
+      // Ignorer si clic molette ou avec touche Ctrl/Cmd
+      if (e.metaKey || e.ctrlKey || !destination) return;
+
+      e.preventDefault();
+      document.body.classList.add("page-transitioning");
+
+      setTimeout(() => {
+        window.location.href = destination;
+      }, 180);
+    });
+  });
+
+  // 9. Gestion de la Modale Popup (Charte d'Utilisation & Confidentialité)
+  const policyModal = document.getElementById("policyModal");
+  if (policyModal) {
+    const modalCheckbox = document.getElementById("policyAgreeCheckbox");
+    const confirmBtn = document.getElementById("confirmPolicyAgree");
+    const closeBtn = document.getElementById("closePolicyModal");
+    const cancelBtn = document.getElementById("cancelPolicyModal");
+
+    // Vérifier si l'utilisateur a déjà accepté
+    const isAlreadyAccepted = localStorage.getItem("epi_policy_accepted") === "true";
+    if (isAlreadyAccepted && modalCheckbox) {
+      modalCheckbox.checked = true;
+      if (confirmBtn) confirmBtn.disabled = false;
+    }
+
+    const openModal = (e) => {
+      if (e) e.preventDefault();
+      policyModal.classList.add("show");
+      policyModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    };
+
+    const closeModal = () => {
+      policyModal.classList.remove("show");
+      policyModal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    };
+
+    // Déclencheurs d'ouverture
+    document.querySelectorAll(".open-policy-modal, a[href='#policyModal']").forEach((trigger) => {
+      trigger.addEventListener("click", openModal);
+    });
+
+    // Déclencheurs de fermeture
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+    // Clic sur le fond sombre pour fermer
+    policyModal.addEventListener("click", (e) => {
+      if (e.target === policyModal) {
+        closeModal();
+      }
+    });
+
+    // Touche Echap pour fermer
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && policyModal.classList.contains("show")) {
+        closeModal();
+      }
+    });
+
+    // Case à cocher d'accord
+    if (modalCheckbox && confirmBtn) {
+      modalCheckbox.addEventListener("change", () => {
+        confirmBtn.disabled = !modalCheckbox.checked;
+      });
+
+      // Bouton Valider l'accord
+      confirmBtn.addEventListener("click", () => {
+        if (modalCheckbox.checked) {
+          localStorage.setItem("epi_policy_accepted", "true");
+          closeModal();
+        }
+      });
     }
   }
 });

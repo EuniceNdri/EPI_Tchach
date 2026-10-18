@@ -101,6 +101,5 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   </footer>
 
   <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
-  <script src="<?= $base ?>/assets/js/desktop/auth.js" defer></script>
 </body>
 </html>

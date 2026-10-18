@@ -131,8 +131,8 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
 
         <!-- Case Règlement -->
         <label class="remember-me" style="margin-top: 0.25rem;">
-          <input type="checkbox" name="cgu" required />
-          <span>J'accepte la charte d'utilisation et le règlement du forum EPI Tchach.</span>
+          <input type="checkbox" name="cgu" id="cguCheckbox" required />
+          <span>J'accepte la <a href="#policyModal" class="open-policy-modal" style="color:var(--primary); font-weight:700; text-decoration:underline;">charte d'utilisation</a> et la <a href="#policyModal" class="open-policy-modal" style="color:var(--primary); font-weight:700; text-decoration:underline;">politique de confidentialité</a> de l'EPI.</span>
         </label>
 
         <button type="submit" class="btn-submit">Créer mon compte</button>
@@ -149,7 +149,9 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
     © 2026 École Polytechnique Internationale de Yamoussoukro — EPI Tchach
   </footer>
 
+  <!-- Modal Règlement & Charte -->
+  <?php include ROOT_PATH . '/views/partials/policy-modal.php'; ?>
+
   <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
-  <script src="<?= $base ?>/assets/js/desktop/auth.js" defer></script>
 </body>
 </html>
