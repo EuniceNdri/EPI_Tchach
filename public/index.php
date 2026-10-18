@@ -29,17 +29,15 @@ $param = $segments[1] ?? null;
 switch ($page) {
 
     // ---------------------------------------------------------
-    // PAGE D'ACCUEIL
+    // PAGE D'ACCUEIL (Desktop)
     // ---------------------------------------------------------
     case '':
     case 'home':
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: login');
-            exit;
+        if (file_exists(ROOT_PATH . '/views/desktop/home.php')) {
+            require_once ROOT_PATH . '/views/desktop/home.php';
+        } else {
+            echo "<h1>Bienvenue sur EPI Tchach !</h1>";
         }
-        echo "<h1>Bienvenue sur EPI Tchach !</h1>";
-        echo "<p>Connecté en tant que membre.</p>";
-        echo "<a href='logout'>Se déconnecter</a>";
         break;
 
     // ---------------------------------------------------------
