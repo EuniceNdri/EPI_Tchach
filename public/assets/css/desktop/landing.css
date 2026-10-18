@@ -1,26 +1,26 @@
 /* ============================================================
-   EPI TCHACH – Feuille de style Desktop (home.css)
-   Thème : Moderne, Institutionnel & Chaleureux (Bleu / Blanc / Rouge)
+   EPI TCHACH – Feuille de style Desktop Landing (landing.css)
+   Thème : École Polytechnique Internationale - Yamoussoukro
    ============================================================ */
 
 :root {
-  --primary: #1e40af;                  /* Bleu académique profond */
-  --primary-light: #3b82f6;            /* Bleu vibrant */
+  --primary: #1e3a8a;                  /* Bleu marine officiel EPI */
+  --primary-light: #2563eb;            /* Bleu royal */
   --primary-foreground: #ffffff;
-  --accent: #ef4444;                   /* Rouge corail moderne */
-  --accent-light: #f87171;
+  --accent: #dc2626;                   /* Rouge vif officiel EPI */
+  --accent-light: #ef4444;
   --accent-foreground: #ffffff;
   --background: #ffffff;
   --foreground: #0f172a;               /* Slate foncé très lisible */
-  --secondary: #f8fafc;                /* Gris perle doux */
+  --secondary: #f8fafc;                /* Blanc cassé doux */
   --muted-foreground: #64748b;
   --border: #e2e8f0;
   --card: #ffffff;
 
-  --shadow-soft: 0 10px 25px -5px rgba(30, 64, 175, 0.08), 0 8px 10px -6px rgba(30, 64, 175, 0.04);
+  --shadow-soft: 0 10px 25px -5px rgba(30, 58, 138, 0.08), 0 8px 10px -6px rgba(30, 58, 138, 0.04);
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 20px 35px -10px rgba(239, 68, 68, 0.35);
-  --shadow-hover: 0 20px 30px -10px rgba(30, 64, 175, 0.15);
+  --shadow-glow: 0 20px 35px -10px rgba(220, 38, 38, 0.35);
+  --shadow-hover: 0 20px 30px -10px rgba(30, 58, 138, 0.15);
   --radius: 1.25rem;
   --radius-sm: 0.75rem;
 }
@@ -69,50 +69,67 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   transition: all 0.3s ease;
 }
 
 .header-wrapper.scrolled {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
 }
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 1.15rem;
+  padding-block: 0.85rem;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.4rem;
-  font-weight: 800;
+  gap: 0.85rem;
   text-decoration: none;
   color: var(--foreground);
-  letter-spacing: -0.02em;
 }
 
-.brand-icon-wrapper {
+.brand-logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  background: linear-gradient(135deg, rgba(30, 64, 175, 0.1), rgba(239, 68, 68, 0.1));
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  transition: transform 0.25s ease;
 }
 
-.brand-icon {
-  width: 1.6rem;
-  height: 1.6rem;
-  color: var(--primary);
+.brand:hover .brand-logo-container {
+  transform: rotate(-3deg) scale(1.05);
+}
+
+.brand-logo-svg {
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .brand-accent {
@@ -149,24 +166,24 @@ body {
 .btn-primary {
   background: var(--primary);
   color: var(--primary-foreground);
-  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.25);
+  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.25);
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: #1e40af;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(30, 64, 175, 0.35);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.35);
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, var(--accent), #dc2626);
+  background: linear-gradient(135deg, var(--accent), #b91c1c);
   color: var(--accent-foreground);
   box-shadow: var(--shadow-glow);
 }
 
 .btn-accent:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 20px 35px -8px rgba(239, 68, 68, 0.45);
+  box-shadow: 0 20px 35px -8px rgba(220, 38, 38, 0.45);
 }
 
 .btn-outline {
@@ -178,7 +195,7 @@ body {
 .btn-outline:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(30, 64, 175, 0.04);
+  background: rgba(30, 58, 138, 0.04);
   transform: translateY(-2px);
 }
 
@@ -223,8 +240,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.06);
   border-radius: 9999px;
   padding: 0.35rem 1.15rem;
   font-size: 0.775rem;
@@ -254,7 +271,7 @@ body {
 
 @media (min-width: 992px) {
   .hero-text h1 {
-    font-size: 4rem;
+    font-size: 3.85rem;
   }
 }
 
@@ -274,7 +291,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 50%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--accent) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -283,14 +300,14 @@ body {
 .text-primary { color: var(--primary); }
 .text-accent { color: var(--accent); }
 
-/* Taches de couleur d'arrière-plan */
+/* Blobs flottants */
 .blob {
   position: absolute;
   border-radius: 9999px;
   filter: blur(80px);
   pointer-events: none;
   z-index: -1;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .blob-left {
@@ -298,7 +315,7 @@ body {
   top: 1rem;
   width: 24rem;
   height: 24rem;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(30, 64, 175, 0.05) 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(30, 58, 138, 0.05) 70%);
   animation: float 9s ease-in-out infinite;
 }
 
@@ -307,11 +324,11 @@ body {
   bottom: -2rem;
   width: 22rem;
   height: 22rem;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, rgba(248, 113, 113, 0.05) 70%);
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(239, 68, 68, 0.05) 70%);
   animation: float 11s ease-in-out infinite reverse;
 }
 
-/* ============ Bulles de discussion interactives ============ */
+/* ============ Bulles de discussion ============ */
 .hero-bubbles {
   position: relative;
   display: flex;
@@ -361,7 +378,7 @@ body {
 }
 
 .bubble-primary {
-  background: linear-gradient(135deg, var(--primary), #1d4ed8);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: var(--primary-foreground);
   align-self: flex-start;
 }
@@ -374,7 +391,7 @@ body {
 }
 
 .bubble-accent {
-  background: linear-gradient(135deg, var(--accent), #dc2626);
+  background: linear-gradient(135deg, var(--accent), #b91c1c);
   color: var(--accent-foreground);
   align-self: flex-start;
 }
@@ -383,7 +400,7 @@ body {
   margin-left: 2.5rem;
 }
 
-/* ============ Section Fonctionnalités ============ */
+/* ============ Section Fonctionnalités & Filières ============ */
 .features {
   background: var(--secondary);
   padding-block: 6rem;
@@ -394,7 +411,7 @@ body {
 
 .features-header {
   text-align: center;
-  max-width: 42rem;
+  max-width: 44rem;
   margin-inline: auto;
 }
 
@@ -430,7 +447,7 @@ body {
 
 .feature-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(30, 58, 138, 0.3);
   box-shadow: var(--shadow-hover);
 }
 
@@ -450,12 +467,12 @@ body {
 }
 
 .icon-blue {
-  background: rgba(30, 64, 175, 0.08);
+  background: rgba(30, 58, 138, 0.08);
   color: var(--primary);
 }
 
 .icon-red {
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(220, 38, 38, 0.08);
   color: var(--accent);
 }
 
@@ -482,8 +499,8 @@ body {
   padding: 4.5rem 2rem;
   text-align: center;
   color: var(--primary-foreground);
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #b91c1c 100%);
-  box-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.35);
+  background: linear-gradient(135deg, #0f2963 0%, #1e3a8a 50%, #b91c1c 100%);
+  box-shadow: 0 25px 50px -12px rgba(30, 58, 138, 0.35);
   position: relative;
   overflow: hidden;
 }
@@ -500,7 +517,7 @@ body {
 }
 
 .cta-box h2 {
-  font-size: 2.5rem;
+  font-size: 2.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -509,7 +526,7 @@ body {
   margin-top: 1rem;
   font-size: 1.15rem;
   opacity: 0.95;
-  max-width: 32rem;
+  max-width: 34rem;
   margin-inline: auto;
 }
 
@@ -530,7 +547,7 @@ body {
 .footer-links {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1.75rem;
   margin-bottom: 1rem;
 }
 

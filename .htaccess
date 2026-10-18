@@ -1,53 +1,22 @@
 # =============================================================
-# .htaccess RACINE – Sécurité + Redirection vers public/
-# =============================================================
-# Ce fichier protège les dossiers sensibles (config/, controllers/,
-# models/, views/) en redirigeant TOUT le trafic vers public/.
-# Seul le dossier public/ est accessible depuis le navigateur.
+# .htaccess RACINE – Point d'entrée direct vers index.php
 # =============================================================
 
-# Activer le moteur de réécriture d'URL
-RewriteEngine On
+DirectoryIndex index.php
 
-# Définir la base de réécriture
-RewriteBase /
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Interdire l'accès direct aux dossiers sensibles
-RewriteRule ^config/ - [F,L]
-RewriteRule ^controllers/ - [F,L]
-RewriteRule ^models/ - [F,L]
-RewriteRule ^views/ - [F,L]
+    # Si la ressource demandée existe (fichier CSS, JS, image...), on la sert
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
 
-# Si la requête ne cible pas déjà un fichier dans public/
-RewriteCond %{REQUEST_URI} !^/public/
-
-# Rediriger vers public/
-RewriteRule ^(.*)$ public/$1 [L]
+    # Sinon, on redirige tout vers index.php à la racine
+    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+</IfModule>
 
 # Désactiver le listing des dossiers
 Options -Indexes
 
-# Protéger les fichiers .htaccess eux-mêmes
-<Files .htaccess>
-    Order allow,deny
-    Deny from all
-</Files>
-
-# Protéger les fichiers sensibles
-<FilesMatch "\.(env|log|md|gitignore)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# Protéger les fichiers .htaccess eux-mêmes
-<Files .htaccess>
-    Order allow,deny
-    Deny from all
-</Files>
-
-# Protéger les fichiers sensibles
-<FilesMatch "\.(env|log|md|gitignore)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
+# Encodage UTF-8 par défaut
+AddDefaultCharset UTF-8

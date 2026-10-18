@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * EPI TCHACH – Script JavaScript Desktop (home.js)
- * Interactions, animations au scroll & micro-effets
+ * EPI TCHACH – Script JavaScript Desktop Landing (landing.js)
+ * Interactions, animations au scroll & parallaxe bulles
  * ============================================================
  */
 
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 4. Léger effet parallaxe interactif sur les bulles du héros (Desktop)
+  // 4. Parallaxe interactif sur les bulles du héros (Desktop)
   const heroBubbles = document.querySelector(".hero-bubbles");
   if (heroBubbles && window.matchMedia("(min-width: 992px)").matches) {
     const bubbles = heroBubbles.querySelectorAll(".bubble");
