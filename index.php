@@ -3,7 +3,7 @@
  * =============================================================
  * index.php – Point d'entrée unique (Front Controller à la racine)
  * =============================================================
- * Route unique active : Page Landing Desktop
+ * Routes : Landing page + Pages d'Authentification (Desktop)
  * =============================================================
  */
 
@@ -19,13 +19,58 @@ if (file_exists(ROOT_PATH . '/config/database.php')) {
 // Récupération de l'URL demandée
 $url = isset($_GET['url']) ? trim($_GET['url'], '/') : '';
 
-// Routeur : uniquement la page Landing Desktop
-$landingView = ROOT_PATH . '/views/desktop/landing.php';
+// Séparation des segments (ex: "reset-password/token123")
+$segments = $url ? explode('/', $url) : [];
+$route = $segments[0] ?? '';
 
-if (file_exists($landingView)) {
-    require_once $landingView;
-    exit;
-} else {
-    echo "<h1>EPI Tchach</h1><p>Fichier views/desktop/landing.php introuvable.</p>";
+// Routage des vues
+switch ($route) {
+
+    // ---------------------------------------------------------
+    // PAGE D'ACCUEIL (Landing)
+    // ---------------------------------------------------------
+    case '':
+    case 'landing':
+    case 'home':
+        $landingView = ROOT_PATH . '/views/desktop/landing.php';
+        if (file_exists($landingView)) {
+            require_once $landingView;
+        } else {
+            echo "<h1>EPI Tchach</h1><p>Vue landing introuvable.</p>";
+        }
+        break;
+
+    // ---------------------------------------------------------
+    // AUTHENTIFICATION
+    // ---------------------------------------------------------
+    case 'login':
+        require_once ROOT_PATH . '/views/auth/login.php';
+        break;
+
+    case 'register':
+        require_once ROOT_PATH . '/views/auth/register.php';
+        break;
+
+    case 'forgot-password':
+        require_once ROOT_PATH . '/views/auth/forgot-password.php';
+        break;
+
+    case 'reset-password':
+        require_once ROOT_PATH . '/views/auth/reset-password.php';
+        break;
+
+    case 'logout':
+        $_SESSION = [];
+        if (session_id() !== '' || headers_sent() === false) {
+            session_destroy();
+        }
+        header('Location: login');
+        exit;
+
+    // ---------------------------------------------------------
+    // AUTRES URLS -> Redirection vers la landing
+    // ---------------------------------------------------------
+    default:
+        header('Location: landing');
+        exit;
 }
-

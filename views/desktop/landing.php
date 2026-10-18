@@ -43,8 +43,8 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
       </a>
 
       <div class="nav-actions">
-        <a href="#features" class="btn btn-outline btn-sm">Découvrir les filières</a>
-        <a href="#commencer" class="btn btn-primary btn-sm">Accéder à la plateforme</a>
+        <a href="login" class="btn btn-outline btn-sm">Se connecter</a>
+        <a href="register" class="btn btn-primary btn-sm">S'inscrire</a>
       </div>
     </nav>
   </header>
@@ -63,8 +63,8 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
             <h1>Toute l'école, <span class="text-gradient">une seule conversation.</span></h1>
             <p class="lead">Étudiants de BTS, Licence et Master, professeurs et délégués : échangez, collaborez et restez informés en temps réel au sein de l'EPI Yamoussoukro.</p>
             
-            <div class="hero-actions" id="commencer">
-              <a href="#features" class="btn btn-accent group">
+            <div class="hero-actions">
+              <a href="register" class="btn btn-accent group">
                 Commencer
                 <svg class="icon arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -162,7 +162,7 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
         <div class="cta-box reveal">
           <h2>L'école des Leaders et des Entrepreneurs</h2>
           <p>Rejoignez la communauté de l'École Polytechnique Internationale de Yamoussoukro sur EPI Tchach.</p>
-          <a href="#features" class="btn btn-light">Découvrir la plateforme</a>
+          <a href="register" class="btn btn-light">Créer mon compte</a>
         </div>
       </div>
     </section>
