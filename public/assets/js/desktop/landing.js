@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * EPI TCHACH – Script JavaScript Desktop Landing (landing.js)
- * Interactions, animations au scroll & parallaxe bulles
+ * Interactions riches : FAQ accordéon, compteurs animés & animations
  * ============================================================
  */
 
@@ -27,7 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     revealElements.forEach((el) => observer.observe(el));
   } else {
-    // Fallback pour anciens navigateurs
     revealElements.forEach((el) => el.classList.add("visible"));
   }
 
@@ -91,5 +90,64 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
-});
 
+  // 5. Accordéon FAQ interactif
+  const faqItems = document.querySelectorAll(".faq-item");
+  faqItems.forEach((item) => {
+    const question = item.querySelector(".faq-question");
+    if (question) {
+      question.addEventListener("click", () => {
+        const isActive = item.classList.contains("active");
+
+        // Fermer les autres questions
+        faqItems.forEach((other) => other.classList.remove("active"));
+
+        // Basculer l'état actuel
+        if (!isActive) {
+          item.classList.add("active");
+        }
+      });
+    }
+  });
+
+  // 6. Animation des compteurs de statistiques
+  const statNumbers = document.querySelectorAll(".stat-number[data-target]");
+  if (statNumbers.length > 0 && "IntersectionObserver" in window) {
+    let animated = false;
+    const statsObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !animated) {
+            animated = true;
+            statNumbers.forEach((counter) => {
+              const target = parseInt(counter.getAttribute("data-target"), 10);
+              const prefix = counter.getAttribute("data-prefix") || "";
+              const suffix = counter.getAttribute("data-suffix") || "";
+              let count = 0;
+              const duration = 1800; // ms
+              const stepTime = 20;
+              const increment = target / (duration / stepTime);
+
+              const timer = setInterval(() => {
+                count += increment;
+                if (count >= target) {
+                  counter.textContent = prefix + target.toLocaleString("fr-FR") + suffix;
+                  clearInterval(timer);
+                } else {
+                  counter.textContent = prefix + Math.floor(count).toLocaleString("fr-FR") + suffix;
+                }
+              }, stepTime);
+            });
+            statsObserver.disconnect();
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    const statsSection = document.querySelector(".stats-banner");
+    if (statsSection) {
+      statsObserver.observe(statsSection);
+    }
+  }
+});
