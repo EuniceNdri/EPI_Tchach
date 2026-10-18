@@ -18,7 +18,7 @@ $base = isset($baseUrl) ? $baseUrl : '';
 
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
-    <?php include ROOT_PATH . '/views/partials/admin-sidebar.php'; ?>
+    <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
 
     <main class="admin-main-area">
       <!-- Topbar -->
@@ -129,3 +129,4 @@ Les données des élèves sont strictement protégées et réservées aux besoin
   <script src="<?= $base ?>/public/assets/js/desktop/admin.js"></script>
 </body>
 </html>
+

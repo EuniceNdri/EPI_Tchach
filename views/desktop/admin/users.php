@@ -18,7 +18,7 @@ $base = isset($baseUrl) ? $baseUrl : '';
 
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
-    <?php include ROOT_PATH . '/views/partials/admin-sidebar.php'; ?>
+    <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
 
     <main class="admin-main-area">
       <!-- Topbar -->
@@ -177,27 +177,93 @@ $base = isset($baseUrl) ? $baseUrl : '';
                       <span style="font-size:0.75rem; color:var(--admin-muted);">Compte Maître</span>
                     </div>
                   </td>
+                <tr data-role="delegue">
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar-small" style="background:#8b5cf6;">KY</div>
+                      <div class="user-names">
+                        <span class="user-full-name">Kofi Yao</span>
+                        <span class="user-email-sub">kofi.yao@epi-yakro.ci</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><strong>EPI-2024-DEL-001</strong></td>
+                  <td>Délégation Générale (EPI)</td>
+                  <td><span class="role-pill role-delegue">Délégué Général</span></td>
+                  <td>02 Octobre 2024</td>
+                  <td><span class="status-pill status-active">Actif</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="<?= $base ?>/profile" class="btn-table-action">Voir profil</a>
+                      <button type="button" class="btn-table-action btn-table-danger btn-toggle-ban">Suspendre</button>
+                    </div>
+                  </td>
                 </tr>
 
                 <tr data-role="etudiant">
                   <td>
                     <div class="user-cell">
-                      <div class="user-avatar-small" style="background:#64748b;">KB</div>
+                      <div class="user-avatar-small" style="background:#ec4899;">ST</div>
                       <div class="user-names">
-                        <span class="user-full-name">Koffi Brou</span>
-                        <span class="user-email-sub">koffi.brou@epi-yakro.ci</span>
+                        <span class="user-full-name">Sarah Traoré</span>
+                        <span class="user-email-sub">sarah.traore@epi-yakro.ci</span>
                       </div>
                     </div>
                   </td>
-                  <td><strong>EPI-2025-FCG-088</strong></td>
-                  <td>BTS Finance Comptabilité</td>
-                  <td><span class="role-pill">Étudiant</span></td>
-                  <td>18 Janvier 2026</td>
-                  <td><span class="status-pill status-banned">Suspendu</span></td>
+                  <td><strong>EPI-2024-IDA-015</strong></td>
+                  <td>BTS IDA 2ème Année</td>
+                  <td><span class="role-pill">Étudiante</span></td>
+                  <td>14 Octobre 2024</td>
+                  <td><span class="status-pill status-active">Actif</span></td>
                   <td>
                     <div class="action-buttons">
                       <a href="<?= $base ?>/profile" class="btn-table-action">Voir profil</a>
-                      <button type="button" class="btn-table-action btn-toggle-ban" data-banned="true">Réactiver</button>
+                      <button type="button" class="btn-table-action btn-table-danger btn-toggle-ban">Suspendre</button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-role="professeur">
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar-small" style="background:#14b8a6;">FB</div>
+                      <div class="user-names">
+                        <span class="user-full-name">Fatou Bamba</span>
+                        <span class="user-email-sub">fatou.bamba@epi-yakro.ci</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><strong>EPI-PROF-018</strong></td>
+                  <td>Réseaux & Systèmes</td>
+                  <td><span class="role-pill role-prof">Professeure</span></td>
+                  <td>01 Septembre 2023</td>
+                  <td><span class="status-pill status-active">Actif</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="<?= $base ?>/profile" class="btn-table-action">Voir profil</a>
+                      <button type="button" class="btn-table-action">Modifier</button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr data-role="admin">
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar-small" style="background:#dc2626;">PM</div>
+                      <div class="user-names">
+                        <span class="user-full-name">Paul Modo</span>
+                        <span class="user-email-sub">paul.modo@epi-yakro.ci</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><strong>EPI-MOD-003</strong></td>
+                  <td>Modération Campus</td>
+                  <td><span class="role-pill" style="background:rgba(220,38,38,0.15); color:var(--admin-accent);">Modérateur</span></td>
+                  <td>10 Janvier 2024</td>
+                  <td><span class="status-pill status-active">Actif</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="<?= $base ?>/admin/moderation" class="btn-table-action">Modération</a>
                     </div>
                   </td>
                 </tr>
@@ -213,3 +279,4 @@ $base = isset($baseUrl) ? $baseUrl : '';
   <script src="<?= $base ?>/public/assets/js/desktop/admin.js"></script>
 </body>
 </html>
+

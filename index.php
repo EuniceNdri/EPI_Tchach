@@ -74,19 +74,19 @@ switch ($fullRoute) {
     // AUTHENTIFICATION
     // ---------------------------------------------------------
     case 'login':
-        require_once ROOT_PATH . '/views/auth/login.php';
+        require_once ROOT_PATH . '/views/desktop/auth/login.php';
         break;
 
     case 'register':
-        require_once ROOT_PATH . '/views/auth/register.php';
+        require_once ROOT_PATH . '/views/desktop/auth/register.php';
         break;
 
     case 'forgot-password':
-        require_once ROOT_PATH . '/views/auth/forgot-password.php';
+        require_once ROOT_PATH . '/views/desktop/auth/forgot-password.php';
         break;
 
     case 'reset-password':
-        require_once ROOT_PATH . '/views/auth/reset-password.php';
+        require_once ROOT_PATH . '/views/desktop/auth/reset-password.php';
         break;
 
     case 'logout':
@@ -102,11 +102,11 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     case 'profile':
     case 'profile/view':
-        require_once ROOT_PATH . '/views/profile/index.php';
+        require_once ROOT_PATH . '/views/desktop/profile/index.php';
         break;
 
     case 'profile/edit':
-        require_once ROOT_PATH . '/views/profile/edit.php';
+        require_once ROOT_PATH . '/views/desktop/profile/edit.php';
         break;
 
     // ---------------------------------------------------------
@@ -114,24 +114,24 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     case 'admin':
     case 'admin/dashboard':
-        require_once ROOT_PATH . '/views/admin/dashboard.php';
+        require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
         break;
 
     case 'admin/users':
-        require_once ROOT_PATH . '/views/admin/users.php';
+        require_once ROOT_PATH . '/views/desktop/admin/users.php';
         break;
 
     case 'admin/moderation':
-        require_once ROOT_PATH . '/views/admin/moderation.php';
+        require_once ROOT_PATH . '/views/desktop/admin/moderation.php';
         break;
 
     case 'admin/categories':
     case 'admin/filieres':
-        require_once ROOT_PATH . '/views/admin/categories.php';
+        require_once ROOT_PATH . '/views/desktop/admin/categories.php';
         break;
 
     case 'admin/settings':
-        require_once ROOT_PATH . '/views/admin/settings.php';
+        require_once ROOT_PATH . '/views/desktop/admin/settings.php';
         break;
 
     // ---------------------------------------------------------
@@ -139,9 +139,9 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     default:
         if (strpos($fullRoute, 'admin') === 0) {
-            require_once ROOT_PATH . '/views/admin/dashboard.php';
+            require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
         } elseif (strpos($fullRoute, 'profile') === 0) {
-            require_once ROOT_PATH . '/views/profile/index.php';
+            require_once ROOT_PATH . '/views/desktop/profile/index.php';
         } else {
             require_once ROOT_PATH . '/views/desktop/landing.php';
         }

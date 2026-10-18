@@ -535,7 +535,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   </button>
 
   <!-- Modal Règlement & Charte -->
-  <?php include ROOT_PATH . '/views/partials/policy-modal.php'; ?>
+  <?php include ROOT_PATH . '/views/desktop/partials/policy-modal.php'; ?>
 
   <!-- Scripts JavaScript Desktop -->
   <script src="<?= $base ?>/public/assets/js/desktop/landing.js" defer></script>

@@ -96,7 +96,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             <select id="role" name="role" class="form-select" required>
               <option value="etudiant">Étudiant(e)</option>
-              <option value="delegue">Délégué(e) de classe</option>
+              <option value="etudiant">Délégué(e) / Chef de classe (Étudiant)</option>
               <option value="professeur">Professeur / Enseignant(e)</option>
             </select>
           </div>
@@ -150,7 +150,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   </footer>
 
   <!-- Modal Règlement & Charte -->
-  <?php include ROOT_PATH . '/views/partials/policy-modal.php'; ?>
+  <?php include ROOT_PATH . '/views/desktop/partials/policy-modal.php'; ?>
 
   <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
 </body>

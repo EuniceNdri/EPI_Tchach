@@ -187,3 +187,4 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <script src="<?= $base ?>/public/assets/js/desktop/profile.js"></script>
 </body>
 </html>
+
