@@ -12,7 +12,7 @@
           <h3 id="policyModalTitle">Charte d'Utilisation & Confidentialité</h3>
           <p class="modal-subtitle">École Polytechnique Internationale de Yamoussoukro — EPI Tchach</p>
         </div>
-        <button type="button" class="modal-close-btn" id="closePolicyModal" aria-label="Fermer la fenêtre">
+        <button type="button" class="modal-close-btn" id="closePolicyModal" onclick="window.closePolicyModal && window.closePolicyModal()" aria-label="Fermer la fenêtre">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
@@ -58,7 +58,7 @@
         </label>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-outline btn-sm" id="cancelPolicyModal">Fermer</button>
+          <button type="button" class="btn btn-outline btn-sm" id="cancelPolicyModal" onclick="window.closePolicyModal && window.closePolicyModal()">Fermer</button>
           <button type="button" class="btn btn-primary btn-sm" id="confirmPolicyAgree" disabled>
             <span>J'accepte et je continue</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -69,3 +69,4 @@
     </div>
   </div>
 </div>
+

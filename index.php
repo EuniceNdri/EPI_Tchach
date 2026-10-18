@@ -59,7 +59,7 @@ $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
 $baseUrl = ($scriptDir === '' || $scriptDir === '.') ? '' : $scriptDir;
 
 // Routage des vues
-switch ($route) {
+switch ($fullRoute) {
 
     // ---------------------------------------------------------
     // PAGE D'ACCUEIL (Landing)
@@ -98,9 +98,52 @@ switch ($route) {
         exit;
 
     // ---------------------------------------------------------
-    // URL INCONNUE -> Affiche la landing par défaut
+    // ESPACE PROFIL
+    // ---------------------------------------------------------
+    case 'profile':
+    case 'profile/view':
+        require_once ROOT_PATH . '/views/profile/index.php';
+        break;
+
+    case 'profile/edit':
+        require_once ROOT_PATH . '/views/profile/edit.php';
+        break;
+
+    // ---------------------------------------------------------
+    // ESPACE ADMINISTRATION
+    // ---------------------------------------------------------
+    case 'admin':
+    case 'admin/dashboard':
+        require_once ROOT_PATH . '/views/admin/dashboard.php';
+        break;
+
+    case 'admin/users':
+        require_once ROOT_PATH . '/views/admin/users.php';
+        break;
+
+    case 'admin/moderation':
+        require_once ROOT_PATH . '/views/admin/moderation.php';
+        break;
+
+    case 'admin/categories':
+    case 'admin/filieres':
+        require_once ROOT_PATH . '/views/admin/categories.php';
+        break;
+
+    case 'admin/settings':
+        require_once ROOT_PATH . '/views/admin/settings.php';
+        break;
+
+    // ---------------------------------------------------------
+    // URL INCONNUE
     // ---------------------------------------------------------
     default:
-        require_once ROOT_PATH . '/views/desktop/landing.php';
+        if (strpos($fullRoute, 'admin') === 0) {
+            require_once ROOT_PATH . '/views/admin/dashboard.php';
+        } elseif (strpos($fullRoute, 'profile') === 0) {
+            require_once ROOT_PATH . '/views/profile/index.php';
+        } else {
+            require_once ROOT_PATH . '/views/desktop/landing.php';
+        }
         break;
 }

@@ -48,11 +48,14 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
         <li><a href="#comment-ca-marche" class="nav-link">Fonctionnement</a></li>
         <li><a href="#temoignages" class="nav-link">Témoignages</a></li>
         <li><a href="#faq" class="nav-link">FAQ</a></li>
+        <li><a href="#policyModal" class="nav-link open-policy-modal" onclick="window.openPolicyModal(event)" style="color:var(--accent); font-weight:700;">Charte & Règlement</a></li>
       </ul>
 
       <div class="nav-actions">
         <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
         <a href="<?= $base ?>/register" class="btn btn-primary btn-sm">S'inscrire</a>
+        <a href="<?= $base ?>/profile" class="btn btn-outline btn-sm" title="Voir le profil étudiant">Profil</a>
+        <a href="<?= $base ?>/admin" class="btn btn-accent btn-sm" title="Accès administration">Admin</a>
       </div>
     </nav>
   </header>
@@ -86,6 +89,9 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
                 </svg>
               </a>
               <a href="#apercu" class="btn btn-outline">Explorer le forum</a>
+              <button type="button" class="btn btn-outline open-policy-modal" onclick="window.openPolicyModal(event)" style="border-color:var(--accent); color:var(--accent);">
+                📜 Charte de l'école
+              </button>
             </div>
 
             <!-- Tags rapides -->

@@ -48,6 +48,28 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 3. Gestion de la Modale Popup (Charte & Confidentialité dans l'inscription)
+  window.openPolicyModal = function (e) {
+    if (e) {
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      if (typeof e.stopPropagation === "function") e.stopPropagation();
+    }
+    const modal = document.getElementById("policyModal");
+    if (!modal) return;
+    modal.classList.add("show");
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  };
+
+  window.closePolicyModal = function () {
+    const modal = document.getElementById("policyModal");
+    if (!modal) return;
+    modal.classList.remove("show");
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  };
+
   const policyModal = document.getElementById("policyModal");
   if (policyModal) {
     const modalCheckbox = document.getElementById("policyAgreeCheckbox");
@@ -64,39 +86,29 @@ document.addEventListener("DOMContentLoaded", () => {
       if (formCguCheckbox) formCguCheckbox.checked = true;
     }
 
-    const openModal = (e) => {
-      if (e) e.preventDefault();
-      policyModal.classList.add("show");
-      policyModal.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-    };
-
-    const closeModal = () => {
-      policyModal.classList.remove("show");
-      policyModal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-    };
-
-    // Déclencheurs d'ouverture
-    document.querySelectorAll(".open-policy-modal, a[href='#policyModal']").forEach((trigger) => {
-      trigger.addEventListener("click", openModal);
+    // Déclencheurs d'ouverture délégués
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest(".open-policy-modal, a[href='#policyModal'], [data-open-modal='policyModal']");
+      if (trigger) {
+        window.openPolicyModal(e);
+      }
     });
 
     // Déclencheurs de fermeture
-    if (closeBtn) closeBtn.addEventListener("click", closeModal);
-    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    if (closeBtn) closeBtn.addEventListener("click", window.closePolicyModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", window.closePolicyModal);
 
     // Clic sur le fond
     policyModal.addEventListener("click", (e) => {
       if (e.target === policyModal) {
-        closeModal();
+        window.closePolicyModal();
       }
     });
 
     // Échap
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && policyModal.classList.contains("show")) {
-        closeModal();
+        window.closePolicyModal();
       }
     });
 

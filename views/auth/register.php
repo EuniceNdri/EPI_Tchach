@@ -132,7 +132,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
         <!-- Case Règlement -->
         <label class="remember-me" style="margin-top: 0.25rem;">
           <input type="checkbox" name="cgu" id="cguCheckbox" required />
-          <span>J'accepte la <a href="#policyModal" class="open-policy-modal" style="color:var(--primary); font-weight:700; text-decoration:underline;">charte d'utilisation</a> et la <a href="#policyModal" class="open-policy-modal" style="color:var(--primary); font-weight:700; text-decoration:underline;">politique de confidentialité</a> de l'EPI.</span>
+          <span>J'accepte la <a href="#policyModal" class="open-policy-modal" onclick="window.openPolicyModal && window.openPolicyModal(event)" style="color:var(--primary); font-weight:700; text-decoration:underline;">charte d'utilisation</a> et la <a href="#policyModal" class="open-policy-modal" onclick="window.openPolicyModal && window.openPolicyModal(event)" style="color:var(--primary); font-weight:700; text-decoration:underline;">politique de confidentialité</a> de l'EPI.</span>
         </label>
 
         <button type="submit" class="btn-submit">Créer mon compte</button>
