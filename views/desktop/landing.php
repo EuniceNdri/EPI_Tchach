@@ -1,9 +1,8 @@
 <?php
-// Détection du chemin du logo selon l'arborescence
-$logoFile = 'public/assets/images/logo.jpeg';
-if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
-    $logoFile = 'assets/images/logo.jpeg';
-}
+$base = isset($baseUrl) ? $baseUrl : '';
+$logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
+    ? ($base . '/public/assets/images/logo.jpeg') 
+    : ($base . '/assets/images/logo.jpeg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -19,8 +18,8 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <!-- Feuilles de style Desktop Landing -->
-  <link rel="stylesheet" href="public/assets/css/desktop/landing.css" />
-  <link rel="stylesheet" href="assets/css/desktop/landing.css" />
+  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/landing.css" />
+  <link rel="stylesheet" href="<?= $base ?>/assets/css/desktop/landing.css" />
 </head>
 <body>
   <!-- Bande tricolore décorative -->
@@ -29,7 +28,7 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
   <!-- ===== Barre de navigation fixe (Large) ===== -->
   <header class="header-wrapper">
     <nav class="nav container-fluid animate-fade-down">
-      <a href="landing" class="brand">
+      <a href="<?= $base ?>/landing" class="brand">
         <div class="brand-logo-wrapper">
           <img src="<?= htmlspecialchars($logoFile) ?>" 
                alt="Logo École Polytechnique Internationale Yamoussoukro" 
@@ -43,8 +42,8 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
       </a>
 
       <div class="nav-actions">
-        <a href="login" class="btn btn-outline btn-sm">Se connecter</a>
-        <a href="register" class="btn btn-primary btn-sm">S'inscrire</a>
+        <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
+        <a href="<?= $base ?>/register" class="btn btn-primary btn-sm">S'inscrire</a>
       </div>
     </nav>
   </header>
@@ -64,7 +63,7 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
             <p class="lead">Étudiants de BTS, Licence et Master, professeurs et délégués : échangez, collaborez et restez informés en temps réel au sein de l'EPI Yamoussoukro.</p>
             
             <div class="hero-actions">
-              <a href="register" class="btn btn-accent group">
+              <a href="<?= $base ?>/register" class="btn btn-accent group">
                 Commencer
                 <svg class="icon arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -162,7 +161,7 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
         <div class="cta-box reveal">
           <h2>L'école des Leaders et des Entrepreneurs</h2>
           <p>Rejoignez la communauté de l'École Polytechnique Internationale de Yamoussoukro sur EPI Tchach.</p>
-          <a href="register" class="btn btn-light">Créer mon compte</a>
+          <a href="<?= $base ?>/register" class="btn btn-light">Créer mon compte</a>
         </div>
       </div>
     </section>
@@ -183,7 +182,7 @@ if (!file_exists((defined('ROOT_PATH') ? ROOT_PATH : '.') . '/' . $logoFile)) {
   <div class="tricolor-bar"></div>
 
   <!-- Scripts JavaScript Desktop -->
-  <script src="public/assets/js/desktop/landing.js" defer></script>
-  <script src="assets/js/desktop/landing.js" defer></script>
+  <script src="<?= $base ?>/public/assets/js/desktop/landing.js" defer></script>
+  <script src="<?= $base ?>/assets/js/desktop/landing.js" defer></script>
 </body>
 </html>

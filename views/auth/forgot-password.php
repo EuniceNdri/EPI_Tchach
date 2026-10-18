@@ -1,6 +1,9 @@
 <?php
 $pageTitle = "Mot de passe oublié — EPI Tchach";
-$logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/images/logo.jpeg' : 'assets/images/logo.jpeg';
+$base = isset($baseUrl) ? $baseUrl : '';
+$logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
+    ? ($base . '/public/assets/images/logo.jpeg') 
+    : ($base . '/assets/images/logo.jpeg');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -12,8 +15,8 @@ $logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/image
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
-  <link rel="stylesheet" href="public/assets/css/desktop/auth.css" />
-  <link rel="stylesheet" href="assets/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $base ?>/assets/css/desktop/auth.css" />
 </head>
 <body>
   <!-- Bande tricolore -->
@@ -21,11 +24,11 @@ $logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/image
 
   <!-- En-tête -->
   <header class="auth-header">
-    <a href="landing" class="brand-link">
+    <a href="<?= $base ?>/landing" class="brand-link">
       <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
       <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
     </a>
-    <a href="login" class="back-link">
+    <a href="<?= $base ?>/login" class="back-link">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
       Retour à la connexion
     </a>
@@ -57,7 +60,7 @@ $logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/image
         </div>
       <?php endif; ?>
 
-      <form action="forgot-password" method="POST" class="auth-form">
+      <form action="<?= $base ?>/forgot-password" method="POST" class="auth-form">
         <div class="form-group">
           <label for="email" class="form-label">Adresse Email Institutionnelle</label>
           <div class="input-wrapper">
@@ -71,7 +74,7 @@ $logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/image
 
       <div class="auth-card-footer">
         <span>Vous vous souvenez de votre mot de passe ?</span>
-        <a href="login" class="auth-link">Se connecter</a>
+        <a href="<?= $base ?>/login" class="auth-link">Se connecter</a>
       </div>
     </section>
   </main>
@@ -80,7 +83,7 @@ $logoPath = file_exists('public/assets/images/logo.jpeg') ? 'public/assets/image
     © 2026 École Polytechnique Internationale de Yamoussoukro — EPI Tchach
   </footer>
 
-  <script src="public/assets/js/desktop/auth.js" defer></script>
-  <script src="assets/js/desktop/auth.js" defer></script>
+  <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
+  <script src="<?= $base ?>/assets/js/desktop/auth.js" defer></script>
 </body>
 </html>
