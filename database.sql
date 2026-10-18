@@ -19,6 +19,8 @@ CREATE TABLE utilisateurs (
     mot_de_passe VARCHAR(255) NOT NULL,
     avatar_url VARCHAR(255) DEFAULT NULL,
     biographie TEXT DEFAULT NULL,
+    filiere VARCHAR(150) DEFAULT NULL,
+    modules_enseignes TEXT DEFAULT NULL,
     role ENUM('etudiant', 'professeur', 'moderateur', 'administrateur') NOT NULL DEFAULT 'etudiant',
     date_inscription DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -192,16 +194,17 @@ CREATE INDEX idx_appartenance_role ON appartenance_zones(role_dans_zone);
 --                    DONNÉES DE TEST
 -- ############################################################
 
-INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, biographie) VALUES
-('Kouassi', 'Momo', 'momo.kouassi@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 'Étudiant en BTS IDA, passionné de développement web.'),
-('Traoré', 'Sarah', 'sarah.traore@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 'Étudiante en BTS IDA.'),
-('Diallo', 'Jean', 'jean.diallo@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 'Étudiant en Licence Informatique.'),
-('N''Guessan', 'Awa', 'awa.nguessan@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 'Chef de classe BTS IDA + membre du Bureau de la Délégation.'),
-('Yao', 'Kofi', 'kofi.yao@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 'Délégué Général des étudiants.'),
-('Koné', 'Dr. Ibrahim', 'ibrahim.kone@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'professeur', 'Professeur de Développement Web et Base de données.'),
-('Bamba', 'Fatou', 'fatou.bamba@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'professeur', 'Professeure de Réseaux et Systèmes.'),
-('Admin', 'Système', 'admin@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'administrateur', 'Compte administrateur principal.'),
-('Modo', 'Paul', 'paul.modo@epi-yakro.ci', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'moderateur', 'Modérateur global de la plateforme.');
+INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, biographie) VALUES
+('Kouassi', 'Momo', 'momo.kouassi@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiant en BTS IDA, passionné de développement web.'),
+('Traoré', 'Sarah', 'sarah.traore@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiante en BTS IDA.'),
+('Diallo', 'Jean', 'jean.diallo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Licence Informatique', NULL, 'Étudiant en Licence Informatique.'),
+('N''Guessan', 'Awa', 'awa.nguessan@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Chef de classe BTS IDA + membre du Bureau de la Délégation.'),
+('Yao', 'Kofi', 'kofi.yao@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Licence Informatique', NULL, 'Délégué Général des étudiants.'),
+('Koné', 'Dr. Ibrahim', 'ibrahim.kone@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'professeur', 'BTS IDA, Licence Informatique', 'Développement Web, Base de données, Algorithmique Avancée', 'Professeur de Développement Web et Base de données.'),
+('Bamba', 'Fatou', 'fatou.bamba@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'professeur', 'Licence Informatique', 'Réseaux & Télécoms, Systèmes d''Exploitation, Sécurité', 'Professeure de Réseaux et Systèmes.'),
+('Admin', 'Système', 'admin@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'administrateur', NULL, NULL, 'Compte administrateur principal.'),
+('Modo', 'Paul', 'paul.modo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'moderateur', NULL, NULL, 'Modérateur global de la plateforme.'),
+('Bakayoko', 'Amadou', 'amadou.bakayoko@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Génie Mécanique', NULL, 'Étudiant en Génie Mécanique (nouvelle filière en attente de création de zone).');
 
 INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
 ('Zone Générale - Vie de l''École', 'generale', 'Espace public pour les annonces officielles, la vie étudiante et les événements.', 8),
@@ -212,7 +215,7 @@ INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
 
 INSERT INTO appartenance_zones (utilisateur_id, zone_id, role_dans_zone) VALUES
 (1, 1, 'membre'), (2, 1, 'membre'), (3, 1, 'membre'), (4, 1, 'membre'),
-(5, 1, 'membre'), (6, 1, 'membre'), (7, 1, 'membre'), (8, 1, 'moderateur_zone'), (9, 1, 'moderateur_zone'),
+(5, 1, 'membre'), (6, 1, 'membre'), (7, 1, 'membre'), (8, 1, 'moderateur_zone'), (9, 1, 'moderateur_zone'), (10, 1, 'membre'),
 (1, 2, 'membre'), (2, 2, 'membre'), (4, 2, 'chef_de_classe'), (6, 2, 'membre'), (5, 2, 'membre'),
 (3, 3, 'membre'), (7, 3, 'membre'),
 (6, 4, 'membre'), (7, 4, 'membre'), (8, 4, 'moderateur_zone'),
@@ -290,7 +293,8 @@ INSERT INTO notifications (utilisateur_id, type_notification, contenu, lien, lu)
 (1, 'solution', 'Votre question a été marquée comme résolue', '/publication/3', FALSE),
 (1, 'reaction', 'Sarah Traoré a trouvé votre publication utile', '/publication/3', TRUE),
 (5, 'mention', 'Vous avez été mentionné dans une discussion de la Délégation', '/publication/9', FALSE),
-(2, 'reponse', 'Momo Kouassi a commenté la publication "Recherche de binôme"', '/publication/5', FALSE);
+(2, 'reponse', 'Momo Kouassi a commenté la publication "Recherche de binôme"', '/publication/5', FALSE),
+(8, 'demande_creation_zone', 'Nouvelle filière demandée : l''étudiant Amadou Bakayoko s''est inscrit dans la filière "Génie Mécanique" qui n''a pas encore de salon dédié. Veuillez créer la zone correspondante.', '/admin/zones', FALSE);
 
 -- ============================================================
 -- Comptes de test (mot de passe = password123) :
