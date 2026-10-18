@@ -28,3 +28,4 @@ if (file_exists($landingView)) {
 } else {
     echo "<h1>EPI Tchach</h1><p>Fichier views/desktop/landing.php introuvable.</p>";
 }
+
