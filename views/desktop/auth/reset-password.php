@@ -1,9 +1,8 @@
 <?php
 $pageTitle = "Réinitialiser le mot de passe — EPI Tchach";
 $base = isset($baseUrl) ? $baseUrl : '';
-$logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
-    ? ($base . '/public/assets/images/logo.jpeg') 
-    : ($base . '/assets/images/logo.jpeg');
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$logoPath = $asset . '/images/logo.jpeg';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -15,8 +14,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
-  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/auth.css" />
-  <link rel="stylesheet" href="<?= $base ?>/assets/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
 </head>
 <body>
   <!-- Bande tricolore -->
@@ -25,7 +23,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
-      <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
+      <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
       <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
     </a>
     <a href="<?= $base ?>/login" class="back-link">
@@ -100,6 +98,6 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
     © 2026 École Polytechnique Internationale de Yamoussoukro — EPI Tchach
   </footer>
 
-  <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
+  <script src="<?= $asset ?>/js/desktop/auth.js" defer></script>
 </body>
 </html>

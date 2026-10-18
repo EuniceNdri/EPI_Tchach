@@ -4,14 +4,13 @@
  * Attend $activeAdminPage (ex: 'dashboard', 'users', 'moderation', 'categories', 'settings')
  */
 $base = isset($baseUrl) ? $baseUrl : '';
-$logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
-    ? ($base . '/public/assets/images/logo.jpeg') 
-    : ($base . '/assets/images/logo.jpeg');
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$logoFile = $asset . '/images/logo.jpeg';
 $currentPage = $activeAdminPage ?? 'dashboard';
 ?>
 <aside class="admin-sidebar">
   <a href="<?= $base ?>/admin" class="sidebar-brand-block">
-    <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="admin-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
+    <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="admin-logo-img" onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
     <div class="admin-brand-text">
       <div class="admin-brand-title">EPI <span>Tchach</span></div>
       <div class="admin-badge-sub">Espace Administration</div>
@@ -60,11 +59,22 @@ $currentPage = $activeAdminPage ?? 'dashboard';
     </a>
   </nav>
 
+  <?php
+  $nomAdmin = $_SESSION['user_nom'] ?? '';
+  $prenomAdmin = $_SESSION['user_prenom'] ?? '';
+  $adminFullName = trim($prenomAdmin . ' ' . $nomAdmin);
+  $adminName = !empty($adminFullName) ? $adminFullName : 'Directeur Scolarité';
+  $adminRole = !empty($_SESSION['user_role']) ? ucfirst($_SESSION['user_role']) : 'Super Administrateur';
+  
+  $initP = !empty($prenomAdmin) ? mb_substr($prenomAdmin, 0, 1) : '';
+  $initN = !empty($nomAdmin) ? mb_substr($nomAdmin, 0, 1) : '';
+  $adminAvatar = !empty($initP . $initN) ? strtoupper($initP . $initN) : 'AD';
+  ?>
   <div class="sidebar-footer-card">
-    <div class="admin-avatar">AD</div>
+    <div class="admin-avatar"><?= htmlspecialchars($adminAvatar) ?></div>
     <div class="admin-user-info">
-      <div class="admin-user-name">Directeur Scolarité</div>
-      <div class="admin-user-role">Super Administrateur</div>
+      <div class="admin-user-name"><?= htmlspecialchars($adminName) ?></div>
+      <div class="admin-user-role"><?= htmlspecialchars($adminRole) ?></div>
     </div>
   </div>
 </aside>

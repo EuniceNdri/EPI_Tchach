@@ -30,13 +30,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Transitions douces entre les pages d'authentification
   const internalLinks = document.querySelectorAll(
-    'a[href]:not([href^="#"]):not([target="_blank"]):not([href^="javascript:"]):not([href^="mailto:"])'
+    'a[href]:not([href^="#"]):not([href=""]):not([target="_blank"]):not([href^="javascript:"]):not([href^="mailto:"]):not([href^="tel:"]):not(.open-policy-modal):not([data-open-modal])'
   );
 
   internalLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
       const destination = link.getAttribute("href");
-      if (e.metaKey || e.ctrlKey || !destination) return;
+      if (e.metaKey || e.ctrlKey || !destination || destination.startsWith("#")) return;
+
+      // Ignorer les liens externes absolus
+      if (destination.startsWith("http://") || destination.startsWith("https://")) {
+        try {
+          const urlObj = new URL(destination);
+          if (urlObj.origin !== window.location.origin) return;
+        } catch (_) {
+          return;
+        }
+      }
 
       e.preventDefault();
       document.body.classList.add("page-transitioning");
@@ -126,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
             formCguCheckbox.checked = true;
             formCguCheckbox.dispatchEvent(new Event("change"));
           }
-          closeModal();
+          window.closePolicyModal();
         }
       });
     }
@@ -142,4 +152,56 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   }
+
+  // 4. Gestion dynamique du formulaire d'inscription (Étudiant vs Professeur)
+  const roleSelect = document.getElementById("role");
+  const sectionEtudiant = document.getElementById("section-etudiant");
+  const sectionProfesseur = document.getElementById("section-professeur");
+  const filiereSelect = document.getElementById("filiere-select");
+  const autreFiliereGroup = document.getElementById("autre-filiere-group");
+  const autreFiliereInput = document.getElementById("autre_filiere");
+
+  function updateRoleVisibility() {
+    if (!roleSelect) return;
+    const currentRole = roleSelect.value;
+
+    if (currentRole === "professeur") {
+      if (sectionProfesseur) sectionProfesseur.style.display = "block";
+      if (sectionEtudiant) sectionEtudiant.style.display = "none";
+      if (filiereSelect) filiereSelect.removeAttribute("required");
+      if (autreFiliereInput) autreFiliereInput.removeAttribute("required");
+    } else {
+      // Étudiant (ou délégué)
+      if (sectionEtudiant) sectionEtudiant.style.display = "block";
+      if (sectionProfesseur) sectionProfesseur.style.display = "none";
+      if (filiereSelect) {
+        filiereSelect.setAttribute("required", "required");
+      }
+      updateAutreFiliereVisibility();
+    }
+  }
+
+  function updateAutreFiliereVisibility() {
+    if (!filiereSelect || !autreFiliereGroup) return;
+    if (filiereSelect.value === "autre") {
+      autreFiliereGroup.style.display = "block";
+      if (autreFiliereInput) autreFiliereInput.setAttribute("required", "required");
+    } else {
+      autreFiliereGroup.style.display = "none";
+      if (autreFiliereInput) {
+        autreFiliereInput.removeAttribute("required");
+      }
+    }
+  }
+
+  if (roleSelect) {
+    roleSelect.addEventListener("change", updateRoleVisibility);
+  }
+
+  if (filiereSelect) {
+    filiereSelect.addEventListener("change", updateAutreFiliereVisibility);
+  }
+
+  // Initialisation à l'affichage
+  updateRoleVisibility();
 });

@@ -177,14 +177,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 8. Transitions douces entre les pages
   const internalLinks = document.querySelectorAll(
-    'a[href]:not([href^="#"]):not([target="_blank"]):not([href^="javascript:"]):not([href^="mailto:"]):not([href^="tel:"])'
+    'a[href]:not([href^="#"]):not([href=""]):not([target="_blank"]):not([href^="javascript:"]):not([href^="mailto:"]):not([href^="tel:"]):not(.open-policy-modal):not([data-open-modal])'
   );
 
   internalLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
       const destination = link.getAttribute("href");
-      // Ignorer si clic molette ou avec touche Ctrl/Cmd
-      if (e.metaKey || e.ctrlKey || !destination) return;
+      // Ignorer si clic molette, touche Ctrl/Cmd, ancre ou vide
+      if (e.metaKey || e.ctrlKey || !destination || destination.startsWith("#")) return;
+
+      // Ignorer les liens externes absolus vers d'autres domaines
+      if (destination.startsWith("http://") || destination.startsWith("https://")) {
+        try {
+          const urlObj = new URL(destination);
+          if (urlObj.origin !== window.location.origin) return;
+        } catch (_) {
+          return;
+        }
+      }
 
       e.preventDefault();
       document.body.classList.add("page-transitioning");

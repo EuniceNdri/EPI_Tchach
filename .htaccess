@@ -2,16 +2,19 @@
 # .htaccess RACINE – Point d'entrée direct vers index.php
 # =============================================================
 
-DirectoryIndex index.php
+DirectoryIndex index.php public/index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Si la ressource demandée existe (fichier CSS, JS, image...), on la sert
+    # 1. Raccourci transparent pour que /assets/... pointe vers /public/assets/...
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L,QSA]
+
+    # 2. Si la ressource demandée existe (fichier CSS, JS, image...), on la sert directement
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # Sinon, on redirige tout vers index.php à la racine
+    # 3. Sinon, on redirige tout vers index.php à la racine
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 

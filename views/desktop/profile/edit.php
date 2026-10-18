@@ -1,20 +1,24 @@
 <?php
 $base = isset($baseUrl) ? $baseUrl : '';
-$logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
-    ? ($base . '/public/assets/images/logo.jpeg') 
-    : ($base . '/assets/images/logo.jpeg');
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$logoFile = $asset . '/images/logo.jpeg';
+
+$sessionNom = $_SESSION['user_nom'] ?? 'Kouassi';
+$sessionPrenom = $_SESSION['user_prenom'] ?? 'Momo';
+$sessionEmail = $_SESSION['user_email'] ?? 'momo.kouassi@epi-yakro.ci';
+$initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Modifier mon Profil — Momo Kouassi · EPI Tchach</title>
+  <title>Modifier mon Profil — <?= htmlspecialchars($sessionPrenom . ' ' . $sessionNom) ?> · EPI Tchach</title>
   <meta name="description" content="Modifier les informations de profil et paramètres du compte sur EPI Tchach" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/profile.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/profile.css" />
 </head>
 <body>
   <div class="tricolor-bar"></div>
@@ -23,7 +27,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <header class="profile-header">
     <div class="profile-nav">
       <a href="<?= $base ?>/landing" class="brand-group">
-        <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
+        <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
         <div>
           <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
           <div class="brand-subtitle">Édition Profil</div>
@@ -47,7 +51,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
       <!-- Photo de profil -->
       <div style="display:flex; align-items:center; gap:1.75rem; margin-bottom:2.25rem; padding-bottom:2rem; border-bottom:1px solid var(--border);">
         <div class="profile-avatar-wrapper" style="width:90px; height:90px;">
-          <div class="profile-avatar" id="avatarInitials" style="font-size:1.85rem;">MK</div>
+          <div class="profile-avatar" id="avatarInitials" style="font-size:1.85rem;"><?= htmlspecialchars($initials) ?></div>
           <img id="avatarPreviewImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" alt="Avatar" />
         </div>
         <div>
@@ -71,12 +75,17 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="nom">Nom de famille</label>
-          <input type="text" id="nom" class="form-control" value="Kouassi" required />
+          <input type="text" id="nom" class="form-control" value="<?= htmlspecialchars($sessionNom) ?>" required />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="prenom">Prénom</label>
-          <input type="text" id="prenom" class="form-control" value="Momo" required />
+          <input type="text" id="prenom" class="form-control" value="<?= htmlspecialchars($sessionPrenom) ?>" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Adresse Email Institutionnelle</label>
+          <input type="email" id="email" class="form-control" value="<?= htmlspecialchars($sessionEmail) ?>" required />
         </div>
 
         <div class="form-group">
@@ -184,7 +193,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
     <p>© 2026 École Polytechnique Internationale de Yamoussoukro — EPI Tchach</p>
   </footer>
 
-  <script src="<?= $base ?>/public/assets/js/desktop/profile.js"></script>
+  <script src="<?= $asset ?>/js/desktop/profile.js"></script>
 </body>
 </html>
 

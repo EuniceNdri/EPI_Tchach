@@ -1,9 +1,8 @@
 <?php
 $pageTitle = "Inscription — EPI Tchach";
 $base = isset($baseUrl) ? $baseUrl : '';
-$logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
-    ? ($base . '/public/assets/images/logo.jpeg') 
-    : ($base . '/assets/images/logo.jpeg');
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$logoPath = $asset . '/images/logo.jpeg';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -15,8 +14,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
-  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/auth.css" />
-  <link rel="stylesheet" href="<?= $base ?>/assets/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
 </head>
 <body>
   <!-- Bande tricolore -->
@@ -25,7 +23,7 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
-      <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
+      <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
       <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
     </a>
     <a href="<?= $base ?>/landing" class="back-link">
@@ -95,11 +93,111 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             <select id="role" name="role" class="form-select" required>
-              <option value="etudiant">Étudiant(e)</option>
-              <option value="etudiant">Délégué(e) / Chef de classe (Étudiant)</option>
-              <option value="professeur">Professeur / Enseignant(e)</option>
+              <option value="etudiant" <?= (($_POST['role'] ?? '') === 'etudiant') ? 'selected' : '' ?>>Étudiant(e)</option>
+              <option value="professeur" <?= (($_POST['role'] ?? '') === 'professeur') ? 'selected' : '' ?>>Professeur / Enseignant(e)</option>
             </select>
           </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- BLOC ÉTUDIANT : 1 seule filière obligatoire -->
+        <!-- ========================================== -->
+        <div id="section-etudiant" class="role-specific-section" style="background: rgba(30, 58, 138, 0.03); border: 1px solid rgba(30, 58, 138, 0.12); border-radius: 12px; padding: 1.1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">Filière d'études (Obligatoire)</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label for="filiere-select" class="form-label" style="font-size: 0.85rem;">Sélectionnez votre filière</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              <select id="filiere-select" name="filiere" class="form-select">
+                <option value="">-- Choisir une filière --</option>
+                <?php
+                // Liste de base avec filières existantes en BDD
+                $predefined = ['BTS IDA', 'Licence Informatique'];
+                if (!empty($availableFilieres)) {
+                    foreach ($availableFilieres as $zf) {
+                        $fName = str_ireplace('Filière ', '', $zf['nom']);
+                        if (!in_array($fName, $predefined)) {
+                            $predefined[] = $fName;
+                        }
+                    }
+                }
+                // Ajout de filières représentatives
+                $autresSuggestions = ['Master MBDS', 'Génie Civil', 'Génie Électrique & Énergétique', 'Finance & Comptabilité', 'Gestion des Entreprises'];
+                foreach ($autresSuggestions as $asg) {
+                    if (!in_array($asg, $predefined)) $predefined[] = $asg;
+                }
+
+                $selectedFiliere = $_POST['filiere'] ?? '';
+                foreach ($predefined as $fil):
+                ?>
+                  <option value="<?= htmlspecialchars($fil) ?>" <?= ($selectedFiliere === $fil) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($fil) ?>
+                  </option>
+                <?php endforeach; ?>
+                <option value="autre" <?= ($selectedFiliere === 'autre') ? 'selected' : '' ?>>Autre filière (Non listée)...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Champ texte si "Autre filière" -->
+          <div class="form-group" id="autre-filiere-group" style="display: none; margin-bottom: 0.75rem;">
+            <label for="autre_filiere" class="form-label" style="font-size: 0.85rem;">Précisez le nom complet de votre filière</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <input type="text" id="autre_filiere" name="autre_filiere" class="form-input" placeholder="Ex: Master Big Data & IA" value="<?= htmlspecialchars($_POST['autre_filiere'] ?? '') ?>" />
+            </div>
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <strong>Attribution automatique :</strong> Si le salon de votre filière existe déjà, vous y entrerez directement. Dans le cas contraire, un signalement est automatiquement envoyé à l'administration pour ouvrir la zone.
+          </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- BLOC PROFESSEUR : Plusieurs filières & modules -->
+        <!-- ============================================== -->
+        <div id="section-professeur" class="role-specific-section" style="display: none; background: rgba(234, 88, 12, 0.04); border: 1px solid rgba(234, 88, 12, 0.15); border-radius: 12px; padding: 1.1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">Filières & Modules enseignés</span>
+          </div>
+
+          <!-- Choix multiple de filières -->
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" style="font-size: 0.85rem;">Filières dans lesquelles vous dispensez des cours :</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem; margin-top: 0.35rem;">
+              <?php
+              $profFilieresDispo = ['BTS IDA', 'Licence Informatique', 'Master MBDS', 'Génie Civil', 'Finance & Comptabilité'];
+              $postProfFilieres = $_POST['prof_filieres'] ?? [];
+              foreach ($profFilieresDispo as $pfil):
+                  $checked = in_array($pfil, $postProfFilieres) ? 'checked' : '';
+              ?>
+                <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; background: #fff; padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+                  <input type="checkbox" name="prof_filieres[]" value="<?= htmlspecialchars($pfil) ?>" <?= $checked ?> />
+                  <span><?= htmlspecialchars($pfil) ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <!-- Modules enseignés -->
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="modules_enseignes" class="form-label" style="font-size: 0.85rem;">Modules ou matières enseignées</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <input type="text" id="modules_enseignes" name="modules_enseignes" class="form-input" placeholder="Ex: Développement Web, Base de données, Réseaux..." value="<?= htmlspecialchars($_POST['modules_enseignes'] ?? '') ?>" />
+            </div>
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Vous serez automatiquement rattaché à l'<strong>Espace Professeurs</strong> ainsi qu'aux salons de toutes les filières cochées.
+          </p>
         </div>
 
         <!-- Mot de Passe & Confirmation -->
@@ -152,6 +250,6 @@ $logoPath = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <!-- Modal Règlement & Charte -->
   <?php include ROOT_PATH . '/views/desktop/partials/policy-modal.php'; ?>
 
-  <script src="<?= $base ?>/public/assets/js/desktop/auth.js" defer></script>
+  <script src="<?= $asset ?>/js/desktop/auth.js" defer></script>
 </body>
 </html>

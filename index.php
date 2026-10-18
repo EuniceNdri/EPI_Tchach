@@ -1,51 +1,79 @@
 <?php
 /**
  * =============================================================
- * index.php – Point d'entrée unique (Front Controller à la racine)
+ * index.php – Point d'entrée unique & Routeur Universel (MVC)
  * =============================================================
- * Résolution universelle des routes (Apache, php -S, sous-dossiers)
+ * Fonctionne parfaitement sous :
+ * - Apache / XAMPP (avec ou sans mod_rewrite, dans sous-dossier /EPI_Tchach/)
+ * - Serveur PHP intégré (php -S localhost:8000)
+ * - Alias / VHost (http://localhost/ ou http://epi-tchach.local/)
  * =============================================================
  */
 
-session_start();
+// 1. Démarrage de session sécurisé
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
+// 2. Définition de la racine absolue du projet
 define('ROOT_PATH', __DIR__);
 
-// Chargement de la base de données (si configurée)
+// 3. Chargement de la configuration base de données si existante
 if (file_exists(ROOT_PATH . '/config/database.php')) {
     require_once ROOT_PATH . '/config/database.php';
 }
 
 if (!function_exists('getRequestedRoute')) {
     /**
-     * Extraction universelle et robuste de la route demandée
+     * Extraction robuste et universelle de la route demandée
      */
     function getRequestedRoute(): string {
-    // 1. Paramètre explicite transmis par réécriture .htaccess (?url=...)
-    if (!empty($_GET['url'])) {
-        return trim($_GET['url'], '/');
-    }
+        // 1. Paramètre explicite transmis par réécriture .htaccess (?url=...)
+        if (!empty($_GET['url'])) {
+            return trim($_GET['url'], '/');
+        }
 
-    // 2. PATH_INFO si supporté par le serveur
-    if (!empty($_SERVER['PATH_INFO'])) {
-        return trim($_SERVER['PATH_INFO'], '/');
-    }
+        // Paramètres alternatifs
+        if (!empty($_GET['route'])) {
+            return trim($_GET['route'], '/');
+        }
+        if (!empty($_GET['page'])) {
+            return trim($_GET['page'], '/');
+        }
 
-    // 3. Détection automatique via REQUEST_URI (php -S, Apache sans rewrite ?url=, etc.)
-    $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-    $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+        // 2. PATH_INFO si supporté par le serveur
+        if (!empty($_SERVER['PATH_INFO'])) {
+            return trim($_SERVER['PATH_INFO'], '/');
+        }
 
-    // Nettoyage du préfixe de script ou sous-dossier (ex: /EPI_Tchach/ ou /EPI_Tchach/index.php)
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $scriptDir = rtrim(dirname($scriptName), '/\\');
+        // 3. Détection automatique via REQUEST_URI (XAMPP, Apache, php -S)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
 
-    if ($scriptName && strpos($path, $scriptName) === 0) {
-        $path = substr($path, strlen($scriptName));
-    } elseif ($scriptDir && $scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
-        $path = substr($path, strlen($scriptDir));
-    }
+        // Nettoyage du préfixe de script (ex: /EPI_Tchach/index.php ou /EPI_Tchach/)
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        $scriptDir = rtrim(dirname($scriptName), '/\\');
 
-    return trim($path, '/');
+        if ($scriptName && strpos($path, $scriptName) === 0) {
+            $path = substr($path, strlen($scriptName));
+        } elseif ($scriptDir && $scriptDir !== '/' && $scriptDir !== '.' && strpos($path, $scriptDir) === 0) {
+            $path = substr($path, strlen($scriptDir));
+        }
+
+        // Nettoyer si le chemin commence par /public/ ou public
+        $cleanPath = trim($path, '/');
+        if (strpos($cleanPath, 'public/') === 0) {
+            $cleanPath = substr($cleanPath, 7);
+        } elseif ($cleanPath === 'public') {
+            $cleanPath = '';
+        }
+
+        // Retirer l'éventuelle extension .php
+        if (substr($cleanPath, -4) === '.php') {
+            $cleanPath = substr($cleanPath, 0, -4);
+        }
+
+        return trim($cleanPath, '/');
     }
 }
 
@@ -54,15 +82,71 @@ $fullRoute = getRequestedRoute();
 $segments = $fullRoute ? explode('/', $fullRoute) : [];
 $route = $segments[0] ?? '';
 
-// Calcul automatique de la racine Web pour les liens et assets
-$scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
-$baseUrl = ($scriptDir === '' || $scriptDir === '.') ? '' : $scriptDir;
+// =============================================================
+// CALCUL DE LA RACINE WEB ($baseUrl) ET DES ASSETS ($assetBase)
+// =============================================================
+$scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+$scriptDir = rtrim(dirname($scriptName), '/\\');
 
-// Routage des vues
+// Détection de l'accès via /public ou à la racine
+$isPublicEntry = (substr($scriptDir, -7) === '/public');
+
+if ($isPublicEntry) {
+    $projectBase = substr($scriptDir, 0, -7);
+    $baseUrl = $scriptDir;
+    $assetBase = $projectBase . '/public/assets';
+} else {
+    $projectBase = ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') ? '' : $scriptDir;
+    $baseUrl = $projectBase;
+    $assetBase = ($projectBase !== '' ? $projectBase : '') . '/public/assets';
+}
+
+$base = $baseUrl;
+$assets = $assetBase;
+
+// Helpers globaux d'URL et d'Assets
+if (!function_exists('url')) {
+    function url(string $path = ''): string {
+        global $baseUrl;
+        $trimmed = ltrim($path, '/');
+        if ($trimmed === '' || $trimmed === 'landing' || $trimmed === 'home') {
+            return $baseUrl !== '' ? $baseUrl : '/';
+        }
+        return ($baseUrl !== '' ? $baseUrl : '') . '/' . $trimmed;
+    }
+}
+
+if (!function_exists('asset')) {
+    function asset(string $path): string {
+        global $assetBase;
+        $clean = ltrim($path, '/');
+        if (strpos($clean, 'public/assets/') === 0) {
+            $clean = substr($clean, 14);
+        } elseif (strpos($clean, 'assets/') === 0) {
+            $clean = substr($clean, 7);
+        }
+        return $assetBase . '/' . $clean;
+    }
+}
+
+// =============================================================
+// GARDE-FOU ASSETS MANQUANTS (Évite de renvoyer du HTML sur un CSS/JS)
+// =============================================================
+$ext = pathinfo($fullRoute, PATHINFO_EXTENSION);
+if (in_array(strtolower($ext), ['css', 'js', 'png', 'jpg', 'jpeg', 'svg', 'gif', 'webp', 'ico', 'woff', 'woff2', 'ttf', 'map'])) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "Fichier statique introuvable : " . htmlspecialchars($fullRoute);
+    exit;
+}
+
+// =============================================================
+// ROUTEUR UNIVERSEL DES VUES DESKTOP
+// =============================================================
 switch ($fullRoute) {
 
     // ---------------------------------------------------------
-    // PAGE D'ACCUEIL (Landing)
+    // PAGE D'ACCUEIL (Landing Page)
     // ---------------------------------------------------------
     case '':
     case 'landing':
@@ -71,42 +155,51 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
-    // AUTHENTIFICATION
+    // AUTHENTIFICATION (Traitée par AuthController)
     // ---------------------------------------------------------
     case 'login':
-        require_once ROOT_PATH . '/views/desktop/auth/login.php';
+        require_once ROOT_PATH . '/controllers/AuthController.php';
+        (new AuthController())->login();
         break;
 
     case 'register':
-        require_once ROOT_PATH . '/views/desktop/auth/register.php';
+        require_once ROOT_PATH . '/controllers/AuthController.php';
+        (new AuthController())->register();
         break;
 
     case 'forgot-password':
-        require_once ROOT_PATH . '/views/desktop/auth/forgot-password.php';
+        require_once ROOT_PATH . '/controllers/AuthController.php';
+        (new AuthController())->forgotPassword();
         break;
 
     case 'reset-password':
-        require_once ROOT_PATH . '/views/desktop/auth/reset-password.php';
+        require_once ROOT_PATH . '/controllers/AuthController.php';
+        (new AuthController())->resetPassword();
         break;
 
     case 'logout':
-        $_SESSION = [];
-        if (session_id() !== '' || headers_sent() === false) {
-            session_destroy();
-        }
-        header('Location: ' . ($baseUrl ? $baseUrl . '/login' : 'login'));
-        exit;
+        require_once ROOT_PATH . '/controllers/AuthController.php';
+        (new AuthController())->logout();
+        break;
 
     // ---------------------------------------------------------
-    // ESPACE PROFIL
+    // ESPACE PROFIL (Géré par ProfileController)
     // ---------------------------------------------------------
     case 'profile':
     case 'profile/view':
-        require_once ROOT_PATH . '/views/desktop/profile/index.php';
+        require_once ROOT_PATH . '/controllers/ProfileController.php';
+        (new ProfileController())->index();
+        break;
+
+    case 'profile/update':
+        require_once ROOT_PATH . '/controllers/ProfileController.php';
+        (new ProfileController())->update();
         break;
 
     case 'profile/edit':
-        require_once ROOT_PATH . '/views/desktop/profile/edit.php';
+        // La modification s'effectue directement en popup modale sur la page profil
+        require_once ROOT_PATH . '/controllers/ProfileController.php';
+        (new ProfileController())->index();
         break;
 
     // ---------------------------------------------------------
@@ -135,7 +228,7 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
-    // URL INCONNUE
+    // ROUTE PAR DÉFAUT / SOUS-ROUTER
     // ---------------------------------------------------------
     default:
         if (strpos($fullRoute, 'admin') === 0) {

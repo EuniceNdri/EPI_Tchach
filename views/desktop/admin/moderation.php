@@ -1,6 +1,7 @@
 <?php
 $activeAdminPage = 'moderation';
 $base = isset($baseUrl) ? $baseUrl : '';
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -11,7 +12,7 @@ $base = isset($baseUrl) ? $baseUrl : '';
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/admin.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
 </head>
 <body>
   <div class="admin-tricolor"></div>
@@ -179,7 +180,7 @@ $base = isset($baseUrl) ? $baseUrl : '';
     </main>
   </div>
 
-  <script src="<?= $base ?>/public/assets/js/desktop/admin.js"></script>
+  <script src="<?= $asset ?>/js/desktop/admin.js"></script>
 </body>
 </html>
 

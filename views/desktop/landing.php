@@ -1,8 +1,7 @@
 <?php
 $base = isset($baseUrl) ? $baseUrl : '';
-$logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg') 
-    ? ($base . '/public/assets/images/logo.jpeg') 
-    : ($base . '/assets/images/logo.jpeg');
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$logoFile = $asset . '/images/logo.jpeg';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -17,9 +16,8 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   
-  <!-- Feuilles de style Desktop Landing -->
-  <link rel="stylesheet" href="<?= $base ?>/public/assets/css/desktop/landing.css" />
-  <link rel="stylesheet" href="<?= $base ?>/assets/css/desktop/landing.css" />
+  <!-- Feuille de style Desktop Landing -->
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/landing.css" />
 </head>
 <body>
   <!-- Bande tricolore décorative -->
@@ -33,7 +31,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
           <img src="<?= htmlspecialchars($logoFile) ?>" 
                alt="Logo École Polytechnique Internationale Yamoussoukro" 
                class="brand-logo-img" 
-               onerror="this.src='public/assets/images/logo.jpeg'" />
+               onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
         </div>
         <div class="brand-text">
           <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
@@ -473,7 +471,7 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
         <div>
           <div class="brand" style="margin-bottom: 0.75rem;">
             <div class="brand-logo-wrapper" style="width:40px; height:40px;">
-              <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='public/assets/images/logo.jpeg'" />
+              <img src="<?= htmlspecialchars($logoFile) ?>" alt="Logo EPI" class="brand-logo-img" onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
             </div>
             <div class="brand-text">
               <span class="brand-title" style="font-size:1.15rem;">EPI <span class="brand-accent">Tchach</span></span>
@@ -538,6 +536,6 @@ $logoFile = file_exists(ROOT_PATH . '/public/assets/images/logo.jpeg')
   <?php include ROOT_PATH . '/views/desktop/partials/policy-modal.php'; ?>
 
   <!-- Scripts JavaScript Desktop -->
-  <script src="<?= $base ?>/public/assets/js/desktop/landing.js" defer></script>
+  <script src="<?= $asset ?>/js/desktop/landing.js" defer></script>
 </body>
 </html>
