@@ -54,6 +54,7 @@ $isOwnProfile = $isOwnProfile ?? (isset($_SESSION['user_id']) && (!isset($user['
           <span>Modifier mon profil</span>
         </button>
         <a href="<?= $base ?>/logout" class="btn btn-outline btn-sm" style="color:var(--accent); border-color:#fca5a5;">Déconnexion</a>
+        <a href="<?= $base ?>/salon" class="btn btn-outline btn-sm" style="color:var(--primary); border-color:#93c5fd;">Salon Général</a>
       </div>
     </div>
   </header>

@@ -2,6 +2,7 @@
 $activeAdminPage = 'categories';
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+$zones = isset($zones) ? $zones : [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -38,175 +39,113 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       </header>
 
       <div class="admin-content">
-        <!-- Grille des Départements & Filières Actives -->
+        <!-- Messages Flash -->
+        <?php if (!empty($_SESSION['flash_success'])): ?>
+          <div style="background:#d1fae5; color:#065f46; padding:0.85rem 1.25rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600;">
+            <?= htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?>
+          </div>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['flash_error'])): ?>
+          <div style="background:#fee2e2; color:#991b1b; padding:0.85rem 1.25rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600;">
+            <?= htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?>
+          </div>
+        <?php endif; ?>
+
+        <!-- Grille des Zones & Salons Dynamiques -->
         <div class="admin-section-grid" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
           
           <div style="display:flex; flex-direction:column; gap:1.75rem;">
-            <!-- Pôle 1 : Filières Industrielles -->
-            <div class="admin-card">
-              <div class="card-header-flex">
-                <div>
-                  <h2 class="card-title">Pôle Sciences, Technologies & Génie Industriel</h2>
-                  <p style="font-size:0.8rem; color:var(--admin-muted); margin-top:0.2rem;">Salons réservés aux étudiants et enseignants techniques</p>
+            <?php if (empty($zones)): ?>
+              <div class="admin-card" style="text-align:center; padding:2.5rem; color:var(--admin-muted);">
+                <p style="font-weight:600; font-size:1rem;">Aucune zone ou filière enregistrée pour le moment.</p>
+                <span style="font-size:0.85rem;">Utilisez le formulaire à droite pour créer votre premier salon.</span>
+              </div>
+            <?php else: ?>
+              <?php foreach ($zones as $zone): ?>
+                <div class="admin-card">
+                  <div class="card-header-flex">
+                    <div>
+                      <h2 class="card-title">
+                        <?= htmlspecialchars($zone['nom']) ?>
+                        <span style="font-size:0.7rem; font-weight:700; padding:2px 8px; background:rgba(30,58,138,0.1); color:var(--admin-primary); border-radius:4px; text-transform:uppercase; margin-left:0.5rem;">
+                          <?= htmlspecialchars($zone['type_zone']) ?>
+                        </span>
+                      </h2>
+                      <p style="font-size:0.8rem; color:var(--admin-muted); margin-top:0.2rem;"><?= htmlspecialchars($zone['description'] ?? 'Espace d\'échanges officiel') ?></p>
+                    </div>
+                    <span class="status-pill status-active"><?= (int)($zone['membres_count'] ?? 0) ?> membres · <?= (int)($zone['categories_count'] ?? 0) ?> salons</span>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Nom du Salon</th>
+                          <th>Description</th>
+                          <th>Publications</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php if (empty($zone['categories'])): ?>
+                          <tr>
+                            <td colspan="4" style="text-align:center; color:var(--admin-muted); padding:1rem;">Aucun salon d'échange dans cette zone.</td>
+                          </tr>
+                        <?php else: ?>
+                          <?php foreach ($zone['categories'] as $cat): ?>
+                            <tr>
+                              <td><strong>#<?= htmlspecialchars($cat['nom']) ?></strong></td>
+                              <td><?= htmlspecialchars($cat['description'] ?? 'Aucune description') ?></td>
+                              <td><?= number_format((int)($cat['publications_count'] ?? 0), 0, ',', ' ') ?></td>
+                              <td>
+                                <button type="button" class="btn-table-action" onclick="alert('Salon #<?= htmlspecialchars($cat['nom']) ?> (ID: <?= (int)$cat['id'] ?>)');">Gérer</button>
+                              </td>
+                            </tr>
+                          <?php endforeach; ?>
+                        <?php endif; ?>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <span class="status-pill status-active">5 Salons Actifs</span>
-              </div>
-
-              <div class="table-responsive">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Nom du Salon</th>
-                      <th>Filière Cible</th>
-                      <th>Membres</th>
-                      <th>Publications</th>
-                      <th>Modérateur</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong># BTS-IDA-2026</strong></td>
-                      <td>BTS Informatique (IDA)</td>
-                      <td>245 étudiants</td>
-                      <td>1 420</td>
-                      <td>Dr. Koné & Momo K.</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #BTS-IDA-2026 ouverts.');">Gérer</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong># Genies-Civil-Batiment</strong></td>
-                      <td>BTS Bâtiment & TP</td>
-                      <td>180 étudiants</td>
-                      <td>680</td>
-                      <td>Ing. Kouamé</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #Genies-Civil-Batiment.');">Gérer</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong># Mines-Geologie-Petrole</strong></td>
-                      <td>BTS Mines & Géologie</td>
-                      <td>120 étudiants</td>
-                      <td>410</td>
-                      <td>Dr. Bakayoko</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #Mines-Geologie-Petrole.');">Gérer</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong># Licence-Informatique-L3</strong></td>
-                      <td>Licence Informatique</td>
-                      <td>95 étudiants</td>
-                      <td>530</td>
-                      <td>Pr. Touré</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #Licence-Informatique-L3.');">Gérer</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Pôle 2 : Filières Tertiaires -->
-            <div class="admin-card">
-              <div class="card-header-flex">
-                <div>
-                  <h2 class="card-title">Pôle Sciences Économiques & Gestion (Tertiaire)</h2>
-                  <p style="font-size:0.8rem; color:var(--admin-muted); margin-top:0.2rem;">Espaces d'échanges en gestion d'entreprise, finance et commerce</p>
-                </div>
-                <span class="status-pill status-active">4 Salons Actifs</span>
-              </div>
-
-              <div class="table-responsive">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Nom du Salon</th>
-                      <th>Filière Cible</th>
-                      <th>Membres</th>
-                      <th>Publications</th>
-                      <th>Modérateur</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong># Finance-Comptabilite-FCGE</strong></td>
-                      <td>BTS FCGE</td>
-                      <td>190 étudiants</td>
-                      <td>540</td>
-                      <td>M. Yao (Expert-comptable)</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #Finance-Comptabilite-FCGE.');">Gérer</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong># RH-Communication-RHCOM</strong></td>
-                      <td>BTS RHCOM</td>
-                      <td>140 étudiants</td>
-                      <td>390</td>
-                      <td>Mme Bamba</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #RH-Communication-RHCOM.');">Gérer</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td><strong># Logistique-Transport</strong></td>
-                      <td>BTS Logistique</td>
-                      <td>110 étudiants</td>
-                      <td>280</td>
-                      <td>M. N'Dri</td>
-                      <td>
-                        <button type="button" class="btn-table-action" onclick="alert('Paramètres du salon #Logistique-Transport.');">Gérer</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
           </div>
 
-          <!-- Formulaire Ajout de Salon -->
+          <!-- Formulaire Dynamique de Création de Salon & Zone -->
           <div>
             <div class="admin-card" id="nouveau-salon">
               <div class="card-header-flex">
                 <h2 class="card-title">Créer un Nouveau Salon</h2>
               </div>
               <div class="card-body">
-                <form id="newChannelForm" style="display:flex; flex-direction:column; gap:1.25rem;">
+                <form id="newChannelForm" action="<?= $base ?>/admin/categories/create-category" method="POST" style="display:flex; flex-direction:column; gap:1.25rem;">
+                  <input type="hidden" name="ajax" value="0" />
+
                   <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Nom du Salon (avec #)</label>
-                    <input type="text" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" placeholder="Ex: #Projets-Fin-Etudes-2026" required />
+                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;" for="salonNomInput">Nom du Salon (avec ou sans #)</label>
+                    <input type="text" id="salonNomInput" name="nom" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" placeholder="Ex: #Projets-Fin-Etudes" required />
                   </div>
 
                   <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Pôle / Filière rattachée</label>
-                    <select class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;">
-                      <option value="ida">BTS Informatique Développeur d'Applications (IDA)</option>
-                      <option value="batiment">BTS Bâtiment & Travaux Publics</option>
-                      <option value="mines">BTS Mines & Géologie</option>
-                      <option value="fcge">BTS Finance Comptabilité (FCGE)</option>
-                      <option value="rhcom">BTS Ressources Humaines & Communication</option>
-                      <option value="all">Tronc Commun (Tous les étudiants)</option>
+                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;" for="salonZoneSelect">Zone / Filière rattachée</label>
+                    <select id="salonZoneSelect" name="zone_id" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;">
+                      <?php if (!empty($zones)): ?>
+                        <?php foreach ($zones as $z): ?>
+                          <option value="<?= (int)$z['id'] ?>"><?= htmlspecialchars($z['nom']) ?> (<?= htmlspecialchars($z['type_zone']) ?>)</option>
+                        <?php endforeach; ?>
+                      <?php endif; ?>
+                      <option value="new">+ Créer une nouvelle filière / zone...</option>
                     </select>
                   </div>
 
-                  <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Description de la matière / objectif</label>
-                    <textarea class="search-box" rows="3" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem; resize:vertical;" placeholder="Espace de partage pour les révisions de partiels..."></textarea>
+                  <div id="newZoneGroup" style="display:none;">
+                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;" for="newZoneInput">Nom de la nouvelle Filière / Zone</label>
+                    <input type="text" id="newZoneInput" name="new_zone_name" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" placeholder="Ex: Licence Sécurité Réseaux" />
                   </div>
 
                   <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Modérateur Référent (Professeur ou Délégué)</label>
-                    <input type="text" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" placeholder="Ex: Dr. Ibrahim Koné" required />
-                  </div>
-
-                  <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <input type="checkbox" id="channelPublic" checked style="width:1.15rem; height:1.15rem; accent-color:var(--admin-primary);" />
-                    <label for="channelPublic" style="font-size:0.875rem; font-weight:600; cursor:pointer;">Accessible immédiatement aux étudiants</label>
+                    <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;" for="salonDescInput">Description du Salon & Objectifs</label>
+                    <textarea id="salonDescInput" name="description" rows="3" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem; resize:vertical;" placeholder="Espace d'échanges, questions de cours..."></textarea>
                   </div>
 
                   <button type="submit" class="btn-table-action" style="background:var(--admin-primary); color:#ffffff; padding:0.85rem; font-size:0.95rem; border-radius:var(--radius-sm); margin-top:0.5rem;">
@@ -222,7 +161,18 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
     </main>
   </div>
 
+  <script>
+    document.getElementById('salonZoneSelect').addEventListener('change', function() {
+      const newGroup = document.getElementById('newZoneGroup');
+      if (this.value === 'new') {
+        newGroup.style.display = 'block';
+        document.getElementById('newZoneInput').required = true;
+      } else {
+        newGroup.style.display = 'none';
+        document.getElementById('newZoneInput').required = false;
+      }
+    });
+  </script>
   <script src="<?= $asset ?>/js/desktop/admin.js"></script>
 </body>
 </html>
-

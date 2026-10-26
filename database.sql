@@ -1,7 +1,8 @@
 -- ============================================================
---  FORUM ÉCOLE - Script SQL FINAL (Version stable)
---  Création des tables + Données de test + 9 Indexes optimisés
---  MySQL / MariaDB
+--  FORUM ÉCOLE - Script SQL FINAL (Version stable & complète)
+--  - Gestion des Zones (Salon Général, Filières, Professeurs, Délégation)
+--  - Publications, Commentaires & Réactions (Likes / Utile / J'adore)
+--  - Modération automatique & 9 Index de performance
 -- ============================================================
 
 DROP DATABASE IF EXISTS forum_ecole;
@@ -28,7 +29,7 @@ CREATE TABLE utilisateurs (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 2. ZONES
+-- 2. ZONES (Espaces principaux : Salon Général, Filières, etc.)
 -- ============================================================
 CREATE TABLE zones (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +43,7 @@ CREATE TABLE zones (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 3. APPARTENANCE_ZONES (rôles fins)
+-- 3. APPARTENANCE_ZONES (Rôles fins des membres dans les zones)
 -- ============================================================
 CREATE TABLE appartenance_zones (
     utilisateur_id  INT UNSIGNED NOT NULL,
@@ -55,7 +56,7 @@ CREATE TABLE appartenance_zones (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 4. CATEGORIES
+-- 4. CATEGORIES (Salons d'échange à l'intérieur des zones)
 -- ============================================================
 CREATE TABLE categories (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -70,7 +71,7 @@ CREATE TABLE categories (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 5. PUBLICATIONS
+-- 5. PUBLICATIONS (Sujets postés dans les salons)
 -- ============================================================
 CREATE TABLE publications (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -81,7 +82,7 @@ CREATE TABLE publications (
     type_publication    ENUM('discussion','question','annonce') NOT NULL DEFAULT 'discussion',
     statut              ENUM('ouvert','resolu','ferme','epingle') NOT NULL DEFAULT 'ouvert',
     commentaires_fermes BOOLEAN NOT NULL DEFAULT FALSE,
-    est_signale         BOOLEAN NOT NULL DEFAULT FALSE,     -- pour modération rapide
+    est_signale         BOOLEAN NOT NULL DEFAULT FALSE,     -- Modération rapide
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification   DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
@@ -89,7 +90,7 @@ CREATE TABLE publications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 6. COMMENTAIRES
+-- 6. COMMENTAIRES (Réponses aux publications)
 -- ============================================================
 CREATE TABLE commentaires (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -106,7 +107,7 @@ CREATE TABLE commentaires (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 7. REACTIONS
+-- 7. REACTIONS (Likes, Utile, J'adore sur publications & commentaires)
 -- ============================================================
 CREATE TABLE reactions (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -184,7 +185,7 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 13. MOTS INTERDITS (modération intelligente)
+-- 13. MOTS INTERDITS (Modération automatique)
 -- ============================================================
 CREATE TABLE mots_interdits (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -196,7 +197,7 @@ CREATE TABLE mots_interdits (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- INDEX de performance (9 indexes principaux + modération)
+-- INDEX DE PERFORMANCE (9 indexes + drapeaux de modération)
 -- ============================================================
 CREATE INDEX idx_pub_categorie       ON publications(categorie_id);
 CREATE INDEX idx_pub_utilisateur     ON publications(utilisateur_id);
@@ -215,9 +216,6 @@ CREATE INDEX idx_com_signale         ON commentaires(est_signale);
 --                    DONNÉES DE TEST
 -- ############################################################
 
--- Mot de passe pour tous les comptes de test = password123
--- Hash bcrypt valide
-
 INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, biographie) VALUES
 ('Kouassi', 'Momo', 'momo.kouassi@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiant en BTS IDA, passionné de développement web.'),
 ('Traoré', 'Sarah', 'sarah.traore@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiante en BTS IDA.'),
@@ -232,7 +230,7 @@ INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modul
 
 -- ZONES
 INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
-('Zone Générale - Vie de l''École', 'generale', 'Espace public pour les annonces officielles et la vie étudiante.', 8),
+('Zone Générale - Vie de l''École', 'generale', 'Espace public pour les annonces officielles et la vie étudiante (Salon Général).', 8),
 ('Filière BTS IDA', 'filiere', 'Espace dédié aux étudiants et professeurs de BTS IDA.', 4),
 ('Filière Licence Informatique', 'filiere', 'Espace dédié aux étudiants de Licence Informatique.', 8),
 ('Espace Professeurs', 'professeurs', 'Zone restreinte réservée aux enseignants.', 8),
@@ -240,20 +238,15 @@ INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
 
 -- APPARTENANCES
 INSERT INTO appartenance_zones (utilisateur_id, zone_id, role_dans_zone) VALUES
--- Zone Générale
 (1,1,'membre'),(2,1,'membre'),(3,1,'membre'),(4,1,'membre'),
 (5,1,'membre'),(6,1,'membre'),(7,1,'membre'),(8,1,'moderateur_zone'),
 (9,1,'moderateur_zone'),(10,1,'membre'),
--- BTS IDA
 (1,2,'membre'),(2,2,'membre'),(4,2,'chef_de_classe'),(6,2,'membre'),(5,2,'membre'),
--- Licence
 (3,3,'membre'),(7,3,'membre'),
--- Professeurs
 (6,4,'membre'),(7,4,'membre'),(8,4,'moderateur_zone'),
--- Délégation
 (5,5,'delegue_general'),(4,5,'chef_de_classe'),(1,5,'membre'),(9,5,'moderateur_zone');
 
--- CATEGORIES
+-- CATEGORIES (Salons)
 INSERT INTO categories (zone_id, nom, slug, description, ordre) VALUES
 (1, 'Annonces Officielles', 'annonces-officielles', 'Communications de la direction.', 1),
 (1, 'Vie Étudiante & Événements', 'vie-etudiante', 'Discussions générales et activités.', 2),
@@ -275,7 +268,7 @@ INSERT INTO tags (nom) VALUES
 ('examen'),('tp'),('projet'),('stage'),('reseaux'),
 ('python'),('fastapi'),('git'),('api'),('debug');
 
--- PUBLICATIONS
+-- PUBLICATIONS (dans les salons)
 INSERT INTO publications (utilisateur_id, categorie_id, titre, contenu, type_publication, statut) VALUES
 (8, 1, 'Rentrée 2026 - Informations importantes', 'Chers étudiants, la rentrée officielle est fixée au 5 octobre 2026.', 'annonce', 'epingle'),
 (6, 1, 'Remise des notes du premier contrôle', 'Les notes du contrôle de Développement Web seront disponibles demain.', 'annonce', 'ouvert'),
@@ -298,7 +291,7 @@ INSERT INTO commentaires (publication_id, utilisateur_id, contenu, est_solution,
 (6, 1, 'Merci Awa, trop cool !', FALSE, FALSE),
 (6, 2, 'Parfait pour réviser, merci la chef de classe.', FALSE, FALSE);
 
--- REACTIONS
+-- REACTIONS (Likes, Utile, J'adore)
 INSERT INTO reactions (utilisateur_id, type_cible, cible_id, type_reaction) VALUES
 (2,'publication',3,'utile'),(4,'publication',3,'like'),(6,'publication',3,'utile'),
 (1,'commentaire',1,'jadore'),(2,'commentaire',1,'utile'),
@@ -332,22 +325,9 @@ INSERT INTO notifications (utilisateur_id, type_notification, contenu, lien, lu)
 (2, 'reponse', 'Momo Kouassi a commenté la publication "Recherche de binôme"', '/publication/5', FALSE),
 (8, 'demande_creation_zone', 'Nouvelle filière demandée : l''étudiant Amadou Bakayoko s''est inscrit dans "Génie Mécanique" qui n''a pas encore de salon. Veuillez créer la zone.', '/admin/zones', FALSE);
 
--- MOTS INTERDITS (modération intelligente)
+-- MOTS INTERDITS (Modération automatique)
 INSERT INTO mots_interdits (mot, type_mot, action) VALUES
 ('insulte', 'insulte', 'bloquer'),
 ('spam', 'spam', 'signaler'),
 ('pub', 'spam', 'signaler'),
 ('arnaque', 'suspect', 'signaler');
-
-
--- ============================================================
--- COMPTES DE TEST (mot de passe = password123)
--- ============================================================
--- Étudiant          : momo.kouassi@epi-yakro.ci
--- Chef de classe    : awa.nguessan@epi-yakro.ci
--- Délégué Général   : kofi.yao@epi-yakro.ci
--- Professeur        : ibrahim.kone@epi-yakro.ci
--- Administrateur    : admin@epi-yakro.ci
--- Modérateur        : paul.modo@epi-yakro.ci
--- Étudiant (filière sans zone) : amadou.bakayoko@epi-yakro.ci
--- ============================================================
