@@ -3,14 +3,17 @@ $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 $logoFile = $asset . '/images/logo.jpeg';
 
-// Récupération des informations de session avec repli sur la démo
-$sessionNom = $_SESSION['user_nom'] ?? 'Kouassi';
-$sessionPrenom = $_SESSION['user_prenom'] ?? 'Momo';
+// Récupération des informations du profil (utilisateur consulté ou session courante)
+$sessionNom = !empty($user['nom']) ? $user['nom'] : ($_SESSION['user_nom'] ?? 'Kouassi');
+$sessionPrenom = !empty($user['prenom']) ? $user['prenom'] : ($_SESSION['user_prenom'] ?? 'Momo');
 $sessionFullName = trim($sessionPrenom . ' ' . $sessionNom);
-$sessionEmail = $_SESSION['user_email'] ?? 'momo.kouassi@epi-yakro.ci';
-$sessionRole = $_SESSION['user_role'] ?? 'etudiant';
-$sessionBio = $_SESSION['user_bio'] ?? "Passionné de développement web fullstack, base de données et architecture MVC. Prêt à s'entraider pour réussir les partiels et examens à l'EPI !";
-$initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1));
+$sessionEmail = !empty($user['email']) ? $user['email'] : ($_SESSION['user_email'] ?? 'momo.kouassi@epi-yakro.ci');
+$sessionRole = !empty($user['role']) ? $user['role'] : ($_SESSION['user_role'] ?? 'etudiant');
+$sessionBio = !empty($user['biographie']) ? $user['biographie'] : ($_SESSION['user_bio'] ?? "Passionné de développement web fullstack, base de données et architecture MVC. Prêt à s'entraider pour réussir les partiels et examens à l'EPI !");
+$sessionFiliere = !empty($user['filiere']) ? $user['filiere'] : ($_SESSION['user_filiere'] ?? 'BTS IDA (Informatique Développeur)');
+$sessionModules = !empty($user['modules_enseignes']) ? $user['modules_enseignes'] : ($_SESSION['user_modules'] ?? '');
+$initials = strtoupper(mb_substr($sessionPrenom, 0, 1) . mb_substr($sessionNom, 0, 1));
+$isOwnProfile = $isOwnProfile ?? (isset($_SESSION['user_id']) && (!isset($user['id']) || $_SESSION['user_id'] == $user['id']));
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -19,6 +22,8 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Profil Membre — <?= htmlspecialchars($sessionFullName) ?> · EPI Tchach</title>
   <meta name="description" content="Espace profil membre et gestion du compte de l'École Polytechnique Internationale de Yamoussoukro" />
+  <link rel="icon" type="image/svg+xml" href="<?= $asset ?>/images/logo_epi.svg" />
+  <link rel="apple-touch-icon" href="<?= $asset ?>/images/logo.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -174,28 +179,36 @@ $sessionModules = $_SESSION['user_modules'] ?? ($user['modules_enseignes'] ?? nu
         <!-- 4 Cartes KPIs Statistiques -->
         <div class="profile-stats-grid">
           <div class="stat-box">
-            <div class="stat-icon-wrapper icon-blue">💬</div>
+            <div class="stat-icon-wrapper icon-blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
             <div>
               <div class="stat-val" id="statSubjectsCount">28</div>
               <div class="stat-lbl">Sujets lancés</div>
             </div>
           </div>
           <div class="stat-box">
-            <div class="stat-icon-wrapper icon-green">💡</div>
+            <div class="stat-icon-wrapper icon-green">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            </div>
             <div>
               <div class="stat-val">142</div>
               <div class="stat-lbl">Réponses apportées</div>
             </div>
           </div>
           <div class="stat-box">
-            <div class="stat-icon-wrapper icon-amber">📁</div>
+            <div class="stat-icon-wrapper icon-amber">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+            </div>
             <div>
               <div class="stat-val">19</div>
               <div class="stat-lbl">Documents & TP</div>
             </div>
           </div>
           <div class="stat-box">
-            <div class="stat-icon-wrapper icon-purple">⭐</div>
+            <div class="stat-icon-wrapper icon-purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
             <div>
               <div class="stat-val">98%</div>
               <div class="stat-lbl">Avis positifs</div>
@@ -301,19 +314,28 @@ $sessionModules = $_SESSION['user_modules'] ?? ($user['modules_enseignes'] ?? nu
                 <span class="post-tag-pill">Pôle Tech</span>
                 <h4 style="font-weight:800; margin:0.75rem 0 0.35rem;">BTS IDA 2ème Année</h4>
                 <p style="font-size:0.85rem; color:var(--muted-foreground); margin-bottom:1rem;">Algorithmique, Base de données, Réseaux et Projets de fin d'études.</p>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--success);">● 38 membres connectés</span>
+                <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:700; color:var(--success);">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
+                  <span>38 membres connectés</span>
+                </div>
               </div>
               <div style="border:1.5px solid var(--border); border-radius:var(--radius-md); padding:1.25rem;">
                 <span class="post-tag-pill" style="background:#e0f2fe; color:#0369a1;">Pôle Ingénierie</span>
                 <h4 style="font-weight:800; margin:0.75rem 0 0.35rem;">Génie Civil & BTP</h4>
                 <p style="font-size:0.85rem; color:var(--muted-foreground); margin-bottom:1rem;">Topographie, résistance des matériaux et plans AutoCAD.</p>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--success);">● 21 membres connectés</span>
+                <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:700; color:var(--success);">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
+                  <span>21 membres connectés</span>
+                </div>
               </div>
               <div style="border:1.5px solid var(--border); border-radius:var(--radius-md); padding:1.25rem;">
                 <span class="post-tag-pill" style="background:#fef3c7; color:#b45309;">Pôle Économie</span>
                 <h4 style="font-weight:800; margin:0.75rem 0 0.35rem;">Finance & Comptabilité</h4>
                 <p style="font-size:0.85rem; color:var(--muted-foreground); margin-bottom:1rem;">Gestion financière, fiscalité ivoirienne et contrôle de gestion.</p>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--success);">● 15 membres connectés</span>
+                <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:700; color:var(--success);">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
+                  <span>15 membres connectés</span>
+                </div>
               </div>
             </div>
           </div>
@@ -324,7 +346,9 @@ $sessionModules = $_SESSION['user_modules'] ?? ($user['modules_enseignes'] ?? nu
             <div style="display:flex; flex-direction:column; gap:1rem;">
               <div style="display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1rem 1.25rem;">
                 <div style="display:flex; align-items:center; gap:1rem;">
-                  <span style="font-size:1.5rem;">📄</span>
+                  <div style="width:40px; height:40px; border-radius:8px; background:rgba(30, 58, 138, 0.08); display:flex; align-items:center; justify-content:center; color:var(--primary);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </div>
                   <div>
                     <strong style="font-size:0.95rem;">Annales_Maths_BTS_2025_Corrige.pdf</strong>
                     <div style="font-size:0.8rem; color:var(--muted-foreground);">PDF · 2.4 Mo · 142 téléchargements</div>
@@ -334,7 +358,9 @@ $sessionModules = $_SESSION['user_modules'] ?? ($user['modules_enseignes'] ?? nu
               </div>
               <div style="display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1rem 1.25rem;">
                 <div style="display:flex; align-items:center; gap:1rem;">
-                  <span style="font-size:1.5rem;">📦</span>
+                  <div style="width:40px; height:40px; border-radius:8px; background:rgba(234, 88, 12, 0.08); display:flex; align-items:center; justify-content:center; color:var(--accent);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  </div>
                   <div>
                     <strong style="font-size:0.95rem;">TP_Reseaux_Configuration_Cisco_PacketTracer.zip</strong>
                     <div style="font-size:0.8rem; color:var(--muted-foreground);">ZIP · 5.8 Mo · 89 téléchargements</div>

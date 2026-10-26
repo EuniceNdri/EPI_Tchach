@@ -27,21 +27,26 @@ class ProfileController {
     public function index(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $userId = $_SESSION['user_id'] ?? null;
+        $currentUserId = $_SESSION['user_id'] ?? null;
+        $targetUserId = !empty($_GET['id']) ? (int)$_GET['id'] : $currentUserId;
         $user = null;
 
-        if ($userId) {
-            $user = $this->userModel->findById((int) $userId);
-            if ($user) {
-                $_SESSION['user_nom'] = $user['nom'];
-                $_SESSION['user_prenom'] = $user['prenom'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['user_bio'] = $user['biographie'];
-                $_SESSION['user_filiere'] = $user['filiere'];
-                $_SESSION['user_modules'] = $user['modules_enseignes'];
-            }
+        if ($targetUserId) {
+            $user = $this->userModel->findById((int) $targetUserId);
         }
+
+        // Si l'utilisateur consulte son propre profil, on synchronise la session
+        if ($user && $currentUserId && $targetUserId == $currentUserId) {
+            $_SESSION['user_nom'] = $user['nom'];
+            $_SESSION['user_prenom'] = $user['prenom'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['user_bio'] = $user['biographie'];
+            $_SESSION['user_filiere'] = $user['filiere'];
+            $_SESSION['user_modules'] = $user['modules_enseignes'];
+        }
+
+        $isOwnProfile = ($currentUserId && $targetUserId == $currentUserId);
 
         require_once ROOT_PATH . '/views/desktop/profile/index.php';
     }

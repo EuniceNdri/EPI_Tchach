@@ -183,6 +183,19 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
+    // PUBLICATIONS & COMMENTAIRES (Géré par PublicationController)
+    // ---------------------------------------------------------
+    case 'publication/create':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->create();
+        break;
+
+    case 'comment/create':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->createComment();
+        break;
+
+    // ---------------------------------------------------------
     // ESPACE PROFIL (Géré par ProfileController)
     // ---------------------------------------------------------
     case 'profile':
@@ -203,28 +216,63 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
-    // ESPACE ADMINISTRATION
+    // ESPACE ADMINISTRATION (Géré par AdminController)
     // ---------------------------------------------------------
     case 'admin':
     case 'admin/dashboard':
-        require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->dashboard();
         break;
 
     case 'admin/users':
-        require_once ROOT_PATH . '/views/desktop/admin/users.php';
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->users();
+        break;
+
+    case 'admin/users/json':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->getUserJson();
+        break;
+
+    case 'admin/users/edit':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->editUser();
+        break;
+
+    case 'admin/users/delete':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->deleteUser();
         break;
 
     case 'admin/moderation':
-        require_once ROOT_PATH . '/views/desktop/admin/moderation.php';
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->moderation();
+        break;
+
+    case 'admin/moderation/action':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->handleReport();
         break;
 
     case 'admin/categories':
     case 'admin/filieres':
-        require_once ROOT_PATH . '/views/desktop/admin/categories.php';
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->categories();
+        break;
+
+    case 'admin/categories/create-zone':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->createZone();
+        break;
+
+    case 'admin/categories/create-category':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->createCategory();
         break;
 
     case 'admin/settings':
-        require_once ROOT_PATH . '/views/desktop/admin/settings.php';
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->settings();
         break;
 
     // ---------------------------------------------------------
@@ -232,9 +280,11 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     default:
         if (strpos($fullRoute, 'admin') === 0) {
-            require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
+            require_once ROOT_PATH . '/controllers/AdminController.php';
+            (new AdminController())->dashboard();
         } elseif (strpos($fullRoute, 'profile') === 0) {
-            require_once ROOT_PATH . '/views/desktop/profile/index.php';
+            require_once ROOT_PATH . '/controllers/ProfileController.php';
+            (new ProfileController())->index();
         } else {
             require_once ROOT_PATH . '/views/desktop/landing.php';
         }

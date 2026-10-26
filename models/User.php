@@ -17,7 +17,8 @@ if (defined('ROOT_PATH')) {
 }
 
 class User {
-    private ?PDO $pdo;
+    protected ?PDO $pdo;
+    protected ?string $role = null;
 
     public function __construct(?PDO $pdo = null) {
         if ($pdo !== null) {
@@ -27,6 +28,40 @@ class User {
             $this->pdo = $pdo;
         }
     }
+
+    /**
+     * Charge et retourne le rôle d'un utilisateur par son email
+     *
+     * @param string $email
+     * @return string|null Retourne le rôle ('etudiant', 'professeur', 'administrateur', etc.) ou null si inexistant
+     */
+    public function chargeRole(string $email): ?string {
+        if (!$this->pdo) {
+            return null;
+        }
+
+        $email = strtolower(trim($email));
+        $stmt = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE LOWER(email) = ? LIMIT 1');
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if ($user && !empty($user['role'])) {
+            $this->role = strtolower(trim($user['role']));
+            return $this->role;
+        }
+
+        $this->role = null;
+        return null;
+    }
+
+    /**
+     * Retourne le dernier rôle chargé
+     */
+    public function getRole(): ?string {
+        return $this->role;
+    }
+
+    
 
     /**
      * Authentification d'un utilisateur par email et mot de passe

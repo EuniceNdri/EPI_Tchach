@@ -9,6 +9,8 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Administration — Modération des Contenus · EPI Tchach</title>
+  <link rel="icon" type="image/svg+xml" href="<?= $asset ?>/images/logo_epi.svg" />
+  <link rel="apple-touch-icon" href="<?= $asset ?>/images/logo.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -30,7 +32,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
 
         <div class="topbar-right">
           <span style="font-size:0.875rem; color:var(--admin-muted); font-weight:700;">
-            3 signalements à traiter
+            <?= count($reports ?? []) ?> signalement(s) à traiter
           </span>
         </div>
       </header>
@@ -39,10 +41,12 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
         <!-- Bannière d'info charte -->
         <div style="background:rgba(30,58,138,0.06); border:1px solid rgba(30,58,138,0.2); border-radius:var(--radius-md); padding:1.25rem 1.5rem; margin-bottom:2rem; display:flex; align-items:center; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:0.75rem;">
-            <span style="font-size:1.5rem;">⚖️</span>
+            <div style="width:40px; height:40px; border-radius:8px; background:rgba(30,58,138,0.12); display:flex; align-items:center; justify-content:center; color:var(--admin-primary);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            </div>
             <div>
-              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary);">Règles d'intervention des modérateurs</h3>
-              <p style="font-size:0.85rem; color:var(--admin-muted);">Toute suppression de message doit être motivée par un manquement explicite à la charte de l'école (propos irrespectueux, triche, spam).</p>
+              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Règles d'intervention des modérateurs</h3>
+              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">Toute suppression de message doit être motivée par un manquement explicite à la charte de l'école (propos irrespectueux, triche, spam).</p>
             </div>
           </div>
           <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte</a>
@@ -50,86 +54,41 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
 
         <!-- Liste des Cartes de Signalement -->
         <div style="display:flex; flex-direction:column; gap:1.5rem;">
-          <!-- Signalement 1 -->
-          <div class="report-card">
-            <div class="report-header">
-              <div style="display:flex; align-items:center; gap:0.75rem;">
-                <span class="report-reason-badge">Propos Irrespectueux / Diffamation</span>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--admin-primary);">Salon : #BTS-IDA-2026</span>
-              </div>
-              <span style="font-size:0.8rem; color:var(--admin-muted);">Signalé il y a 25 minutes</span>
+          <?php if (empty($reports)): ?>
+            <div class="admin-card" style="text-align:center; padding:3rem 1.5rem; color:var(--admin-muted);">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 0.75rem; display:block; opacity:0.6;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              <h3 style="font-size:1.1rem; font-weight:800; color:var(--admin-dark); margin:0 0 0.5rem 0;">Aucun signalement en attente</h3>
+              <p style="font-size:0.9rem; margin:0;">Tous les salons respectent actuellement la charte de modération du campus.</p>
             </div>
-
-            <div class="report-content-preview">
-              « Le prof de statistiques ne sait même pas faire ses propres exercices, il nous donne des zéros pour rien ! C'est n'importe quoi cette école. »
-            </div>
-
-            <div class="report-footer">
-              <div>
-                <strong>Auteur du message :</strong> Étudiant Anonyme (ID: 412) · 
-                <span style="color:var(--admin-muted);">Signalé par le Délégué Momo Kouassi</span>
+          <?php else: ?>
+            <?php foreach ($reports as $r): ?>
+            <div class="report-card" data-report-id="<?= (int)$r['id'] ?>">
+              <div class="report-header">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                  <span class="report-reason-badge"><?= htmlspecialchars($r['raison'] ?? 'Signalement') ?></span>
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--admin-primary);">Message ID: #<?= (int)($r['message_id'] ?? 0) ?></span>
+                </div>
+                <span style="font-size:0.8rem; color:var(--admin-muted);"><?= htmlspecialchars($r['created_at'] ?? 'Récemment') ?></span>
               </div>
 
-              <div class="action-buttons">
-                <button type="button" class="btn-table-action btn-mod-approve">Classer sans suite</button>
-                <button type="button" class="btn-table-action" onclick="alert('Un avertissement pédagogique a été envoyé à l\'auteur.');">Avertir l'auteur</button>
-                <button type="button" class="btn-table-action btn-table-danger btn-mod-delete">Supprimer le message</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Signalement 2 -->
-          <div class="report-card">
-            <div class="report-header">
-              <div style="display:flex; align-items:center; gap:0.75rem;">
-                <span class="report-reason-badge">Fraude / Vente de Corrigés</span>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--admin-primary);">Salon : #Entraide-Partiels</span>
-              </div>
-              <span style="font-size:0.8rem; color:var(--admin-muted);">Signalé il y a 2 heures</span>
-            </div>
-
-            <div class="report-content-preview">
-              « Disponibles : Sujets et corrigés officiels du partiel de Mécanique des Sols avant l'heure. Écrivez-moi sur WhatsApp au 07xxxxxx pour 5 000 FCFA. »
-            </div>
-
-            <div class="report-footer">
-              <div>
-                <strong>Auteur du message :</strong> Compte externe (ID: 981) · 
-                <span style="color:var(--admin-muted);">Signalé par Dr. Ibrahim Koné</span>
+              <div class="report-content-preview">
+                « <?= htmlspecialchars($r['message_contenu'] ?? 'Contenu non disponible') ?> »
               </div>
 
-              <div class="action-buttons">
-                <button type="button" class="btn-table-action btn-table-danger btn-mod-delete">Supprimer & Bannir</button>
+              <div class="report-footer">
+                <div>
+                  <strong>Auteur du message :</strong> <?= htmlspecialchars($r['auteur_nom'] ?? 'Anonyme') ?> · 
+                  <span style="color:var(--admin-muted);">Signalé par <?= htmlspecialchars($r['signaleur_nom'] ?? 'Membre') ?></span>
+                </div>
+
+                <div class="action-buttons">
+                  <button type="button" class="btn-table-action btn-mod-approve" data-report-id="<?= (int)$r['id'] ?>">Classer sans suite</button>
+                  <button type="button" class="btn-table-action btn-table-danger btn-mod-delete" data-report-id="<?= (int)$r['id'] ?>">Supprimer le message</button>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Signalement 3 -->
-          <div class="report-card">
-            <div class="report-header">
-              <div style="display:flex; align-items:center; gap:0.75rem;">
-                <span class="report-reason-badge" style="background:#fef3c7; color:#d97706;">Hors Sujet / Spam</span>
-                <span style="font-size:0.8rem; font-weight:700; color:var(--admin-primary);">Salon : #Licence-Informatique</span>
-              </div>
-              <span style="font-size:0.8rem; color:var(--admin-muted);">Signalé hier à 21:10</span>
-            </div>
-
-            <div class="report-content-preview">
-              « Venez parier sur 1xBet avec mon code promo pour gagner de l'argent facile tous les week-ends ! »
-            </div>
-
-            <div class="report-footer">
-              <div>
-                <strong>Auteur du message :</strong> Compte étudiant (ID: 745) · 
-                <span style="color:var(--admin-muted);">Signalé par 4 étudiants</span>
-              </div>
-
-              <div class="action-buttons">
-                <button type="button" class="btn-table-action btn-mod-approve">Ignorer</button>
-                <button type="button" class="btn-table-action btn-table-danger btn-mod-delete">Supprimer le post</button>
-              </div>
-            </div>
-          </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
 
         <!-- Section Sujets Verrouillés / Archivés -->
