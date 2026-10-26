@@ -1,28 +1,35 @@
 <?php
 /**
- * =============================================================
- * controllers/AdminController.php – Contrôleur d'Administration
- * =============================================================
- * Gère toutes les actions du panneau d'administration :
- *   - Tableau de bord & KPIs en temps réel (dashboard)
- *   - Gestion & Édition des utilisateurs en modal AJAX (users, editUser)
- *   - Modération des signalements (moderation, handleReport)
- *   - Gestion des filières et salons (categories, createZone, createCategory)
- *   - Paramètres de la plateforme (settings)
- * =============================================================
+ =============================================================
+ controllers/AdminController.php – Contrôleur d'Administration
+ =============================================================
+ Gère toutes les actions du panneau d'administration :
+ - Tableau de bord & KPIs en temps réel (dashboard)
+ - Gestion & Édition des utilisateurs en modal AJAX (users, editUser)
+ - Modération des signalements (moderation, handleReport)
+ - Gestion des filières et salons (categories, createZone, createCategory via le modèle Salon)
+ - Paramètres de la plateforme (settings)
+ =============================================================
  */
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Admin.php';
+    require_once ROOT_PATH . '/models/Salon.php';
 } else {
     require_once dirname(__DIR__) . '/models/Admin.php';
+    require_once dirname(__DIR__) . '/models/Salon.php';
 }
 
 class AdminController {
     private Admin $adminModel;
+    private Salon $salonModel;
 
     public function __construct() {
         $this->adminModel = new Admin();
+        // Récupération de la connexion PDO du modèle Admin pour l'injecter dans Salon
+        $pdo = method_exists($this->adminModel, 'getPdo') ? $this->adminModel->getPdo() : null;
+        $this->salonModel = new Salon($pdo);
+        
         $this->checkAdmin();
     }
 
@@ -58,19 +65,18 @@ class AdminController {
      * Tableau de Bord Général
      */
     public function dashboard(): void {
-    global $baseUrl, $base, $assetBase, $asset;
+        global $baseUrl, $base, $assetBase, $asset;
 
-    $kpis = $this->adminModel->getDashboardKPIs();
-    
-    // Correction : forcer le type tableau pour éviter les erreurs si le modèle retourne null
-    $recentUsers = $this->adminModel->getRecentUsers(8) ?? [];
-    $filiereActivity = $this->adminModel->getFiliereActivity() ?? [];
-    
-    $recentReports = $this->adminModel->getReports('en_attente') ?? [];
-    $zones = $this->adminModel->getZonesWithCategories() ?? [];
+        $kpis = $this->adminModel->getDashboardKPIs();
+        
+        $recentUsers = $this->adminModel->getRecentUsers(8) ?? [];
+        $filiereActivity = $this->salonModel->getFiliereActivity() ?? [];
+        
+        $recentReports = $this->adminModel->getReports('en_attente') ?? [];
+        $zones = $this->salonModel->getZonesWithCategories() ?? [];
 
-    require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
-}
+        require_once ROOT_PATH . '/views/desktop/admin/dashboard.php';
+    }
 
     /**
      * Gestion des Utilisateurs
@@ -111,7 +117,7 @@ class AdminController {
     }
 
     /**
-     * Mise à jour des informations d'un utilisateur (appelé depuis la modal ou formulaire POST)
+     * Mise à jour des informations d'un utilisateur
      */
     public function editUser(): void {
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
@@ -198,7 +204,6 @@ class AdminController {
 
         $userId = (int)($_POST['id'] ?? 0);
 
-        // Protection : on ne peut pas supprimer son propre compte en cours de session
         if ($userId === (int)($_SESSION['user_id'] ?? 0)) {
             $msg = "Vous ne pouvez pas supprimer votre propre compte administrateur.";
             if ($isAjax) {
@@ -248,14 +253,14 @@ class AdminController {
     }
 
     /**
-     * Traitement d'un signalement (classer ou supprimer le message)
+     * Traitement d'un signalement
      */
     public function handleReport(): void {
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
 
         $reportId = (int)($_POST['report_id'] ?? 0);
-        $action = trim($_POST['action'] ?? 'traiter'); // 'traiter', 'rejeter', 'supprimer_contenu'
+        $action = trim($_POST['action'] ?? 'traiter');
 
         $success = $this->adminModel->handleReport($reportId, $action);
 
@@ -289,13 +294,13 @@ class AdminController {
     public function categories(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $zones = $this->adminModel->getZonesWithCategories();
+        $zones = $this->salonModel->getZonesWithCategories();
 
         require_once ROOT_PATH . '/views/desktop/admin/categories.php';
     }
 
     /**
-     * Création d'une nouvelle Zone (ex: filière)
+     * Création d'une nouvelle Zone via Salon
      */
     public function createZone(): void {
         $nom = trim($_POST['nom'] ?? '');
@@ -304,7 +309,7 @@ class AdminController {
         $createurId = (int)($_SESSION['user_id'] ?? 1);
 
         if (!empty($nom)) {
-            $newId = $this->adminModel->createZone($nom, $typeZone, $description, $createurId);
+            $newId = $this->salonModel->createZone($nom, $typeZone, $description, $createurId);
             if ($newId) {
                 $_SESSION['flash_success'] = "La zone \"{$nom}\" a été créée avec succès et les étudiants correspondants ont été automatiquement rattachés.";
             } else {
@@ -319,7 +324,7 @@ class AdminController {
     }
 
     /**
-     * Création d'une catégorie dans une zone
+     * Création d'une catégorie dans une zone via Salon
      */
     public function createCategory(): void {
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
@@ -331,7 +336,6 @@ class AdminController {
         $description = trim($_POST['description'] ?? '');
         $ordre = (int)($_POST['ordre'] ?? 0);
 
-        // Si le nom commence par #, on le nettoie ou on le garde propre
         if (strpos($nom, '#') === 0) {
             $nom = trim(substr($nom, 1));
         }
@@ -348,20 +352,19 @@ class AdminController {
             exit;
         }
 
-        // Si l'administrateur a choisi de créer une nouvelle zone/filière à la volée
         if ($zoneIdRaw === 'new' || (int)$zoneIdRaw <= 0) {
             $newZoneName = trim($_POST['new_zone_name'] ?? '');
             if (empty($newZoneName)) {
                 $newZoneName = 'Filière Générale';
             }
             $createurId = (int)($_SESSION['user_id'] ?? 1);
-            $zoneId = $this->adminModel->createZone($newZoneName, 'filiere', 'Zone créée depuis le panneau admin', $createurId);
+            $zoneId = $this->salonModel->createZone($newZoneName, 'filiere', 'Zone créée depuis le panneau admin', $createurId);
         } else {
             $zoneId = (int)$zoneIdRaw;
         }
 
         if ($zoneId > 0) {
-            $catId = $this->adminModel->createCategory($zoneId, $nom, null, $description, $ordre);
+            $catId = $this->salonModel->createCategory($zoneId, $nom, null, $description, $ordre);
             if ($catId) {
                 $msg = "Le salon d'échange \"#{$nom}\" a été créé avec succès.";
                 if ($isAjax) {
@@ -417,4 +420,3 @@ class AdminController {
         require_once ROOT_PATH . '/views/desktop/admin/settings.php';
     }
 }
-

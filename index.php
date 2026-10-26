@@ -154,6 +154,23 @@ switch ($fullRoute) {
         require_once ROOT_PATH . '/views/desktop/landing.php';
         break;
 
+    case 'salon':
+    case 'salons':
+    case 'Salon':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->index();
+        break;
+
+    case 'salons/create-zone':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->createZone();
+        break;
+
+    case 'salons/create-category':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->createCategory();
+        break;
+
     // ---------------------------------------------------------
     // AUTHENTIFICATION (Traitée par AuthController)
     // ---------------------------------------------------------

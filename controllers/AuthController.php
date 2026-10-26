@@ -72,8 +72,8 @@ class AuthController {
 
                     // Redirection automatique selon le rôle :
                     // Administrateur -> /admin (Dashboard)
-                    // Étudiant, Professeur, Délégué -> /profile
-                    $targetUrl = ($normalizedRole === 'administrateur') ? url('admin') : url('profile');
+                    // Étudiant, Professeur, Délégué -> /salon (Salon Général)
+                    $targetUrl = ($normalizedRole === 'administrateur') ? url('admin') : url('salon');
 
                     if (headers_sent()) {
                         echo "<script>window.location.href=" . json_encode($targetUrl) . ";</script>";
@@ -188,11 +188,11 @@ class AuthController {
                     }
 
                     // Redirection directe :
-                    // Si admin -> /admin, sinon (étudiant, professeur, délégué) -> /profile
+                    // Si admin -> /admin, sinon (étudiant, professeur, délégué) -> /salon (Salon Général)
                     if ($role === 'administrateur') {
                         header('Location: ' . url('admin'));
                     } else {
-                        header('Location: ' . url('profile'));
+                        header('Location: ' . url('salon'));
                     }
                     exit;
                 } else {
