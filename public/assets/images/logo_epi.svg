@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <!-- Cercles extérieurs et intérieurs -->
+  <circle cx="150" cy="150" r="142" fill="#ffffff" stroke="#1e3a8a" stroke-width="4.5"/>
+  <circle cx="150" cy="150" r="136" fill="none" stroke="#1e3a8a" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <circle cx="150" cy="150" r="102" fill="none" stroke="#1e3a8a" stroke-width="3"/>
+
+  <!-- Chemins d'arc pour les textes circulaires -->
+  <defs>
+    <!-- Arc supérieur pour ECOLE POLYTECHNIQUE INTERNATIONALE -->
+    <path id="arc-top" d="M 32,150 A 118,118 0 1,1 268,150" fill="none"/>
+    <!-- Arc inférieur pour YAMOUSSOUKRO -->
+    <path id="arc-bottom" d="M 262,150 A 118,118 0 0,1 38,150" fill="none"/>
+  </defs>
+
+  <!-- Texte supérieur -->
+  <text fill="#1e3a8a" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="1.4">
+    <textPath href="#arc-top" startOffset="50%" text-anchor="middle">
+      ECOLE POLYTECHNIQUE INTERNATIONALE
+    </textPath>
+  </text>
+
+  <!-- Texte inférieur -->
+  <text fill="#1e3a8a" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="2.2">
+    <textPath href="#arc-bottom" startOffset="50%" text-anchor="middle">
+      ★ YAMOUSSOUKRO ★
+    </textPath>
+  </text>
+
+  <!-- Symbole central rouge (Pi stylisé / cornes et piliers de l'EPI) -->
+  <g transform="translate(150, 138) scale(1.15)">
+    <!-- Forme stylisée rouge officielle -->
+    <path d="M -24,24 L -24,4 C -24,-12 -34,-14 -34,-24 C -34,-33 -23,-39 -13,-34 C -3,-28 -2,-13 0,-7 C 2,-13 3,-28 13,-34 C 23,-39 34,-33 34,-24 C 34,-14 24,-12 24,4 L 24,24 L 14,24 L 14,3 C 14,-7 22,-14 22,-22 C 22,-27 16,-30 10,-26 C 2,-21 0,-6 -1,0 L -1,24 Z M -14,24 L -14,3 C -14,-7 -22,-14 -22,-22 C -22,-27 -16,-30 -10,-26 C -2,-21 0,-6 1,0 L 1,24 Z" 
+          fill="#dc2626" />
+    <path d="M -17,24 C -17,16 -17,-5 -19,-14 C -22,-22 -14,-29 -8,-25 C -2,-21 -2,-7 0,-1 C 2,-7 2,-21 8,-25 C 14,-29 22,-22 19,-14 C 17,-5 17,16 17,24 Z"
+          fill="#dc2626" opacity="0.95"/>
+  </g>
+
+  <!-- Texte central EPI -->
+  <text x="150" y="196" text-anchor="middle" fill="#1e3a8a" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="28" font-weight="900" letter-spacing="2">
+    EPI
+  </text>
+</svg>
+
