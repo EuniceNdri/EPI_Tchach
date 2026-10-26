@@ -10,7 +10,17 @@ $envFile = dirname(__DIR__) . '/.env';
 $env = [];
 
 if (file_exists($envFile)) {
-    $env = parse_ini_file($envFile);
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+        if (strpos($line, '=') !== false) {
+            [$k, $v] = explode('=', $line, 2);
+            $env[trim($k)] = trim($v, " \t\n\r\0\x0B\"'");
+        }
+    }
 }
 
 $host = $env['DB_HOST'] ?? 'localhost';
