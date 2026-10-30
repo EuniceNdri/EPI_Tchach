@@ -246,5 +246,31 @@ git push -u origin prenom/feature/nom-fonctionnalite
 
 ---
 
+## 6. 📎 Pièces jointes
+
+Les publications et commentaires peuvent recevoir jusqu'à cinq fichiers par envoi,
+avec une taille maximale de 10 Mo par fichier. Les formats autorisés sont les PDF,
+documents Office, fichiers texte, archives ZIP et images courantes.
+
+Chaque fichier est contrôlé côté serveur (erreur d'upload, extension, type MIME réel
+et taille), renommé avec un identifiant aléatoire, puis enregistré dans
+`public/uploads/`. La table `pieces_jointes` conserve le nom original, le type,
+la taille et le lien vers la publication ou le commentaire concerné.
+
+Les fichiers ne sont pas servis directement : le téléchargement passe par la route
+contrôlée `attachment/download/{id}` et le dossier d'upload interdit l'exécution de
+scripts.
+
+## 7. 🔎 Recherche
+
+Depuis le Salon Général, la recherche permet de retrouver les publications par
+titre, contenu, auteur, catégorie, tag ou nom de pièce jointe. Les résultats sont
+chargés côté serveur avec des requêtes préparées et sont limités à dix résultats
+par page.
+
+Les fichiers associés apparaissent dans les résultats avec leur nom et un lien de
+téléchargement contrôlé. Une recherche vide réaffiche le flux habituel et un
+message explicite est affiché lorsqu'aucun résultat ne correspond à la recherche.
+
 > 📅 *Document mis à jour – Octobre 2026*
 > 📚 *Projet Forum de Discussion et d'Entraide – École*

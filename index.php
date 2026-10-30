@@ -143,6 +143,11 @@ if (in_array(strtolower($ext), ['css', 'js', 'png', 'jpg', 'jpeg', 'svg', 'gif',
 // =============================================================
 // ROUTEUR UNIVERSEL DES VUES DESKTOP
 // =============================================================
+if (preg_match('#^attachment/download/([1-9][0-9]*)$#', $fullRoute, $attachmentMatch)) {
+    require_once ROOT_PATH . '/controllers/AttachmentController.php';
+    (new AttachmentController())->download((int)$attachmentMatch[1]);
+}
+
 switch ($fullRoute) {
 
     // ---------------------------------------------------------
@@ -210,6 +215,11 @@ switch ($fullRoute) {
     case 'comment/create':
         require_once ROOT_PATH . '/controllers/PublicationController.php';
         (new PublicationController())->createComment();
+        break;
+
+    case 'search':
+        require_once ROOT_PATH . '/controllers/SearchController.php';
+        (new SearchController())->search();
         break;
 
     // ---------------------------------------------------------
