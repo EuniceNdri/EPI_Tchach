@@ -10,20 +10,24 @@
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/ModerationService.php';
+    require_once ROOT_PATH . '/models/Attachment.php';
     require_once ROOT_PATH . '/config/database.php';
 } else {
     require_once dirname(__DIR__) . '/models/ModerationService.php';
+    require_once dirname(__DIR__) . '/models/Attachment.php';
     require_once dirname(__DIR__) . '/config/database.php';
 }
 
 class PublicationController {
     private ?PDO $pdo;
     private ModerationService $moderationService;
+    private Attachment $attachmentModel;
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
         $this->moderationService = new ModerationService($this->pdo);
+        $this->attachmentModel = new Attachment();
     }
 
     /**
@@ -50,6 +54,12 @@ class PublicationController {
         $titre = trim($_POST['titre'] ?? '');
         $contenu = trim($_POST['contenu'] ?? '');
         $typePublication = trim($_POST['type_publication'] ?? 'discussion');
+        try {
+            $uploadedFiles = $this->attachmentModel->validate($_FILES['pieces_jointes'] ?? []);
+        } catch (InvalidArgumentException $exception) {
+            $this->respondError($exception->getMessage());
+            return;
+        }
 
         if (empty($titre) || empty($contenu) || $categorieId <= 0) {
             $_SESSION['flash_error'] = "Tous les champs (titre, contenu, catégorie) sont obligatoires.";
@@ -79,37 +89,46 @@ class PublicationController {
             exit;
         }
 
-        $stmt = $this->pdo->prepare("
+        try {
+            $this->pdo->beginTransaction();
+            $stmt = $this->pdo->prepare("
             INSERT INTO publications (utilisateur_id, categorie_id, titre, contenu, type_publication, statut, est_signale, date_creation)
             VALUES (:user_id, :cat_id, :titre, :contenu, :type_pub, 'ouvert', :est_signale, NOW())
-        ");
+            ");
 
-        $success = $stmt->execute([
+            $stmt->execute([
             'user_id'     => $userId,
             'cat_id'      => $categorieId,
             'titre'       => $titreFinal,
             'contenu'     => $contenuFinal,
             'type_pub'    => $typePublication,
             'est_signale' => $estSignale
-        ]);
+            ]);
 
-        if ($success) {
             $pubId = (int)$this->pdo->lastInsertId();
+            $attachments = $this->attachmentModel->store($this->pdo, 'publication', $pubId, $uploadedFiles);
 
-            // 3. Si le contenu est signalé, créer un signalement automatique dans la table signalements
             if ($estSignale) {
                 $this->moderationService->creerSignalementAutomatique('publication', $pubId);
             }
+            $this->pdo->commit();
 
-            $_SESSION['flash_success'] = $estSignale
+            $message = $estSignale
                 ? "Votre publication a été enregistrée mais fait l'objet d'une vérification de modération."
                 : "Publication créée avec succès !";
-        } else {
-            $_SESSION['flash_error'] = "Une erreur est survenue lors de l'enregistrement de la publication.";
+            $this->respondSuccess($message, [
+                'id' => $pubId,
+                'title' => $titreFinal,
+                'content' => $contenuFinal,
+                'tag' => trim($_POST['tag'] ?? 'Général'),
+                'attachments' => $attachments,
+            ]);
+        } catch (PDOException | RuntimeException $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            $this->respondError("La publication n'a pas pu être enregistrée.");
         }
-
-        header('Location: ' . url());
-        exit;
     }
 
     /**
@@ -134,6 +153,12 @@ class PublicationController {
         $userId = (int)$_SESSION['user_id'];
         $publicationId = (int)($_POST['publication_id'] ?? 0);
         $contenu = trim($_POST['contenu'] ?? '');
+        try {
+            $uploadedFiles = $this->attachmentModel->validate($_FILES['pieces_jointes'] ?? []);
+        } catch (InvalidArgumentException $exception) {
+            $this->respondError($exception->getMessage());
+            return;
+        }
 
         if (empty($contenu) || $publicationId <= 0) {
             $_SESSION['flash_error'] = "Le contenu du commentaire est obligatoire.";
@@ -160,30 +185,69 @@ class PublicationController {
             exit;
         }
 
-        $stmt = $this->pdo->prepare("
+        try {
+            $this->pdo->beginTransaction();
+            $stmt = $this->pdo->prepare("
             INSERT INTO commentaires (publication_id, utilisateur_id, contenu, est_signale, date_creation)
             VALUES (:pub_id, :user_id, :contenu, :est_signale, NOW())
-        ");
+            ");
 
-        $success = $stmt->execute([
+            $stmt->execute([
             'pub_id'      => $publicationId,
             'user_id'     => $userId,
             'contenu'     => $contenuFinal,
             'est_signale' => $estSignale
-        ]);
+            ]);
 
-        if ($success) {
             $commentId = (int)$this->pdo->lastInsertId();
+            $attachments = $this->attachmentModel->store($this->pdo, 'commentaire', $commentId, $uploadedFiles);
 
             if ($estSignale) {
                 $this->moderationService->creerSignalementAutomatique('commentaire', $commentId);
             }
+            $this->pdo->commit();
 
-            $_SESSION['flash_success'] = "Commentaire ajouté avec succès.";
-        } else {
-            $_SESSION['flash_error'] = "Erreur lors de l'ajout du commentaire.";
+            $this->respondSuccess('Commentaire ajouté avec succès.', [
+                'id' => $commentId,
+                'attachments' => $attachments,
+            ]);
+        } catch (PDOException | RuntimeException $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            $this->respondError("Le commentaire n'a pas pu être enregistré.");
+        }
+    }
+
+    private function isAjaxRequest(): bool
+    {
+        return isset($_POST['ajax'])
+            || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
+            || strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
+    }
+
+    private function respondSuccess(string $message, array $data = []): void
+    {
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['success' => true, 'message' => $message] + $data, JSON_UNESCAPED_UNICODE);
+            exit;
         }
 
+        $_SESSION['flash_success'] = $message;
+        header('Location: ' . url());
+        exit;
+    }
+
+    private function respondError(string $message): void
+    {
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json; charset=UTF-8', true, 422);
+            echo json_encode(['success' => false, 'message' => $message], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $_SESSION['flash_error'] = $message;
         header('Location: ' . url());
         exit;
     }

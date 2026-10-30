@@ -59,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.closeProfileEditModal = function () {
     if (!editModal) return;
+    if (editModal.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
     editModal.classList.remove("show");
     editModal.style.display = "none";
     editModal.setAttribute("aria-hidden", "true");
@@ -192,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const postsFeedContainer = document.getElementById("postsFeedList");
 
   if (quickPostForm && postsFeedContainer) {
-    quickPostForm.addEventListener("submit", (e) => {
+    quickPostForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const textarea = quickPostForm.querySelector("textarea[name='contenu']");
       const titleInput = quickPostForm.querySelector("input[name='titre']");
@@ -204,13 +207,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!titre || !contenu) return;
 
-      const userName = document.querySelector(".profile-dynamic-name")?.textContent || "Momo Kouassi";
-      const userInitials = document.querySelector(".profile-dynamic-initials")?.textContent || "MK";
+      const submitButton = quickPostForm.querySelector("button[type='submit']");
+      if (submitButton) submitButton.disabled = true;
 
-      // Création de la carte dans le DOM avec animation
-      const postCard = document.createElement("article");
-      postCard.className = "post-card animated-entry";
-      postCard.innerHTML = `
+      const formData = new FormData(quickPostForm);
+      formData.set("ajax", "1");
+      try {
+        const response = await fetch(quickPostForm.action, {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          body: formData,
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error(response.redirected || response.url.includes("/login")
+            ? "Votre session a expiré. Veuillez vous reconnecter."
+            : "Le serveur a renvoyé une réponse inattendue.");
+        }
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "La publication n'a pas pu être enregistrée.");
+        }
+
+        const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
+        }[character]));
+        const userName = escapeHtml(document.querySelector(".profile-dynamic-name")?.textContent || "Momo Kouassi");
+        const userInitials = escapeHtml(document.querySelector(".profile-dynamic-initials")?.textContent || "MK");
+        const attachments = (result.attachments || []).map((attachment) =>
+          `<a href="${escapeHtml(attachment.download_url)}" class="btn-post-action">📎 ${escapeHtml(attachment.name)}</a>`
+        ).join("");
+
+        // Création de la carte dans le DOM avec animation
+        const postCard = document.createElement("article");
+        postCard.className = "post-card animated-entry";
+        postCard.innerHTML = `
         <div class="post-header-flex">
           <div class="post-author-box">
             <div class="post-avatar-mini">${userInitials}</div>
@@ -219,11 +250,12 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="post-time">À l'instant · Partagé sur la promotion</div>
             </div>
           </div>
-          <span class="post-tag-pill"># ${tag}</span>
+          <span class="post-tag-pill"># ${escapeHtml(tag)}</span>
         </div>
-        <h4 class="post-title">${titre}</h4>
-        <p class="post-excerpt">${contenu}</p>
+        <h4 class="post-title">${escapeHtml(result.title || titre)}</h4>
+        <p class="post-excerpt">${escapeHtml(result.content || contenu)}</p>
         <div class="post-footer-actions">
+          ${attachments}
           <button type="button" class="btn-post-action">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
             <span>0 Utile</span>
@@ -235,19 +267,26 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      postsFeedContainer.prepend(postCard);
+        postsFeedContainer.prepend(postCard);
 
-      // Réinitialiser le formulaire
-      quickPostForm.reset();
+        // Réinitialiser le formulaire
+        quickPostForm.reset();
 
-      // Incrémenter le compteur de sujets
-      const statCounter = document.getElementById("statSubjectsCount");
-      if (statCounter) {
-        const currentCount = parseInt(statCounter.textContent, 10) || 0;
-        statCounter.textContent = currentCount + 1;
+        // Incrémenter le compteur de sujets
+        const statCounter = document.getElementById("statSubjectsCount");
+        if (statCounter) {
+          const currentCount = parseInt(statCounter.textContent, 10) || 0;
+          statCounter.textContent = currentCount + 1;
+        }
+
+        window.showToast("✓ Votre question a été publiée avec succès !", "success");
+      } catch (error) {
+        const attachmentInput = quickPostForm.querySelector("input[type='file']");
+        if (attachmentInput) attachmentInput.value = "";
+        window.showToast(error.message, "error");
+      } finally {
+        if (submitButton) submitButton.disabled = false;
       }
-
-      window.showToast("✓ Votre question a été publiée avec succès !", "success");
     });
   }
 

@@ -219,13 +219,23 @@ $sessionModules = $_SESSION['user_modules'] ?? ($user['modules_enseignes'] ?? nu
 
         <!-- Boîte de Publication Rapide (AJAX sans rechargement de page) -->
         <section class="quick-post-card">
-          <form id="quickPostForm">
+          <form id="quickPostForm" action="<?= htmlspecialchars($base) ?>/publication/create" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="ajax" value="1" />
+            <input type="hidden" name="categorie_id" value="1" />
+            <input type="hidden" name="type_publication" value="discussion" />
             <div class="quick-post-header">
               <div class="post-avatar-mini profile-dynamic-initials"><?= htmlspecialchars($initials) ?></div>
               <strong style="font-size:0.95rem;">Poser une question ou lancer une discussion</strong>
             </div>
             <input type="text" name="titre" class="quick-post-title-input" placeholder="Titre de votre question ou sujet (ex: Aide sur le TP de Réseaux)..." required />
             <textarea name="contenu" class="quick-post-textarea" placeholder="Expliquez votre problème ou détaillez votre partage ici pour les membres de l'école..." required></textarea>
+            <label for="postAttachments" style="display:inline-flex; align-items:center; gap:0.4rem; margin-top:0.65rem; color:var(--muted-foreground); cursor:pointer; font-size:0.85rem;">
+              <span aria-hidden="true">📎</span>
+              <span>Joindre des fichiers (PDF, documents, images, ZIP — 10 Mo max chacun)</span>
+            </label>
+            <input id="postAttachments" type="file" name="pieces_jointes[]" multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg,.gif"
+              style="margin-top:0.35rem; max-width:100%;" />
             <div class="quick-post-footer">
               <select name="tag" class="post-tag-select">
                 <option value="BTS-IDA"># BTS-IDA</option>
