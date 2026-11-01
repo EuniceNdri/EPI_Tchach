@@ -135,7 +135,7 @@ $logoFile = $asset . '/images/logo.jpeg';
       </div>
 
       <div class="search-bar">
-        <input type="text" class="search-input" placeholder="Rechercher des discussions, tags ou utilisateurs...">
+        <input id="publicationSearch" type="search" class="search-input" placeholder="Rechercher des discussions, tags, utilisateurs ou fichiers..." autocomplete="off">
       </div>
 
       <div class="tabs">
@@ -144,6 +144,8 @@ $logoFile = $asset . '/images/logo.jpeg';
         <button class="tab">Suivies</button>
         <button class="tab" style="margin-left:auto;">Filtrer ▾</button>
       </div>
+
+      <div id="searchResults" class="posts" hidden aria-live="polite"></div>
 
       <div class="posts">
 
@@ -405,5 +407,6 @@ $logoFile = $asset . '/images/logo.jpeg';
     </aside>
 
   </div>
+  <script src="<?= $asset ?>/js/desktop/salon.js"></script>
 </body>
 </html>
