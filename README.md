@@ -87,15 +87,15 @@ EPI_Tchach/
 
 ### Rôle précis de chaque dossier
 
-| Dossier | Rôle principal | Qui y touche le plus ? |
-|---------|---------------|----------------------|
-| `config/` | Paramètres de l'application (BDD, constantes...) | Tout le monde (avec précaution) |
-| `controllers/` | Reçoit la demande, appelle le Model, envoie à la View | Développeurs backend |
-| `models/` | Contient toutes les requêtes SQL | Développeurs backend |
-| `views/` | Contient le HTML + petits bouts de PHP d'affichage | Développeurs frontend |
-| `views/auth/` | Pages d'authentification (connexion, inscription...) | Développeurs frontend/backend |
-| `public/` | Fichiers publics (CSS, JS, images, `index.php`) | Tout le monde |
-| `public/index.php` | Routeur principal de l'application | Développeurs backend |
+| Dossier            | Rôle principal                                        | Qui y touche le plus ?          |
+| ------------------ | ----------------------------------------------------- | ------------------------------- |
+| `config/`          | Paramètres de l'application (BDD, constantes...)      | Tout le monde (avec précaution) |
+| `controllers/`     | Reçoit la demande, appelle le Model, envoie à la View | Développeurs backend            |
+| `models/`          | Contient toutes les requêtes SQL                      | Développeurs backend            |
+| `views/`           | Contient le HTML + petits bouts de PHP d'affichage    | Développeurs frontend           |
+| `views/auth/`      | Pages d'authentification (connexion, inscription...)  | Développeurs frontend/backend   |
+| `public/`          | Fichiers publics (CSS, JS, images, `index.php`)       | Tout le monde                   |
+| `public/index.php` | Routeur principal de l'application                    | Développeurs backend            |
 
 ---
 
@@ -105,11 +105,11 @@ EPI_Tchach/
 
 Nous utilisons une stratégie simple et claire adaptée à un projet scolaire en équipe.
 
-| Branche | Utilité | Qui y pousse ? |
-|---------|---------|---------------|
-| `main` | Version stable (celle qui fonctionne) | Seulement après validation |
-| `develop` | Branche de développement principale | Tout le monde (via Merge Request) |
-| `prenom/...` | Branches de travail individuelles | Chaque membre |
+| Branche      | Utilité                               | Qui y pousse ?                    |
+| ------------ | ------------------------------------- | --------------------------------- |
+| `main`       | Version stable (celle qui fonctionne) | Seulement après validation        |
+| `develop`    | Branche de développement principale   | Tout le monde (via Merge Request) |
+| `prenom/...` | Branches de travail individuelles     | Chaque membre                     |
 
 ### 3.2 Convention de nommage des branches (⚠️ OBLIGATOIRE)
 
@@ -121,26 +121,26 @@ prenom/type/nom-de-la-fonctionnalite
 
 **Types autorisés :**
 
-| Type | Description |
-|------|-------------|
-| `feature/` | Nouvelle fonctionnalité |
-| `fix/` | Correction de bug |
+| Type        | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `feature/`  | Nouvelle fonctionnalité                           |
+| `fix/`      | Correction de bug                                 |
 | `refactor/` | Amélioration du code sans changer le comportement |
-| `style/` | CSS / design uniquement |
-| `docs/` | Documentation |
-| `chore/` | Configuration, fichiers divers |
+| `style/`    | CSS / design uniquement                           |
+| `docs/`     | Documentation                                     |
+| `chore/`    | Configuration, fichiers divers                    |
 
 **Exemples concrets :**
 
-| Membre | Exemple de branche |
-|--------|-------------------|
-| Momo | `momo/feature/authentification` |
-| Momo | `momo/feature/systeme-reactions` |
-| Sarah | `sarah/feature/zones-categories` |
-| Jean | `jean/fix/upload-fichier` |
-| Sarah | `sarah/style/page-connexion` |
+| Membre | Exemple de branche                |
+| ------ | --------------------------------- |
+| Momo   | `momo/feature/authentification`   |
+| Momo   | `momo/feature/systeme-reactions`  |
+| Sarah  | `sarah/feature/zones-categories`  |
+| Jean   | `jean/fix/upload-fichier`         |
+| Sarah  | `sarah/style/page-connexion`      |
 | Shadow | `shadow/feature/authentification` |
-| Momo | `momo/docs/mise-a-jour-readme` |
+| Momo   | `momo/docs/mise-a-jour-readme`    |
 
 > **⚠️ Important :** Toujours mettre son prénom en minuscule au début de la branche.
 
@@ -175,16 +175,17 @@ Ensuite, on crée une **Pull Request** (ou Merge Request) vers la branche `devel
 
 Nous utilisons le format **Conventional Commits** :
 
-| Préfixe | Signification | Exemple |
-|---------|--------------|---------|
-| `feat:` | Nouvelle fonctionnalité | `feat: ajout du système de réactions` |
-| `fix:` | Correction de bug | `fix: correction de la validation email` |
-| `docs:` | Documentation | `docs: mise à jour du README` |
-| `style:` | CSS / mise en page | `style: amélioration du header mobile` |
-| `refactor:` | Amélioration du code | `refactor: simplification du modèle User` |
-| `chore:` | Tâches diverses | `chore: ajout du fichier .gitignore` |
+| Préfixe     | Signification           | Exemple                                   |
+| ----------- | ----------------------- | ----------------------------------------- |
+| `feat:`     | Nouvelle fonctionnalité | `feat: ajout du système de réactions`     |
+| `fix:`      | Correction de bug       | `fix: correction de la validation email`  |
+| `docs:`     | Documentation           | `docs: mise à jour du README`             |
+| `style:`    | CSS / mise en page      | `style: amélioration du header mobile`    |
+| `refactor:` | Amélioration du code    | `refactor: simplification du modèle User` |
+| `chore:`    | Tâches diverses         | `chore: ajout du fichier .gitignore`      |
 
 > **💡 Bonne pratique :** Tu peux aussi indiquer ton prénom dans le commit :
+>
 > ```bash
 > git commit -m "feat(shadow): ajout de l'authentification"
 > ```
@@ -246,5 +247,5 @@ git push -u origin prenom/feature/nom-fonctionnalite
 
 ---
 
-> 📅 *Document mis à jour – Octobre 2026*
-> 📚 *Projet Forum de Discussion et d'Entraide – École*
+> 📅 _Document mis à jour – Octobre 2026_
+> 📚 _Projet Forum de Discussion et d'Entraide – École_
