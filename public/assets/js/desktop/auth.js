@@ -6,6 +6,44 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  const loginForm = document.querySelector("[data-login-form]");
+  if (loginForm) {
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("mot_de_passe");
+    const nextButton = loginForm.querySelector("[data-login-next]");
+    const backButton = loginForm.querySelector("[data-login-back]");
+    const submitButton = loginForm.querySelector("[data-login-submit]");
+    const progressSteps = document.querySelectorAll("[data-progress-step]");
+
+    if (emailInput && passwordInput && nextButton && backButton && submitButton) {
+      loginForm.classList.add("is-staged");
+
+      const showStep = (step) => {
+        loginForm.dataset.currentStep = step;
+        loginForm.classList.toggle("is-password-step", step === "password");
+        loginForm.querySelectorAll("[data-login-step]").forEach((section) => {
+          const visible = section.dataset.loginStep === step;
+          section.hidden = !visible;
+        });
+        passwordInput.disabled = step !== "password";
+        nextButton.hidden = step !== "email";
+        backButton.hidden = step !== "password";
+        submitButton.hidden = step !== "password";
+        progressSteps.forEach((progressStep) => {
+          progressStep.classList.toggle("is-current", progressStep.dataset.progressStep === step);
+          progressStep.classList.toggle("is-complete", step === "password" && progressStep.dataset.progressStep === "email");
+        });
+        (step === "email" ? emailInput : passwordInput).focus();
+      };
+
+      nextButton.addEventListener("click", () => {
+        if (emailInput.reportValidity()) showStep("password");
+      });
+      backButton.addEventListener("click", () => showStep("email"));
+      showStep(loginForm.dataset.initialStep === "password" ? "password" : "email");
+    }
+  }
+
   // 1. Bascule afficher / masquer le mot de passe
   document.querySelectorAll(".toggle-password").forEach((button) => {
     button.addEventListener("click", () => {

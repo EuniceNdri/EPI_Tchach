@@ -15,6 +15,7 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
 </head>
 <body>
   <!-- Bande tricolore -->
@@ -37,6 +38,25 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="blob blob-left"></div>
     <div class="blob blob-right"></div>
 
+    <div class="auth-layout">
+    <aside class="auth-visual">
+      <div class="auth-visual-brand">
+        <img src="<?= $asset ?>/images/logo_epi.svg" alt="Logo EPI" />
+        <span>La communauté EPI</span>
+      </div>
+      <div class="auth-visual-art" aria-hidden="true">
+        <span class="auth-orbit auth-orbit-one"></span>
+        <span class="auth-orbit auth-orbit-two"></span>
+        <span class="auth-orb"></span>
+        <span class="auth-orb-glow"></span>
+      </div>
+      <div class="auth-visual-copy">
+        <span class="auth-visual-kicker">Échanger · Apprendre · Réussir</span>
+        <h2>Votre communauté vous attend.</h2>
+        <p>Retrouvez les étudiants et enseignants de l’EPI dans un espace de partage et d’entraide.</p>
+      </div>
+      <div class="auth-visual-footer"><span>Ensemble, faisons grandir nos idées.</span><span class="auth-visual-dots" aria-hidden="true">● ● ●</span></div>
+    </aside>
     <section class="auth-card">
       <div class="auth-card-header">
         <span class="auth-badge">Espace Membres</span>
@@ -58,18 +78,23 @@ $logoPath = $asset . '/images/logo.jpeg';
         </div>
       <?php endif; ?>
 
-      <form action="<?= $base ?>/login" method="POST" class="auth-form">
+      <form action="<?= $base ?>/login" method="POST" class="auth-form" data-login-form data-initial-step="<?= !empty($error) && !empty($_POST['email']) ? 'password' : 'email' ?>">
+        <div class="login-progress" aria-label="Étapes de connexion">
+          <span class="login-progress-step is-current" data-progress-step="email"><span>1</span> Votre email</span>
+          <span class="login-progress-line"></span>
+          <span class="login-progress-step" data-progress-step="password"><span>2</span> Mot de passe</span>
+        </div>
         <!-- Champ Email -->
-        <div class="form-group">
+        <div class="form-group" data-login-step="email">
           <label for="email" class="form-label">Adresse Email Institutionnelle</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <input type="email" id="email" name="email" class="form-input" placeholder="prenom.nom@epi-yakro.ci" required autocomplete="email" />
+            <input type="email" id="email" name="email" class="form-input" placeholder="prenom.nom@epi-yakro.ci" required autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
           </div>
         </div>
 
         <!-- Champ Mot de Passe -->
-        <div class="form-group">
+        <div class="form-group" data-login-step="password">
           <label for="mot_de_passe" class="form-label">Mot de passe</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -82,7 +107,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         </div>
 
         <!-- Options du formulaire -->
-        <div class="form-options">
+        <div class="form-options" data-login-step="password">
           <label class="remember-me">
             <input type="checkbox" name="remember" />
             <span>Se souvenir de moi</span>
@@ -90,7 +115,11 @@ $logoPath = $asset . '/images/logo.jpeg';
           <a href="<?= $base ?>/forgot-password" class="forgot-link">Mot de passe oublié ?</a>
         </div>
 
-        <button type="submit" class="btn-submit">Se connecter</button>
+        <div class="login-step-actions">
+          <button type="button" class="login-next" data-login-next>Continuer <span aria-hidden="true">→</span></button>
+          <button type="button" class="login-back" data-login-back>← Modifier mon email</button>
+          <button type="submit" class="btn-submit" data-login-submit>Se connecter</button>
+        </div>
       </form>
 
       <div class="auth-card-footer">
@@ -98,6 +127,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         <a href="<?= $base ?>/register" class="auth-link">Créer un compte</a>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="auth-footer">

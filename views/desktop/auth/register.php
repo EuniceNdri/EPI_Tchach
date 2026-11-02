@@ -15,6 +15,7 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
 </head>
 <body>
   <!-- Bande tricolore -->
@@ -37,6 +38,25 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="blob blob-left"></div>
     <div class="blob blob-right"></div>
 
+    <div class="auth-layout auth-layout-wide">
+    <aside class="auth-visual">
+      <div class="auth-visual-brand">
+        <img src="<?= $asset ?>/images/logo_epi.svg" alt="Logo EPI" />
+        <span>La communauté EPI</span>
+      </div>
+      <div class="auth-visual-art" aria-hidden="true">
+        <span class="auth-orbit auth-orbit-one"></span>
+        <span class="auth-orbit auth-orbit-two"></span>
+        <span class="auth-orb"></span>
+        <span class="auth-orb-glow"></span>
+      </div>
+      <div class="auth-visual-copy">
+        <span class="auth-visual-kicker">Échanger · Apprendre · Réussir</span>
+        <h2>Faisons grandir la communauté.</h2>
+        <p>Créez votre compte et retrouvez un espace pensé pour l’entraide et le partage à l’EPI.</p>
+      </div>
+      <div class="auth-visual-footer"><span>Ensemble, faisons grandir nos idées.</span><span class="auth-visual-dots" aria-hidden="true">● ● ●</span></div>
+    </aside>
     <section class="auth-card auth-card-wide">
       <div class="auth-card-header">
         <span class="auth-badge">Inscription Membre</span>
@@ -241,6 +261,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         <a href="<?= $base ?>/login" class="auth-link">Se connecter</a>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="auth-footer">
