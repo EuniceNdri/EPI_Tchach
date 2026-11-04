@@ -756,7 +756,9 @@ body {
 }
 
 .admin-toast.success { border-color: var(--admin-success); }
-.admin-toast.error { border-color: var(--admin-danger); }
+.admin-toast.error {
+  border-color: var(--admin-danger);
+}
 
 @keyframes toastSlideIn {
   from { opacity: 0; transform: translateY(20px); }

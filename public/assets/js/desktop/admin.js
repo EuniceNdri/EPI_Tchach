@@ -339,8 +339,194 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // ------------------------------------------------------------
-    // 5. Actions de modération (Classer / Supprimer signalement)
+    // 5. Décisions de modération :
+    //    - avertiAuteur()      : notifie l'auteur, clôture le signalement
+    //    - bloquerPublication(): verrouille la publication, notifie l'auteur, clôture le signalement
+    //    - supprimerContenu()  : supprime le post en BD, notifie l'auteur du motif, clôture tous les signalements liés
+    //    - rejeterSignalement(): statut 'rejeté' — si 0 signalement restant: est_signale = 0
     // ------------------------------------------------------------
+    const modModal = document.getElementById("moderationDecisionModal");
+    const modForm = document.getElementById("moderationActionForm");
+    const modReportIdInput = document.getElementById("modReportId");
+    const modActionInput = document.getElementById("modAction");
+    const modModalTitle = document.getElementById("modModalTitle");
+    const modModalSubtitle = document.getElementById("modModalSubtitle");
+    const modModalIcon = document.getElementById("modModalIcon");
+    const modMessageGroup = document.getElementById("modMessageGroup");
+    const modMessageLabel = document.getElementById("modMessageLabel");
+    const modMessageInput = document.getElementById("modMessageInput");
+    const modMessageHint = document.getElementById("modMessageHint");
+    const modConfirmNotice = document.getElementById("modConfirmNotice");
+    const btnSubmitMod = document.getElementById("btnSubmitModDecision");
+    const btnCloseMod = document.getElementById("btnCloseModModal");
+    const btnCancelMod = document.getElementById("btnCancelModModal");
+
+    let currentTargetCard = null;
+
+    const closeModModal = () => {
+        if (modModal) {
+            modModal.style.display = "none";
+        }
+        if (modForm) {
+            modForm.reset();
+        }
+        currentTargetCard = null;
+    };
+
+    if (btnCloseMod) btnCloseMod.addEventListener("click", closeModModal);
+    if (btnCancelMod) btnCancelMod.addEventListener("click", closeModModal);
+    if (modModal) {
+        modModal.addEventListener("click", (e) => {
+            if (e.target === modModal) closeModModal();
+        });
+    }
+
+    const updateReportBadge = () => {
+        const badge = document.getElementById("reportCounterBadge");
+        const remaining = document.querySelectorAll(".report-card").length;
+        if (badge) {
+            badge.textContent = `${remaining} signalement(s) à traiter`;
+        }
+        if (remaining === 0) {
+            const container = document.getElementById("reportsListContainer");
+            if (container && !document.getElementById("noReportsCard")) {
+                container.innerHTML = `
+                    <div id="noReportsCard" class="admin-card" style="text-align:center; padding:3rem 1.5rem; color:var(--admin-muted);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 0.75rem; display:block; opacity:0.6;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                        <h3 style="font-size:1.1rem; font-weight:800; color:var(--admin-dark); margin:0 0 0.5rem 0;">Aucun signalement en attente</h3>
+                        <p style="font-size:0.9rem; margin:0;">Tous les salons respectent actuellement la charte de modération du campus.</p>
+                    </div>
+                `;
+            }
+        }
+    };
+
+    // Configuration et ouverture de la modale de décision
+    document.querySelectorAll(".btn-mod-action").forEach((btn) => {
+        btn.addEventListener("click", function() {
+            const reportId = this.getAttribute("data-report-id");
+            const action = this.getAttribute("data-action");
+            const author = this.getAttribute("data-author") || "l'auteur";
+            const title = this.getAttribute("data-title") || "la publication";
+            currentTargetCard = this.closest(".report-card");
+
+            if (!modModal || !reportId || !action) return;
+
+            modReportIdInput.value = reportId;
+            modActionInput.value = action;
+
+            if (action === "avertiAuteur") {
+                modModalTitle.textContent = "Avertir l'auteur du contenu";
+                modModalSubtitle.textContent = `Auteur ciblé : ${author}`;
+                modModalIcon.style.background = "#fef3c7";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+                modMessageGroup.style.display = "block";
+                modMessageLabel.textContent = "Motif ou message d'avertissement";
+                modMessageInput.value = "Votre publication enfreint les règles de courtoisie et de bienséance du forum.";
+                modMessageHint.textContent = "L'auteur recevra une notification formelle et le signalement sera clôturé.";
+                modConfirmNotice.style.display = "none";
+                btnSubmitMod.style.background = "#d97706";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Envoyer l'avertissement";
+            } else if (action === "supprimerContenu") {
+                modModalTitle.textContent = "Supprimer le contenu de la base de données";
+                modModalSubtitle.textContent = `Cible : "${title}" · Auteur : ${author}`;
+                modModalIcon.style.background = "#fee2e2";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+                modMessageGroup.style.display = "block";
+                modMessageLabel.textContent = "Motif de la suppression communiqué à l'auteur";
+                modMessageInput.value = "Non-respect de la charte de l'école (propos non conformes).";
+                modMessageHint.textContent = "Supprime le post en BD, notifie l'auteur du motif et clôture tous les signalements liés.";
+                modConfirmNotice.style.display = "none";
+                btnSubmitMod.style.background = "#dc2626";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Supprimer le contenu & Clôturer";
+            } else if (action === "bloquerPublication") {
+                modModalTitle.textContent = "Bloquer et verrouiller la publication";
+                modModalSubtitle.textContent = `Publication : "${title}" · Auteur : ${author}`;
+                modModalIcon.style.background = "#ede9fe";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+                modMessageGroup.style.display = "none";
+                modConfirmNotice.style.display = "block";
+                modConfirmNotice.innerHTML = `🔒 <strong>Action immédiate :</strong> La publication sera verrouillée (statut <em>fermé</em> et commentaires désactivés). L'auteur sera immédiatement notifié et ce signalement sera clôturé.`;
+                btnSubmitMod.style.background = "#6d28d9";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Verrouiller la publication";
+            } else if (action === "rejeterSignalement") {
+                modModalTitle.textContent = "Rejeter le signalement";
+                modModalSubtitle.textContent = `Publication : "${title}" (Contenu jugé conforme)`;
+                modModalIcon.style.background = "#f1f5f9";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+                modMessageGroup.style.display = "none";
+                modConfirmNotice.style.display = "block";
+                modConfirmNotice.innerHTML = `✓ <strong>Classement sans suite :</strong> Le signalement passera au statut <em>rejeté</em>. Si 0 signalement restant en attente sur cette publication, son alerte sera levée (<strong>est_signale = 0</strong>).`;
+                btnSubmitMod.style.background = "#0f172a";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Rejeter le signalement";
+            }
+
+            modModal.style.display = "flex";
+        });
+    });
+
+    // Traitement du formulaire de modération
+    if (modForm) {
+        modForm.addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const reportId = modReportIdInput.value;
+            const action = modActionInput.value;
+            const message = modMessageInput.value.trim();
+
+            if (!reportId || !action) return;
+
+            const initialText = btnSubmitMod.textContent;
+            btnSubmitMod.disabled = true;
+            btnSubmitMod.textContent = "Traitement en cours...";
+
+            const formData = new FormData();
+            formData.append("report_id", reportId);
+            formData.append("action", action);
+            if (message) {
+                formData.append("message", message);
+                formData.append("motif", message);
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/moderation/action`, {
+                    method: "POST",
+                    body: formData,
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(data.message || "Action de modération effectuée avec succès.", "success");
+                    closeModModal();
+
+                    if (currentTargetCard) {
+                        currentTargetCard.style.transition = "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
+                        currentTargetCard.style.opacity = "0";
+                        currentTargetCard.style.transform = "scale(0.95)";
+                        setTimeout(() => {
+                            currentTargetCard.remove();
+                            updateReportBadge();
+                        }, 350);
+                    }
+                } else {
+                    showToast(data.message || "Erreur lors de la prise de décision.", "error");
+                }
+            } catch (err) {
+                showToast("Erreur de connexion avec le serveur.", "error");
+            } finally {
+                btnSubmitMod.disabled = false;
+                btnSubmitMod.textContent = initialText;
+            }
+        });
+    }
+
+    // Compatibilité boutons secondaires legacy
     document.querySelectorAll(".btn-mod-approve").forEach((btn) => {
         btn.addEventListener("click", async function() {
             const reportCard = this.closest(".report-card");
@@ -349,10 +535,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (reportId) {
                 const formData = new FormData();
                 formData.append("report_id", reportId);
-                formData.append("action", "classer");
+                formData.append("action", "rejeterSignalement");
 
                 try {
-                    await fetch(`${baseUrl}/admin/moderation/action`, {
+                    await fetch(`${baseUrl}/moderation/action`, {
                         method: "POST",
                         body: formData,
                         headers: { "X-Requested-With": "XMLHttpRequest" }
@@ -364,9 +550,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 reportCard.style.transition = "all 0.3s ease";
                 reportCard.style.opacity = "0";
                 reportCard.style.transform = "scale(0.96)";
-                setTimeout(() => reportCard.remove(), 300);
+                setTimeout(() => {
+                    reportCard.remove();
+                    updateReportBadge();
+                }, 300);
             }
-            showToast("Signalement classé sans suite.", "success");
+            showToast("Signalement rejeté (publication jugée conforme).", "success");
         });
     });
 
@@ -382,10 +571,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (reportId) {
                 const formData = new FormData();
                 formData.append("report_id", reportId);
-                formData.append("action", "supprimer");
+                formData.append("action", "supprimerContenu");
+                formData.append("message", "Non-respect de la charte de modération.");
 
                 try {
-                    await fetch(`${baseUrl}/admin/moderation/action`, {
+                    await fetch(`${baseUrl}/moderation/action`, {
                         method: "POST",
                         body: formData,
                         headers: { "X-Requested-With": "XMLHttpRequest" }
@@ -397,9 +587,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 reportCard.style.transition = "all 0.3s ease";
                 reportCard.style.opacity = "0";
                 reportCard.style.transform = "scale(0.96)";
-                setTimeout(() => reportCard.remove(), 300);
+                setTimeout(() => {
+                    reportCard.remove();
+                    updateReportBadge();
+                }, 300);
             }
-            showToast("Publication supprimée avec succès.", "success");
+            showToast("Publication supprimée en base de données et auteur notifié.", "success");
         });
     });
 
