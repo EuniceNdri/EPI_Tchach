@@ -11,6 +11,8 @@
 3. [Organisation Git & GitHub](#3--organisation-git--github)
 4. [Règles d'équipe](#4--règles-déquipe)
 5. [Résumé rapide des commandes](#5--résumé-rapide-des-commandes)
+6. [Base de données et migrations](#6--base-de-données-et-migrations)
+7. [Tester sur un téléphone ou un autre PC](#7--tester-sur-un-téléphone-ou-un-autre-pc-même-wi-fi)
 
 ---
 
@@ -60,24 +62,25 @@ EPI_Tchach/
 │   └── ...
 │
 ├── views/                        → Affichage (fichiers HTML/PHP)
-│   ├── auth/                    → Pages d'authentification
-│   │   ├── login.php            → Formulaire de connexion
-│   │   ├── register.php         → Formulaire d'inscription
-│   │   ├── forgot-password.php  → Mot de passe oublié
-│   │   └── reset-password.php   → Réinitialisation du mot de passe
-│   ├── desktop/                 → Vues pour ordinateur
-│   └── smartphone/              → Vues pour mobile
+│   ├── desktop/                 → Pages du frontend ordinateur
+│   │   ├── admin/               → Administration
+│   │   ├── auth/                → Connexion, inscription et récupération
+│   │   ├── partials/            → Composants communs aux pages desktop
+│   │   └── profile/             → Profil utilisateur
+│   └── smartphone/              → Pages indépendantes du frontend smartphone
+│       ├── auth/                → Connexion, inscription et récupération mobile
+│       └── partials/            → Composants du frontend smartphone
 │
 ├── public/                       → Seul dossier accessible depuis le navigateur
 │   ├── index.php                → Point d'entrée de toute l'application
 │   ├── .htaccess                → Réécriture d'URL (tout passe par index.php)
 │   └── assets/
 │       ├── css/
-│       │   ├── desktop/
-│       │   └── smartphone/
+│       │   ├── desktop/         → Styles ordinateur
+│       │   └── smartphone/      → Styles smartphone (dont auth-base.css)
 │       ├── js/
-│       │   ├── desktop/
-│       │   └── smartphone/
+│       │   ├── desktop/         → Scripts ordinateur
+│       │   └── smartphone/      → Scripts smartphone (dont auth.js)
 │       └── images/
 │
 ├── .htaccess                     → Redirige vers public/
@@ -244,7 +247,32 @@ git commit -m "feat: description claire"
 git push -u origin prenom/feature/nom-fonctionnalite
 ```
 
+## 6. Base de données et migrations
+
+Pour mettre à jour une base existante, exécuter les migrations dans l'ordre :
+
+```bash
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_filieres.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_forum_features.sql
+```
+
+La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. La seconde ajoute les champs de modération, les sondages et les index manquants sans supprimer les données. Les migrations peuvent être relancées. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+
 ---
 
 > 📅 *Document mis à jour – Octobre 2026*
 > 📚 *Projet Forum de Discussion et d'Entraide – École*
+
+## 7. Tester sur un téléphone ou un autre PC (même Wi-Fi)
+
+Depuis la racine du projet, démarrez le serveur de développement :
+
+```bash
+./dev-server.sh
+```
+
+Le terminal affiche une adresse locale, par exemple `http://192.168.1.20:8000`. Ouvrez cette adresse sur le téléphone ou l'autre ordinateur, connecté au même réseau Wi-Fi. Le site choisit automatiquement son affichage mobile ou ordinateur selon l'appareil. Après avoir modifié les fichiers du projet, actualisez la page pour voir les changements.
+
+Il faut PHP en ligne de commande. Pour utiliser un autre port, lancez par exemple `PORT=8080 ./dev-server.sh`. Si l'adresse ne répond pas, vérifiez que les appareils sont sur le même Wi-Fi et que le pare-feu du PC autorise ce port.
+
+Ce serveur est destiné aux essais sur un réseau de confiance uniquement ; ne l'utilisez pas pour héberger le site en production.

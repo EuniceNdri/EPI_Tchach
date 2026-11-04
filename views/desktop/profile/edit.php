@@ -21,8 +21,6 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/profile.css" />
 </head>
 <body>
-  <div class="tricolor-bar"></div>
-
   <!-- Barre de navigation -->
   <header class="profile-header">
     <div class="profile-nav">
@@ -196,4 +194,3 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
   <script src="<?= $asset ?>/js/desktop/profile.js"></script>
 </body>
 </html>
-

@@ -6,41 +6,72 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  const loginForm = document.querySelector("[data-login-form]");
-  if (loginForm) {
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("mot_de_passe");
-    const nextButton = loginForm.querySelector("[data-login-next]");
-    const backButton = loginForm.querySelector("[data-login-back]");
-    const submitButton = loginForm.querySelector("[data-login-submit]");
-    const progressSteps = document.querySelectorAll("[data-progress-step]");
+  const registerForm = document.querySelector("[data-register-form]");
+  if (registerForm) {
+    const panels = Array.from(registerForm.querySelectorAll("[data-register-step]"));
+    const progressSteps = Array.from(registerForm.querySelectorAll("[data-register-progress]"));
+    const nextButton = registerForm.querySelector("[data-register-next]");
+    const backButton = registerForm.querySelector("[data-register-back]");
+    const submitButton = registerForm.querySelector("[data-register-submit]");
 
-    if (emailInput && passwordInput && nextButton && backButton && submitButton) {
-      loginForm.classList.add("is-staged");
+    if (panels.length && nextButton && backButton && submitButton) {
+      registerForm.classList.add("is-register-staged");
+      registerForm.noValidate = true;
 
-      const showStep = (step) => {
-        loginForm.dataset.currentStep = step;
-        loginForm.classList.toggle("is-password-step", step === "password");
-        loginForm.querySelectorAll("[data-login-step]").forEach((section) => {
-          const visible = section.dataset.loginStep === step;
-          section.hidden = !visible;
+      const getInvalidField = (panel) => Array.from(
+        panel.querySelectorAll("input, select, textarea")
+      ).find((field) => !field.disabled && field.willValidate && !field.validity.valid);
+
+      const showStep = (step, shouldFocus = false) => {
+        registerForm.dataset.currentStep = String(step);
+        panels.forEach((panel) => {
+          panel.hidden = Number(panel.dataset.registerStep) !== step;
         });
-        passwordInput.disabled = step !== "password";
-        nextButton.hidden = step !== "email";
-        backButton.hidden = step !== "password";
-        submitButton.hidden = step !== "password";
         progressSteps.forEach((progressStep) => {
-          progressStep.classList.toggle("is-current", progressStep.dataset.progressStep === step);
-          progressStep.classList.toggle("is-complete", step === "password" && progressStep.dataset.progressStep === "email");
+          const current = Number(progressStep.dataset.registerProgress) === step;
+          progressStep.classList.toggle("is-current", current);
+          progressStep.classList.toggle("is-complete", Number(progressStep.dataset.registerProgress) < step);
+          if (current) progressStep.setAttribute("aria-current", "step");
+          else progressStep.removeAttribute("aria-current");
         });
-        (step === "email" ? emailInput : passwordInput).focus();
+        backButton.hidden = step === 1;
+        nextButton.hidden = step === panels.length;
+        submitButton.hidden = step !== panels.length;
+
+        if (shouldFocus) {
+          const firstField = panels[step - 1].querySelector("input, select, textarea");
+          if (firstField) firstField.focus();
+        }
       };
 
       nextButton.addEventListener("click", () => {
-        if (emailInput.reportValidity()) showStep("password");
+        const step = Number(registerForm.dataset.currentStep);
+        const invalidField = getInvalidField(panels[step - 1]);
+        if (invalidField) {
+          invalidField.reportValidity();
+          return;
+        }
+        showStep(step + 1, true);
       });
-      backButton.addEventListener("click", () => showStep("email"));
-      showStep(loginForm.dataset.initialStep === "password" ? "password" : "email");
+
+      backButton.addEventListener("click", () => {
+        showStep(Number(registerForm.dataset.currentStep) - 1, true);
+      });
+
+      registerForm.addEventListener("submit", (event) => {
+        for (let index = 0; index < panels.length; index += 1) {
+          const invalidField = getInvalidField(panels[index]);
+          if (invalidField) {
+            event.preventDefault();
+            showStep(index + 1, true);
+            invalidField.reportValidity();
+            return;
+          }
+        }
+      });
+
+      const initialStep = Number(registerForm.dataset.initialStep);
+      showStep(Number.isInteger(initialStep) && initialStep >= 1 && initialStep <= panels.length ? initialStep : 1);
     }
   }
 

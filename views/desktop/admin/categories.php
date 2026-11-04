@@ -15,8 +15,6 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
 </head>
 <body>
-  <div class="admin-tricolor"></div>
-
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
@@ -223,4 +221,3 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <script src="<?= $asset ?>/js/desktop/admin.js"></script>
 </body>
 </html>
-

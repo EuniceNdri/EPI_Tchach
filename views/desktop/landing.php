@@ -2,6 +2,15 @@
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 $logoFile = $asset . '/images/logo.jpeg';
+$filieres = isset($filieres) && is_array($filieres) ? $filieres : [];
+$filieresLoadError = $filieresLoadError ?? false;
+$filiereImages = [
+  'IDA' => 'filiere-industrielle.jpg',
+  'LIC-INFO' => 'filiere-industrielle.jpg',
+  'GM' => 'filiere-industrielle.jpg',
+  'GC' => 'filiere-industrielle.jpg',
+  'FCGE' => 'filiere-tertiaire.jpg',
+];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -16,13 +25,10 @@ $logoFile = $asset . '/images/logo.jpeg';
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   
-  <!-- Feuille de style Desktop Landing -->
+  <!-- Feuille de style de base -->
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/landing.css" />
 </head>
 <body>
-  <!-- Bande tricolore décorative -->
-  <div class="tricolor-bar"></div>
-
   <!-- ===== Barre de navigation fixe (Widescreen) ===== -->
   <header class="header-wrapper">
     <nav class="nav container-fluid animate-fade-down">
@@ -40,7 +46,7 @@ $logoFile = $asset . '/images/logo.jpeg';
       </a>
 
       <!-- Liens de navigation internes -->
-      <ul class="nav-links">
+      <ul class="nav-links" id="primaryNavigation">
         <li><a href="#apercu" class="nav-link">Aperçu</a></li>
         <li><a href="#filieres" class="nav-link">Filières</a></li>
         <li><a href="#comment-ca-marche" class="nav-link">Fonctionnement</a></li>
@@ -48,6 +54,12 @@ $logoFile = $asset . '/images/logo.jpeg';
         <li><a href="#faq" class="nav-link">FAQ</a></li>
         <li><a href="#policyModal" class="nav-link open-policy-modal" onclick="window.openPolicyModal(event)" style="color:var(--accent); font-weight:700;">Charte & Règlement</a></li>
       </ul>
+
+      <button class="nav-toggle" type="button" aria-label="Ouvrir la navigation" aria-expanded="false" aria-controls="primaryNavigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
       <div class="nav-actions">
         <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
@@ -67,8 +79,8 @@ $logoFile = $asset . '/images/logo.jpeg';
       <div class="container-fluid">
         <div class="hero-grid">
           <!-- Colonne texte -->
-          <div class="hero-text animate-fade-up">
-            <div class="badge-wrapper">
+          <div class="hero-text">
+            <div class="badge-wrapper hero-copy-step hero-copy-step-1">
               <span class="badge">École Polytechnique Internationale</span>
               <span class="badge badge-live">
                 <span class="pulse-dot"></span>
@@ -76,10 +88,10 @@ $logoFile = $asset . '/images/logo.jpeg';
               </span>
             </div>
 
-            <h1>Toute l'école, <span class="text-gradient">une seule conversation.</span></h1>
-            <p class="lead">Étudiants de BTS, Licence et Master, professeurs et délégués : échangez vos cours, résolvez vos exercices et restez informés en temps réel au sein de l'EPI.</p>
+            <h1 class="hero-copy-step hero-copy-step-2">Toute l'école, <span class="text-gradient">une seule conversation.</span></h1>
+            <p class="lead hero-copy-step hero-copy-step-3">Étudiants de BTS, Licence et Master, professeurs et délégués : échangez vos cours, résolvez vos exercices et restez informés en temps réel au sein de l'EPI.</p>
             
-            <div class="hero-actions">
+            <div class="hero-actions hero-copy-step hero-copy-step-4">
               <a href="<?= $base ?>/register" class="btn btn-accent group">
                 Commencer gratuitement
                 <svg class="icon arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -92,41 +104,65 @@ $logoFile = $asset . '/images/logo.jpeg';
               </button>
             </div>
 
-            <!-- Tags rapides -->
-            <div class="hero-tags">
-              <span class="tag-label">Salons actifs :</span>
-              <a href="#filieres" class="hero-tag">#BTS-IDA</a>
-              <a href="#filieres" class="hero-tag">#Licence-Info</a>
-              <a href="#filieres" class="hero-tag">#Génie-Civil</a>
-              <a href="#filieres" class="hero-tag">#Finance</a>
-              <a href="#filieres" class="hero-tag">#Annales-2025</a>
-            </div>
           </div>
 
-          <!-- Colonne bulles interactives -->
-          <div class="hero-bubbles">
-            <div class="bubble bubble-primary animate-pop" style="animation-delay: 0.25s">
-              <div class="bubble-header">
-                <span class="bubble-who">Dr. Koné · Professeur</span>
-                <span class="bubble-time">Il y a 5 min</span>
-              </div>
-              <p class="bubble-msg">Rappel : mise en ligne des sujets d'annales de Base de Données 📚</p>
+          <div class="hero-photo-carousel animate-pop" style="animation-delay: 0.35s" role="region" aria-roledescription="carrousel" aria-label="La vie à l'EPI">
+            <div class="hero-photo-stage">
+              <button type="button" class="hero-photo-card is-active" data-hero-card aria-label="Afficher la photo : On avance ensemble" aria-hidden="false">
+                <img src="<?= $asset ?>/images/landing-students.jpg" alt="Deux étudiants africains révisent ensemble" fetchpriority="high" />
+                <span class="hero-photo-note">
+                  <span class="hero-note-pin" aria-hidden="true"></span>
+                  <strong>On avance ensemble.</strong>
+                  <small>Une communauté, toutes les filières.</small>
+                </span>
+              </button>
+              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : L'entraide au quotidien" aria-hidden="true" tabindex="-1">
+                <img src="<?= $asset ?>/images/filiere-entraide.jpg" alt="" />
+                <span class="hero-photo-note">
+                  <span class="hero-note-pin" aria-hidden="true"></span>
+                  <strong>L'entraide au quotidien.</strong>
+                  <small>Les bonnes idées se partagent.</small>
+                </span>
+              </button>
+              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Apprendre en construisant" aria-hidden="true" tabindex="-1">
+                <img src="<?= $asset ?>/images/filiere-industrielle.jpg" alt="" />
+                <span class="hero-photo-note">
+                  <span class="hero-note-pin" aria-hidden="true"></span>
+                  <strong>Apprendre en construisant.</strong>
+                  <small>La pratique nous rassemble.</small>
+                </span>
+              </button>
+              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Chacun apporte sa pierre" aria-hidden="true" tabindex="-1">
+                <img src="<?= $asset ?>/images/filiere-ressources.jpg" alt="" />
+                <span class="hero-photo-note">
+                  <span class="hero-note-pin" aria-hidden="true"></span>
+                  <strong>Chacun apporte sa pierre.</strong>
+                  <small>Une école, mille talents.</small>
+                </span>
+              </button>
+              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Grandir ensemble" aria-hidden="true" tabindex="-1">
+                <img src="<?= $asset ?>/images/filiere-tertiaire.jpg" alt="" />
+                <span class="hero-photo-note">
+                  <span class="hero-note-pin" aria-hidden="true"></span>
+                  <strong>Grandir ensemble.</strong>
+                  <small>Chaque parcours compte.</small>
+                </span>
+              </button>
             </div>
-
-            <div class="bubble bubble-card animate-pop shifted" style="animation-delay: 0.55s">
-              <div class="bubble-header">
-                <span class="bubble-who">Momo · BTS IDA</span>
-                <span class="bubble-time">Il y a 2 min</span>
+            <div class="hero-carousel-controls" aria-label="Commandes du carrousel">
+              <button type="button" class="hero-carousel-arrow" data-hero-prev aria-label="Photo précédente">
+                <span aria-hidden="true">←</span>
+              </button>
+              <div class="hero-carousel-dots" aria-label="Choisir une photo">
+                <button type="button" class="hero-carousel-dot is-active" data-hero-dot="0" aria-label="Afficher la photo 1 sur 5" aria-current="true"></button>
+                <button type="button" class="hero-carousel-dot" data-hero-dot="1" aria-label="Afficher la photo 2 sur 5"></button>
+                <button type="button" class="hero-carousel-dot" data-hero-dot="2" aria-label="Afficher la photo 3 sur 5"></button>
+                <button type="button" class="hero-carousel-dot" data-hero-dot="3" aria-label="Afficher la photo 4 sur 5"></button>
+                <button type="button" class="hero-carousel-dot" data-hero-dot="4" aria-label="Afficher la photo 5 sur 5"></button>
               </div>
-              <p class="bubble-msg">Quelqu'un a compris l'erreur SQL sur le TP de migration ? 💡</p>
-            </div>
-
-            <div class="bubble bubble-accent animate-pop" style="animation-delay: 0.85s">
-              <div class="bubble-header">
-                <span class="bubble-who">Sarah · BTS IDA</span>
-                <span class="bubble-time">À l'instant</span>
-              </div>
-              <p class="bubble-msg">Oui ! Viens dans le salon BTS IDA, je t'ai partagé la solution 🙌</p>
+              <button type="button" class="hero-carousel-arrow" data-hero-next aria-label="Photo suivante">
+                <span aria-hidden="true">→</span>
+              </button>
             </div>
           </div>
         </div>
@@ -271,39 +307,54 @@ $logoFile = $asset . '/images/logo.jpeg';
           <p>Chaque promotion dispose de son salon sécurisé pour progresser sereinement.</p>
         </div>
 
-        <div class="features-grid">
-          <article class="feature-card reveal" style="--delay: 0s">
-            <div class="feature-icon icon-blue">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+        <?php if ($filieres): ?>
+          <div class="filiere-carousel" role="region" aria-roledescription="carrousel" aria-label="Carrousel des filières" data-card-count="<?= count($filieres) ?>">
+            <div class="filiere-track" id="filiereTrack">
+              <?php foreach ($filieres as $index => $filiere): ?>
+                <?php
+                  $code = strtoupper(trim($filiere['code'] ?? ''));
+                  $image = $filiereImages[$code] ?? 'filiere-entraide.jpg';
+                  $name = trim($filiere['nom'] ?? '');
+                  $description = trim($filiere['description'] ?? '');
+                  if ($description === '') {
+                    $description = 'Échangez et progressez avec les étudiants de la filière ' . $name . '.';
+                  }
+                ?>
+                <article class="filiere-card<?= $index === 0 ? ' is-active' : '' ?>" data-filiere-card role="button" tabindex="0" aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>" aria-label="Filière <?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>">
+                  <img src="<?= htmlspecialchars($asset . '/images/' . $image, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" />
+                  <span class="filiere-card-label"><?= htmlspecialchars($filiere['code'] ?: 'Filière', ENT_QUOTES, 'UTF-8') ?></span>
+                  <div class="filiere-card-content">
+                    <span class="filiere-slogan">Formation EPI · entraide et réussite</span>
+                    <h3><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></h3>
+                    <p class="filiere-card-description"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
+                  </div>
+                </article>
+              <?php endforeach; ?>
             </div>
-            <h3>Filières Industrielles</h3>
-            <p>Salons d'échange spécialisés : Informatique Développeur d'Applications (IDA), Génie Civil (Bâtiment, Travaux Publics, Géomètre), Mines & Géologie, Électrotechnique et Télécoms.</p>
-          </article>
 
-          <article class="feature-card reveal" style="--delay: 0.15s">
-            <div class="feature-icon icon-red">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            </div>
-            <h3>Filières Tertiaires</h3>
-            <p>Espaces collaboratifs : Finance Comptabilité & Gestion des Entreprises, Gestion Commerciale, Ressources Humaines & Communication, Logistique et Assistanat de Direction.</p>
-          </article>
-
-          <article class="feature-card reveal" style="--delay: 0.3s">
-            <div class="feature-icon icon-blue">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
-            </div>
-            <h3>Sujets d'Examens & TP</h3>
-            <p>Banque d'annales BTS, partiels blancs, fiches de synthèse de cours et entraide en groupe avant chaque session d'examens.</p>
-          </article>
-
-          <article class="feature-card reveal" style="--delay: 0.45s">
-            <div class="feature-icon icon-red">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <h3>Entraide Profs & Délégués</h3>
-            <p>Une communication directe et transparente pour poser des questions de cours et recevoir des explications certifiées.</p>
-          </article>
-        </div>
+            <?php if (count($filieres) > 1): ?>
+              <div class="filiere-carousel-controls">
+                <button type="button" class="carousel-arrow" data-carousel-prev aria-label="Filière précédente">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div class="carousel-dots" aria-label="Choisir une filière">
+                  <?php foreach ($filieres as $index => $filiere): ?>
+                    <button type="button" class="carousel-dot<?= $index === 0 ? ' is-active' : '' ?>" data-carousel-dot="<?= $index ?>" aria-label="Afficher la filière <?= htmlspecialchars($filiere['nom'], ENT_QUOTES, 'UTF-8') ?>"<?= $index === 0 ? ' aria-current="true"' : '' ?>></button>
+                  <?php endforeach; ?>
+                </div>
+                <button type="button" class="carousel-arrow" data-carousel-next aria-label="Filière suivante">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php else: ?>
+          <p class="filiere-empty-state" role="status">
+            <?= $filieresLoadError
+              ? 'Les filières ne sont pas disponibles pour le moment.'
+              : 'Aucune filière active n’est disponible pour le moment.' ?>
+          </p>
+        <?php endif; ?>
       </div>
     </section>
 
@@ -524,8 +575,6 @@ $logoFile = $asset . '/images/logo.jpeg';
       </div>
     </div>
   </footer>
-
-  <div class="tricolor-bar"></div>
 
   <!-- Bouton Retour en haut -->
   <button type="button" class="back-to-top" id="backToTop" aria-label="Retour en haut de page">

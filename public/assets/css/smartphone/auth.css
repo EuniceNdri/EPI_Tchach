@@ -134,31 +134,31 @@
   }
 
   .btn-submit,
-  .login-next {
+  .register-next {
     min-height: 2.9rem;
     padding: 0.8rem 1rem;
     font-size: 0.95rem;
   }
 
-  .login-progress {
+  .register-progress {
     gap: 0.4rem;
-    font-size: 0.65rem;
+    font-size: 0.58rem;
   }
 
-  .login-progress-step {
-    gap: 0.3rem;
+  .register-progress-step {
+    gap: 0.2rem;
   }
 
-  .login-progress-step > span {
-    width: 1.35rem;
-    height: 1.35rem;
+  .register-progress-step > span {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
-  .login-step-actions {
+  .register-step-actions {
     gap: 0.4rem;
   }
 
-  .login-back {
+  .register-back {
     font-size: 0.72rem;
   }
 

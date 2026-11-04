@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * EPI TCHACH – Script JavaScript Desktop Landing (landing.js)
- * Interactions riches : Animations, Parallaxe, Accordéon FAQ, 
+ * Interactions riches : Animations, Carrousel, Accordéon FAQ,
  * Compteurs animés, Transitions de page & Modale Charte/Politique
  * ============================================================
  */
@@ -34,17 +34,44 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. En-tête avec ombre dynamique au scroll
   const header = document.querySelector(".header-wrapper");
   if (header) {
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (window.scrollY > 20) {
-          header.classList.add("scrolled");
-        } else {
-          header.classList.remove("scrolled");
+    const updateHeader = () => {
+      header.classList.toggle("scrolled", window.scrollY > 20);
+    };
+    const navToggle = header.querySelector(".nav-toggle");
+    const navLinks = header.querySelector(".nav-links");
+
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+
+    if (navToggle && navLinks) {
+      const closeNavigation = () => {
+        navLinks.classList.remove("is-open");
+        navToggle.setAttribute("aria-expanded", "false");
+        navToggle.setAttribute("aria-label", "Ouvrir la navigation");
+      };
+
+      navToggle.addEventListener("click", () => {
+        const isOpen = navToggle.getAttribute("aria-expanded") === "true";
+        navToggle.setAttribute("aria-expanded", String(!isOpen));
+        navToggle.setAttribute("aria-label", isOpen ? "Ouvrir la navigation" : "Fermer la navigation");
+        navLinks.classList.toggle("is-open", !isOpen);
+      });
+
+      navLinks.addEventListener("click", (event) => {
+        if (event.target.closest("a")) closeNavigation();
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!header.contains(event.target)) closeNavigation();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && navToggle.getAttribute("aria-expanded") === "true") {
+          closeNavigation();
+          navToggle.focus();
         }
-      },
-      { passive: true }
-    );
+      });
+    }
   }
 
   // 3. Défilement doux vers les ancres internes (excluant les modales)
@@ -64,32 +91,210 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 4. Parallaxe interactif sur les bulles du héros (Desktop)
-  const heroBubbles = document.querySelector(".hero-bubbles");
-  if (heroBubbles && window.matchMedia("(min-width: 992px)").matches) {
-    const bubbles = heroBubbles.querySelectorAll(".bubble");
-    window.addEventListener(
-      "mousemove",
-      (e) => {
-        const { clientX, clientY } = e;
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        const deltaX = (clientX - centerX) / 60;
-        const deltaY = (clientY - centerY) / 60;
+  // 4. Carrousel photo du héros
+  const heroCarousel = document.querySelector(".hero-photo-carousel");
+  if (heroCarousel) {
+    const cards = Array.from(heroCarousel.querySelectorAll("[data-hero-card]"));
+    const dots = Array.from(heroCarousel.querySelectorAll("[data-hero-dot]"));
+    const previousButton = heroCarousel.querySelector("[data-hero-prev]");
+    const nextButton = heroCarousel.querySelector("[data-hero-next]");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let activeIndex = 0;
+    let autoplayId = null;
+    let isVisible = !("IntersectionObserver" in window);
 
-        bubbles.forEach((bubble, index) => {
-          const depth = (index + 1) * 0.4;
-          bubble.style.transform = `translate(${deltaX * depth}px, ${deltaY * depth}px)`;
+    if (cards.length) {
+      const showCard = (index) => {
+        activeIndex = (index + cards.length) % cards.length;
+        cards.forEach((card, cardIndex) => {
+          const offset = (cardIndex - activeIndex + cards.length) % cards.length;
+          const position = offset > Math.floor(cards.length / 2) ? offset - cards.length : offset;
+          let positionClass = "is-hidden";
+          if (position === 0) positionClass = "is-active";
+          else if (position === 1) positionClass = "is-next";
+          else if (position === -1) positionClass = "is-prev";
+          else if (position > 0) positionClass = "is-next-2";
+          else if (position < 0) positionClass = "is-prev-2";
+
+          card.classList.remove("is-active", "is-next", "is-prev", "is-next-2", "is-prev-2", "is-hidden");
+          card.classList.add(positionClass);
+          card.setAttribute("aria-hidden", String(position !== 0));
+          card.tabIndex = position === 0 ? 0 : -1;
         });
-      },
-      { passive: true }
-    );
+        dots.forEach((dot, dotIndex) => {
+          const isActive = dotIndex === activeIndex;
+          dot.classList.toggle("is-active", isActive);
+          if (isActive) {
+            dot.setAttribute("aria-current", "true");
+          } else {
+            dot.removeAttribute("aria-current");
+          }
+        });
+      };
 
-    heroBubbles.addEventListener("mouseleave", () => {
-      bubbles.forEach((bubble) => {
-        bubble.style.transform = "";
+      const stopAutoplay = () => {
+        window.clearInterval(autoplayId);
+        autoplayId = null;
+      };
+      const startAutoplay = () => {
+        if (cards.length > 1 && !prefersReducedMotion && isVisible && autoplayId === null && !document.hidden) {
+          autoplayId = window.setInterval(() => showCard(activeIndex + 1), 5000);
+        }
+      };
+
+      cards.forEach((card, index) => {
+        card.addEventListener("click", () => showCard(index));
+      });
+      dots.forEach((dot) => {
+        dot.addEventListener("click", () => showCard(Number(dot.dataset.heroDot)));
+      });
+      if (previousButton) {
+        previousButton.addEventListener("click", () => showCard(activeIndex - 1));
+      }
+      if (nextButton) {
+        nextButton.addEventListener("click", () => showCard(activeIndex + 1));
+      }
+
+      heroCarousel.addEventListener("mouseenter", stopAutoplay);
+      heroCarousel.addEventListener("mouseleave", startAutoplay);
+      heroCarousel.addEventListener("focusin", stopAutoplay);
+      heroCarousel.addEventListener("focusout", (event) => {
+        if (!heroCarousel.contains(event.relatedTarget)) startAutoplay();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopAutoplay();
+        } else {
+          startAutoplay();
+        }
+      });
+
+      showCard(activeIndex);
+      if ("IntersectionObserver" in window) {
+        const heroCarouselObserver = new IntersectionObserver(
+          ([entry]) => {
+            isVisible = entry.isIntersecting;
+            if (isVisible) {
+              startAutoplay();
+            } else {
+              stopAutoplay();
+            }
+          },
+          { threshold: 0.25 }
+        );
+        heroCarouselObserver.observe(heroCarousel);
+      } else {
+        startAutoplay();
+      }
+    }
+  }
+
+  // 5. Carrousel des filières
+  const filiereCarousel = document.querySelector(".filiere-carousel");
+  if (filiereCarousel) {
+    const cards = Array.from(filiereCarousel.querySelectorAll("[data-filiere-card]"));
+    const dots = Array.from(filiereCarousel.querySelectorAll("[data-carousel-dot]"));
+    const track = filiereCarousel.querySelector(".filiere-track");
+    const previousButton = filiereCarousel.querySelector("[data-carousel-prev]");
+    const nextButton = filiereCarousel.querySelector("[data-carousel-next]");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let activeIndex = Math.max(0, cards.findIndex((card) => card.classList.contains("is-active")));
+    let autoplayId = null;
+    let isVisible = !("IntersectionObserver" in window);
+
+    const showCard = (index, shouldScroll = false) => {
+      activeIndex = (index + cards.length) % cards.length;
+      cards.forEach((card, cardIndex) => {
+        const isActive = cardIndex === activeIndex;
+        card.classList.toggle("is-active", isActive);
+        card.setAttribute("aria-pressed", String(isActive));
+      });
+      dots.forEach((dot, dotIndex) => {
+        const isActive = dotIndex === activeIndex;
+        dot.classList.toggle("is-active", isActive);
+        if (isActive) {
+          dot.setAttribute("aria-current", "true");
+        } else {
+          dot.removeAttribute("aria-current");
+        }
+      });
+
+      if (shouldScroll && track && window.matchMedia("(max-width: 850px)").matches) {
+        const card = cards[activeIndex];
+        const trackBounds = track.getBoundingClientRect();
+        const cardBounds = card.getBoundingClientRect();
+        const cardLeft = track.scrollLeft + cardBounds.left - trackBounds.left;
+        const targetLeft = cardLeft - (track.clientWidth - card.clientWidth) / 2;
+        track.scrollTo({
+          left: targetLeft,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
+      }
+    };
+
+    const stopAutoplay = () => {
+      window.clearInterval(autoplayId);
+      autoplayId = null;
+    };
+    const startAutoplay = () => {
+      if (cards.length > 1 && !prefersReducedMotion && isVisible && autoplayId === null && !document.hidden) {
+        autoplayId = window.setInterval(() => showCard(activeIndex + 1, true), 6000);
+      }
+    };
+
+    if (!cards.length) return;
+
+    cards.forEach((card, index) => {
+      card.addEventListener("click", () => showCard(index, true));
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showCard(index, true);
+        }
       });
     });
+    dots.forEach((dot) => {
+      dot.addEventListener("click", () => showCard(Number(dot.dataset.carouselDot), true));
+    });
+    if (previousButton) {
+      previousButton.addEventListener("click", () => showCard(activeIndex - 1, true));
+    }
+    if (nextButton) {
+      nextButton.addEventListener("click", () => showCard(activeIndex + 1, true));
+    }
+
+    filiereCarousel.addEventListener("mouseenter", stopAutoplay);
+    filiereCarousel.addEventListener("mouseleave", startAutoplay);
+    filiereCarousel.addEventListener("focusin", stopAutoplay);
+    filiereCarousel.addEventListener("focusout", (event) => {
+      if (!filiereCarousel.contains(event.relatedTarget)) startAutoplay();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopAutoplay();
+      } else {
+        startAutoplay();
+      }
+    });
+
+    showCard(activeIndex);
+    filiereCarousel.classList.add("is-ready");
+    if ("IntersectionObserver" in window) {
+      const carouselObserver = new IntersectionObserver(
+        ([entry]) => {
+          isVisible = entry.isIntersecting;
+          if (isVisible) {
+            startAutoplay();
+          } else {
+            stopAutoplay();
+          }
+        },
+        { threshold: 0.25 }
+      );
+      carouselObserver.observe(filiereCarousel);
+    } else {
+      startAutoplay();
+    }
   }
 
   // 5. Accordéon FAQ interactif

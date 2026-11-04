@@ -49,17 +49,6 @@ body {
   display: flex;
 }
 
-/* Bande tricolore */
-.admin-tricolor {
-  height: 0.35rem;
-  width: 100%;
-  background: linear-gradient(90deg, #1e3a8a 33.33%, #ffffff 33.33% 66.66%, #dc2626 66.66%);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 50;
-}
-
 /* ============ Disposition Globale Dashboard ============ */
 .admin-wrapper {
   display: flex;
@@ -637,4 +626,3 @@ body {
   font-size: 0.8rem;
   color: var(--admin-muted);
 }
-

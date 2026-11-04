@@ -15,12 +15,8 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
 </head>
 <body>
-  <!-- Bande tricolore -->
-  <div class="tricolor-bar"></div>
-
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
@@ -41,7 +37,7 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="auth-layout">
     <aside class="auth-visual">
       <div class="auth-visual-brand">
-        <img src="<?= $asset ?>/images/logo_epi.svg" alt="Logo EPI" />
+        <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" />
         <span>La communauté EPI</span>
       </div>
       <div class="auth-visual-art" aria-hidden="true">

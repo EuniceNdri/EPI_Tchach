@@ -54,16 +54,6 @@ body {
 }
 
 
-/* ============ Bande tricolore ============ */
-
-.tricolor-bar {
-    height: 0.4rem;
-    width: 100%;
-    background: linear-gradient(90deg, var(--primary) 33.33%, #ffffff 33.33% 66.66%, var(--accent) 66.66%);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-
 /* ============ En-tête simplifié ============ */
 
 .auth-header {
@@ -366,24 +356,24 @@ body {
     letter-spacing: 0.25em;
 }
 
-.login-progress {
+.register-progress {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.45rem;
     margin: -0.25rem 0 1.5rem;
     color: var(--muted-foreground);
     font-size: 0.72rem;
     font-weight: 700;
 }
 
-.login-progress-step {
+.register-progress-step {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     white-space: nowrap;
 }
 
-.login-progress-step > span {
+.register-progress-step > span {
     display: grid;
     width: 1.5rem;
     height: 1.5rem;
@@ -393,33 +383,43 @@ body {
     background: #fff;
 }
 
-.login-progress-step.is-current,
-.login-progress-step.is-complete {
+.register-progress-step.is-current,
+.register-progress-step.is-complete {
     color: var(--primary);
 }
 
-.login-progress-step.is-current > span,
-.login-progress-step.is-complete > span {
+.register-progress-step.is-current > span,
+.register-progress-step.is-complete > span {
     border-color: var(--primary);
     background: var(--primary);
     color: #fff;
 }
 
-.login-progress-line {
+.register-progress-line {
     flex: 1;
     height: 1px;
     background: var(--border);
 }
 
-.login-step-actions {
-    display: grid;
-    grid-template-columns: auto 1fr;
+.register-step-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.register-step-panel[hidden] {
+    display: none !important;
+}
+
+.register-step-actions {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.75rem;
 }
 
-.login-next,
-.login-back {
+.register-next,
+.register-back {
     border: 0;
     background: transparent;
     color: var(--primary);
@@ -429,10 +429,9 @@ body {
     cursor: pointer;
 }
 
-.login-next {
+.register-next {
     display: none;
-    grid-column: 1 / -1;
-    width: 100%;
+    flex: 1;
     padding: 0.95rem 1rem;
     border-radius: 9999px;
     background: linear-gradient(135deg, var(--primary), #1d4ed8);
@@ -441,58 +440,56 @@ body {
     font-size: 1rem;
 }
 
-.login-back {
+.register-back {
     display: none;
     white-space: nowrap;
 }
 
-.login-progress,
-.login-next,
-.login-back {
+.register-progress,
+.register-next,
+.register-back {
     display: none;
 }
 
-.login-progress-step.is-current > span,
-.login-progress-step.is-complete > span {
+.register-progress-step.is-current > span,
+.register-progress-step.is-complete > span {
     display: grid;
 }
 
-.auth-form.is-staged [data-login-step][hidden],
-.auth-form.is-staged [hidden] {
+.auth-form.is-register-staged [hidden] {
     display: none !important;
 }
 
-.auth-form.is-staged + .auth-card-footer {
+.auth-form.is-register-staged + .auth-card-footer {
     margin-top: 1.5rem;
 }
 
-.auth-form.is-staged .login-progress,
-.auth-form.is-staged .login-next {
+.auth-form.is-register-staged .register-progress {
     display: flex;
 }
 
-.auth-form.is-staged .login-next {
+.auth-form.is-register-staged .register-next:not([hidden]) {
     display: block;
 }
 
-.auth-form.is-staged .login-back:not([hidden]) {
+.auth-form.is-register-staged .register-back:not([hidden]) {
     display: inline-block;
 }
 
-.auth-form.is-staged [data-login-submit][hidden] {
-    display: none;
-}
-
-.auth-form.is-staged .login-step-actions .btn-submit {
+.auth-form.is-register-staged .register-step-actions .btn-submit {
+    width: auto;
+    flex: 1;
     margin-top: 0;
 }
 
-.auth-form.is-staged.is-password-step .login-step-actions {
-    grid-template-columns: auto 1fr;
+.profile-photo-input {
+    padding: 0.65rem;
 }
 
-.auth-form.is-staged.is-password-step .login-step-actions .btn-submit {
-    grid-column: 2;
+.profile-photo-note {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
 }
 
 .auth-card-header {
