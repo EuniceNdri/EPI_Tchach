@@ -1,7 +1,7 @@
 <?php
 /**
  * =============================================================
- * controllers/moderationController.php – Contrôleur de Modération
+ * controllers/ModerationController.php – Contrôleur de Modération
  * =============================================================
  * Espace réservé aux administrateurs et modérateurs pour examiner
  * les signalements et appliquer les décisions (avertir l'auteur,

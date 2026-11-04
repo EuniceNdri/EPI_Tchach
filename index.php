@@ -217,18 +217,18 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     case 'signalement':
     case 'signalement/create':
-        require_once ROOT_PATH . '/controllers/signalementController.php';
+        require_once ROOT_PATH . '/controllers/SignalementController.php';
         (new SignalementController())->create();
         break;
 
     case 'moderation':
-        require_once ROOT_PATH . '/controllers/moderationController.php';
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
         (new ModerationController())->index();
         break;
 
     case 'moderation/action':
     case 'moderation/decision':
-        require_once ROOT_PATH . '/controllers/moderationController.php';
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
         (new ModerationController())->decision();
         break;
 
@@ -319,12 +319,12 @@ switch ($fullRoute) {
         break;
 
     case 'admin/moderation':
-        require_once ROOT_PATH . '/controllers/moderationController.php';
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
         (new ModerationController())->index();
         break;
 
     case 'admin/moderation/action':
-        require_once ROOT_PATH . '/controllers/moderationController.php';
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
         (new ModerationController())->decision();
         break;
 

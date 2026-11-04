@@ -1,7 +1,7 @@
 <?php
 /**
  * =============================================================
- * controllers/signalementController.php – Contrôleur de Signalement
+ * controllers/SignalementController.php – Contrôleur de Signalement
  * =============================================================
  * Permet à tout utilisateur connecté de signaler une publication
  * ou un commentaire non conforme à la charte.

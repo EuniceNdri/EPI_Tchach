@@ -144,7 +144,19 @@ prenom/type/nom-de-la-fonctionnalite
 
 > **⚠️ Important :** Toujours mettre son prénom en minuscule au début de la branche.
 
-### 3.3 Workflow de travail recommandé
+### 3.3 Organisation de la branche `paul/feature/reactions-notifications-signalements-moderation`
+
+Cette branche regroupe les modules de communication sociale et de modération du forum. Pour garder le travail lisible, on structure les responsabilités ainsi :
+
+- `controllers/ReactionController.php` → gestion des réactions (like, j'adore, utile)
+- `controllers/NotificationController.php` → centre de notifications et badge non lu
+- `controllers/SignalementController.php` → création des signalements par l'utilisateur
+- `controllers/ModerationController.php` → décision d'un modérateur / administrateur
+- `models/Reaction.php`, `models/Notification.php`, `models/Signalement.php`, `models/ModerationService.php` → logique métier et SQL associée
+
+Cette séparation permet de garder une branche unique fonctionnelle sans mélanger les responsabilités dans un seul fichier.
+
+### 3.4 Workflow de travail recommandé
 
 ```bash
 # 1. Se mettre à jour avant de commencer
@@ -171,7 +183,7 @@ git push -u origin prenom/feature/nom-fonctionnalite
 
 Ensuite, on crée une **Pull Request** (ou Merge Request) vers la branche `develop`.
 
-### 3.4 Convention des messages de commit
+### 3.5 Convention des messages de commit
 
 Nous utilisons le format **Conventional Commits** :
 
@@ -190,7 +202,7 @@ Nous utilisons le format **Conventional Commits** :
 > git commit -m "feat(shadow): ajout de l'authentification"
 > ```
 
-### 3.5 Fichier `.gitignore` recommandé
+### 3.6 Fichier `.gitignore` recommandé
 
 Créer un fichier `.gitignore` à la racine avec au minimum :
 
