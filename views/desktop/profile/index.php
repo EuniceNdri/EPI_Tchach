@@ -30,9 +30,6 @@ $isOwnProfile = $isOwnProfile ?? (isset($_SESSION['user_id']) && (!isset($user['
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/profile.css" />
 </head>
 <body>
-  <!-- Bande tricolore décorative officielle -->
-  <div class="tricolor-bar"></div>
-
   <!-- Barre de navigation supérieure -->
   <header class="profile-header">
     <div class="profile-nav">

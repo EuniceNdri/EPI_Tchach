@@ -129,6 +129,29 @@ if (!function_exists('asset')) {
     }
 }
 
+if (!function_exists('loadActiveFilieres')) {
+    function loadActiveFilieres(?PDO $pdo): array {
+        if (!$pdo) {
+            $error = $GLOBALS['dbError'] ?? 'Connexion à la base de données indisponible.';
+            error_log('Chargement des filières impossible : ' . $error);
+            return [[], true];
+        }
+
+        try {
+            $statement = $pdo->query(
+                'SELECT id, nom, code, description
+                 FROM filieres
+                 WHERE est_active = 1
+                 ORDER BY nom ASC'
+            );
+            return [$statement->fetchAll(), false];
+        } catch (PDOException $exception) {
+            error_log('Chargement des filières impossible : ' . $exception->getMessage());
+            return [[], true];
+        }
+    }
+}
+
 // =============================================================
 // GARDE-FOU ASSETS MANQUANTS (Évite de renvoyer du HTML sur un CSS/JS)
 // =============================================================
@@ -156,7 +179,14 @@ switch ($fullRoute) {
     case '':
     case 'landing':
     case 'home':
-        require_once ROOT_PATH . '/views/desktop/landing.php';
+        [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
+        header('Vary: User-Agent');
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        if (preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)) {
+            require_once ROOT_PATH . '/views/smartphone/landing.php';
+        } else {
+            require_once ROOT_PATH . '/views/desktop/landing.php';
+        }
         break;
 
     case 'salon':
@@ -370,6 +400,7 @@ switch ($fullRoute) {
             require_once ROOT_PATH . '/controllers/ProfileController.php';
             (new ProfileController())->index();
         } else {
+            [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
             require_once ROOT_PATH . '/views/desktop/landing.php';
         }
         break;

@@ -17,9 +17,6 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
 </head>
 <body>
-  <!-- Bande tricolore -->
-  <div class="tricolor-bar"></div>
-
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
@@ -37,6 +34,25 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="blob blob-left"></div>
     <div class="blob blob-right"></div>
 
+    <div class="auth-layout">
+    <aside class="auth-visual">
+      <div class="auth-visual-brand">
+        <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" />
+        <span>La communauté EPI</span>
+      </div>
+      <div class="auth-visual-art" aria-hidden="true">
+        <span class="auth-orbit auth-orbit-one"></span>
+        <span class="auth-orbit auth-orbit-two"></span>
+        <span class="auth-orb"></span>
+        <span class="auth-orb-glow"></span>
+      </div>
+      <div class="auth-visual-copy">
+        <span class="auth-visual-kicker">Votre espace, en toute sécurité</span>
+        <h2>Nous vous aidons à retrouver l’accès.</h2>
+        <p>Quelques instants suffisent pour demander un lien de réinitialisation sécurisé.</p>
+      </div>
+      <div class="auth-visual-footer"><span>Ensemble, faisons grandir nos idées.</span><span class="auth-visual-dots" aria-hidden="true">● ● ●</span></div>
+    </aside>
     <section class="auth-card">
       <div class="auth-card-header">
         <span class="auth-badge">Sécurité</span>
@@ -75,6 +91,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         <a href="<?= $base ?>/login" class="auth-link">Se connecter</a>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="auth-footer">

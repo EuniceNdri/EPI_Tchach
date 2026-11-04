@@ -18,8 +18,6 @@ $zones = isset($zones) ? $zones : [];
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
 </head>
 <body>
-  <div class="admin-tricolor"></div>
-
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>

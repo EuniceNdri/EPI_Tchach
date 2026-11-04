@@ -25,6 +25,16 @@ class AuthController {
         $this->userModel = new User();
     }
 
+    private function renderAuthView(string $view): void {
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $device = preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)
+            ? 'smartphone'
+            : 'desktop';
+
+        header('Vary: User-Agent');
+        require_once ROOT_PATH . '/views/' . $device . '/auth/' . $view . '.php';
+    }
+
     /**
      * Page et traitement de la connexion
      */
@@ -89,7 +99,7 @@ class AuthController {
             }
         }
 
-        require_once ROOT_PATH . '/views/desktop/auth/login.php';
+        $this->renderAuthView('login');
     }
 
     /**
@@ -201,7 +211,7 @@ class AuthController {
             }
         }
 
-        require_once ROOT_PATH . '/views/desktop/auth/register.php';
+        $this->renderAuthView('register');
     }
 
     /**
@@ -236,7 +246,7 @@ class AuthController {
             }
         }
 
-        require_once ROOT_PATH . '/views/desktop/auth/forgot-password.php';
+        $this->renderAuthView('forgot-password');
     }
 
     /**
@@ -266,6 +276,6 @@ class AuthController {
             }
         }
 
-        require_once ROOT_PATH . '/views/desktop/auth/reset-password.php';
+        $this->renderAuthView('reset-password');
     }
 }

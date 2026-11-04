@@ -17,9 +17,6 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
 </head>
 <body>
-  <!-- Bande tricolore -->
-  <div class="tricolor-bar"></div>
-
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
@@ -37,6 +34,25 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="blob blob-left"></div>
     <div class="blob blob-right"></div>
 
+    <div class="auth-layout auth-layout-wide">
+    <aside class="auth-visual">
+      <div class="auth-visual-brand">
+        <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" />
+        <span>La communauté EPI</span>
+      </div>
+      <div class="auth-visual-art" aria-hidden="true">
+        <span class="auth-orbit auth-orbit-one"></span>
+        <span class="auth-orbit auth-orbit-two"></span>
+        <span class="auth-orb"></span>
+        <span class="auth-orb-glow"></span>
+      </div>
+      <div class="auth-visual-copy">
+        <span class="auth-visual-kicker">Échanger · Apprendre · Réussir</span>
+        <h2>Faisons grandir la communauté.</h2>
+        <p>Créez votre compte et retrouvez un espace pensé pour l’entraide et le partage à l’EPI.</p>
+      </div>
+      <div class="auth-visual-footer"><span>Ensemble, faisons grandir nos idées.</span><span class="auth-visual-dots" aria-hidden="true">● ● ●</span></div>
+    </aside>
     <section class="auth-card auth-card-wide">
       <div class="auth-card-header">
         <span class="auth-badge">Inscription Membre</span>
@@ -58,14 +74,23 @@ $logoPath = $asset . '/images/logo.jpeg';
         </div>
       <?php endif; ?>
 
-      <form action="<?= $base ?>/register" method="POST" class="auth-form">
+      <form action="<?= $base ?>/register" method="POST" class="auth-form" data-register-form data-initial-step="<?= !empty($error) ? '3' : '1' ?>">
+        <div class="register-progress" aria-label="Étapes de création du compte">
+          <span class="register-progress-step is-current" data-register-progress="1" aria-current="step"><span>1</span> Identité</span>
+          <span class="register-progress-line"></span>
+          <span class="register-progress-step" data-register-progress="2"><span>2</span> Profil EPI</span>
+          <span class="register-progress-line"></span>
+          <span class="register-progress-step" data-register-progress="3"><span>3</span> Sécurité</span>
+        </div>
+
+        <section class="register-step-panel" data-register-step="1">
         <!-- Ligne Nom & Prénom -->
         <div class="form-row">
           <div class="form-group">
             <label for="nom" class="form-label">Nom de famille</label>
             <div class="input-wrapper">
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="nom" name="nom" class="form-input" placeholder="Kouassi" required />
+              <input type="text" id="nom" name="nom" class="form-input" placeholder="Kouassi" required value="<?= htmlspecialchars($_POST['nom'] ?? '') ?>" />
             </div>
           </div>
 
@@ -73,7 +98,7 @@ $logoPath = $asset . '/images/logo.jpeg';
             <label for="prenom" class="form-label">Prénom</label>
             <div class="input-wrapper">
               <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <input type="text" id="prenom" name="prenom" class="form-input" placeholder="Momo" required />
+              <input type="text" id="prenom" name="prenom" class="form-input" placeholder="Momo" required value="<?= htmlspecialchars($_POST['prenom'] ?? '') ?>" />
             </div>
           </div>
         </div>
@@ -83,7 +108,7 @@ $logoPath = $asset . '/images/logo.jpeg';
           <label for="email" class="form-label">Adresse Email Institutionnelle</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <input type="email" id="email" name="email" class="form-input" placeholder="momo.kouassi@epi-yakro.ci" required />
+            <input type="email" id="email" name="email" class="form-input" placeholder="momo.kouassi@epi-yakro.ci" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
           </div>
         </div>
 
@@ -99,6 +124,14 @@ $logoPath = $asset . '/images/logo.jpeg';
           </div>
         </div>
 
+        <div class="form-group">
+          <label for="photo_profil" class="form-label">Photo de profil</label>
+          <input type="file" id="photo_profil" accept="image/*" class="form-input profile-photo-input" />
+          <p class="profile-photo-note">Sélection visuelle uniquement : la photo n’est ni envoyée ni enregistrée par cette page.</p>
+        </div>
+        </section>
+
+        <section class="register-step-panel" data-register-step="2" hidden>
         <!-- ========================================== -->
         <!-- BLOC ÉTUDIANT : 1 seule filière obligatoire -->
         <!-- ========================================== -->
@@ -199,7 +232,9 @@ $logoPath = $asset . '/images/logo.jpeg';
             Vous serez automatiquement rattaché à l'<strong>Espace Professeurs</strong> ainsi qu'aux salons de toutes les filières cochées.
           </p>
         </div>
+        </section>
 
+        <section class="register-step-panel" data-register-step="3" hidden>
         <!-- Mot de Passe & Confirmation -->
         <div class="form-row">
           <div class="form-group">
@@ -232,8 +267,13 @@ $logoPath = $asset . '/images/logo.jpeg';
           <input type="checkbox" name="cgu" id="cguCheckbox" required />
           <span>J'accepte la <a href="#policyModal" class="open-policy-modal" onclick="window.openPolicyModal && window.openPolicyModal(event)" style="color:var(--primary); font-weight:700; text-decoration:underline;">charte d'utilisation</a> et la <a href="#policyModal" class="open-policy-modal" onclick="window.openPolicyModal && window.openPolicyModal(event)" style="color:var(--primary); font-weight:700; text-decoration:underline;">politique de confidentialité</a> de l'EPI.</span>
         </label>
+        </section>
 
-        <button type="submit" class="btn-submit">Créer mon compte</button>
+        <div class="register-step-actions">
+          <button type="button" class="register-back" data-register-back hidden>← Retour</button>
+          <button type="button" class="register-next" data-register-next>Continuer <span aria-hidden="true">→</span></button>
+          <button type="submit" class="btn-submit" data-register-submit hidden>Créer mon compte</button>
+        </div>
       </form>
 
       <div class="auth-card-footer">
@@ -241,6 +281,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         <a href="<?= $base ?>/login" class="auth-link">Se connecter</a>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="auth-footer">
