@@ -223,6 +223,63 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
+    // SIGNALEMENTS & MODERATION
+    // ---------------------------------------------------------
+    case 'signalement':
+    case 'signalement/create':
+        require_once ROOT_PATH . '/controllers/SignalementController.php';
+        (new SignalementController())->create();
+        break;
+
+    case 'moderation':
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
+        (new ModerationController())->index();
+        break;
+
+    case 'moderation/action':
+    case 'moderation/decision':
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
+        (new ModerationController())->decision();
+        break;
+
+    // ---------------------------------------------------------
+    // REACTIONS (Like, J'adore, Utile)
+    // ---------------------------------------------------------
+    case 'reaction':
+    case 'reaction/toggle':
+        require_once ROOT_PATH . '/controllers/ReactionController.php';
+        (new ReactionController())->toggle();
+        break;
+
+    // ---------------------------------------------------------
+    // NOTIFICATIONS
+    // ---------------------------------------------------------
+    case 'notifications':
+        require_once ROOT_PATH . '/controllers/NotificationController.php';
+        (new NotificationController())->index();
+        break;
+
+    case 'notifications/unread-count':
+        require_once ROOT_PATH . '/controllers/NotificationController.php';
+        (new NotificationController())->unreadCount();
+        break;
+
+    case 'notifications/mark-read':
+        require_once ROOT_PATH . '/controllers/NotificationController.php';
+        (new NotificationController())->markAsRead();
+        break;
+
+    case 'notifications/mark-all-read':
+        require_once ROOT_PATH . '/controllers/NotificationController.php';
+        (new NotificationController())->markAllRead();
+        break;
+
+    case 'notifications/delete':
+        require_once ROOT_PATH . '/controllers/NotificationController.php';
+        (new NotificationController())->delete();
+        break;
+
+    // ---------------------------------------------------------
     // ESPACE PROFIL (Géré par ProfileController)
     // ---------------------------------------------------------
     case 'profile':
@@ -272,13 +329,13 @@ switch ($fullRoute) {
         break;
 
     case 'admin/moderation':
-        require_once ROOT_PATH . '/controllers/AdminController.php';
-        (new AdminController())->moderation();
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
+        (new ModerationController())->index();
         break;
 
     case 'admin/moderation/action':
-        require_once ROOT_PATH . '/controllers/AdminController.php';
-        (new AdminController())->handleReport();
+        require_once ROOT_PATH . '/controllers/ModerationController.php';
+        (new ModerationController())->decision();
         break;
 
     case 'admin/categories':
