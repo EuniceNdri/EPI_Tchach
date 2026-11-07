@@ -163,22 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           window.showToast(data.message || "Erreur lors de la mise à jour.", "error");
         }
-      } catch (err) {
-        // En cas d'erreur réseau, simulation fluide
-        const fallbackNom = formData.get("nom") || "Kouassi";
-        const fallbackPrenom = formData.get("prenom") || "Momo";
-        const fallbackFullName = `${fallbackPrenom} ${fallbackNom}`;
-        const fallbackInitials = (fallbackPrenom[0] + fallbackNom[0]).toUpperCase();
-
-        document.querySelectorAll(".profile-dynamic-name").forEach((el) => {
-          el.textContent = fallbackFullName;
-        });
-        document.querySelectorAll(".profile-dynamic-initials").forEach((el) => {
-          el.textContent = fallbackInitials;
-        });
-
-        window.closeProfileEditModal();
-        window.showToast("✓ Modifications enregistrées avec succès !", "success");
+      } catch (error) {
+        window.showToast(error.message || "Impossible de joindre le serveur. Réessayez.", "error");
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -199,11 +185,11 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       const textarea = quickPostForm.querySelector("textarea[name='contenu']");
       const titleInput = quickPostForm.querySelector("input[name='titre']");
-      const tagSelect = quickPostForm.querySelector("select[name='tag']");
+      const categorySelect = quickPostForm.querySelector("select[name='categorie_id']");
 
       const titre = titleInput ? titleInput.value.trim() : "";
       const contenu = textarea ? textarea.value.trim() : "";
-      const tag = tagSelect ? tagSelect.value : "Général";
+      const categoryLabel = categorySelect?.selectedOptions[0]?.textContent.trim() || "Salon";
 
       if (!titre || !contenu) return;
 
@@ -232,8 +218,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
           "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
         }[character]));
-        const userName = escapeHtml(document.querySelector(".profile-dynamic-name")?.textContent || "Momo Kouassi");
-        const userInitials = escapeHtml(document.querySelector(".profile-dynamic-initials")?.textContent || "MK");
+        const userName = escapeHtml(document.querySelector(".profile-dynamic-name")?.textContent || "");
+        const userInitials = escapeHtml(document.querySelector(".profile-dynamic-initials")?.textContent || "");
         const attachments = (result.attachments || []).map((attachment) =>
           `<a href="${escapeHtml(attachment.download_url)}" class="btn-post-action">📎 ${escapeHtml(attachment.name)}</a>`
         ).join("");
@@ -247,23 +233,17 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="post-avatar-mini">${userInitials}</div>
             <div>
               <div class="post-author-name">${userName}</div>
-              <div class="post-time">À l'instant · Partagé sur la promotion</div>
+              <div class="post-time">À l'instant · ${escapeHtml(categoryLabel)}</div>
             </div>
           </div>
-          <span class="post-tag-pill"># ${escapeHtml(tag)}</span>
+          <span class="post-tag-pill">${escapeHtml(categoryLabel)}</span>
         </div>
         <h4 class="post-title">${escapeHtml(result.title || titre)}</h4>
         <p class="post-excerpt">${escapeHtml(result.content || contenu)}</p>
         <div class="post-footer-actions">
           ${attachments}
-          <button type="button" class="btn-post-action">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-            <span>0 Utile</span>
-          </button>
-          <button type="button" class="btn-post-action">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>0 Réponses</span>
-          </button>
+          <span class="profile-post-stat">♥ 0 likes</span>
+          <span class="profile-post-stat">💬 0 réponses</span>
         </div>
       `;
 
@@ -277,6 +257,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (statCounter) {
           const currentCount = parseInt(statCounter.textContent, 10) || 0;
           statCounter.textContent = currentCount + 1;
+        }
+        const documentCounter = document.getElementById("statDocumentsCount");
+        if (documentCounter && attachments) {
+          const currentCount = parseInt(documentCounter.textContent, 10) || 0;
+          documentCounter.textContent = currentCount + (result.attachments || []).length;
         }
 
         window.showToast("✓ Votre question a été publiée avec succès !", "success");
@@ -303,12 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     toast.className = `profile-toast toast-${type} show`;
-    toast.innerHTML = `
-      <div class="toast-content">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>${message}</span>
-      </div>
-    `;
+    toast.textContent = message;
 
     clearTimeout(window.toastTimer);
     window.toastTimer = setTimeout(() => {
@@ -316,24 +296,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3500);
   };
 
-  // ============================================================
-  // 6. PRÉVISUALISATION D'AVATAR
-  // ============================================================
-  const avatarInput = document.getElementById("modalAvatarUpload");
-  const avatarPreview = document.getElementById("modalAvatarPreview");
-  if (avatarInput && avatarPreview) {
-    avatarInput.addEventListener("change", function () {
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          avatarPreview.src = e.target.result;
-          avatarPreview.style.display = "block";
-          const initials = document.getElementById("modalAvatarInitials");
-          if (initials) initials.style.display = "none";
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
 });

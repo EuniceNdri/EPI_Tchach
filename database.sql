@@ -2,7 +2,7 @@
 --  FORUM ÉCOLE - Script SQL FINAL (Version stable & complète)
 --  - Gestion des Zones (Salon Général, Filières, Professeurs, Délégation)
 --  - Publications, Commentaires & Réactions (Likes / Utile / J'adore)
---  - Modération automatique & 9 Index de performance
+--  - Sondages, filières normalisées et modération automatique
 -- ============================================================
 
 DROP DATABASE IF EXISTS forum_ecole;
@@ -21,11 +21,14 @@ CREATE TABLE utilisateurs (
     avatar_url          VARCHAR(255) DEFAULT NULL,
     biographie          TEXT DEFAULT NULL,
     filiere             VARCHAR(150) DEFAULT NULL,          -- Filière principale (étudiants)
+    filiere_id          INT UNSIGNED DEFAULT NULL,          -- Référence normalisée, conservée en parallèle
     modules_enseignes   TEXT DEFAULT NULL,                  -- Modules (professeurs) - texte séparé par virgules
     role                ENUM('etudiant','professeur','moderateur','administrateur') NOT NULL DEFAULT 'etudiant',
     est_actif           BOOLEAN NOT NULL DEFAULT TRUE,
     date_inscription    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    derniere_connexion  DATETIME DEFAULT NULL
+    derniere_connexion  DATETIME DEFAULT NULL,
+    derniere_activite   DATETIME DEFAULT NULL,
+    INDEX idx_utilisateurs_derniere_activite (est_actif, derniere_activite)
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -43,7 +46,25 @@ CREATE TABLE zones (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 3. APPARTENANCE_ZONES (Rôles fins des membres dans les zones)
+-- 3. FILIERES (référentiel normalisé, compatible avec filiere)
+-- ============================================================
+CREATE TABLE filieres (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom             VARCHAR(150) NOT NULL UNIQUE,
+    code            VARCHAR(20) DEFAULT NULL,
+    description     TEXT DEFAULT NULL,
+    zone_id         INT UNSIGNED DEFAULT NULL,
+    est_active      BOOLEAN NOT NULL DEFAULT TRUE,
+    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+ALTER TABLE utilisateurs
+    ADD CONSTRAINT fk_utilisateurs_filiere
+    FOREIGN KEY (filiere_id) REFERENCES filieres(id) ON DELETE SET NULL;
+
+-- ============================================================
+-- 4. APPARTENANCE_ZONES (Rôles fins des membres dans les zones)
 -- ============================================================
 CREATE TABLE appartenance_zones (
     utilisateur_id  INT UNSIGNED NOT NULL,
@@ -56,7 +77,7 @@ CREATE TABLE appartenance_zones (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 4. CATEGORIES (Salons d'échange à l'intérieur des zones)
+-- 5. CATEGORIES (Salons d'échange à l'intérieur des zones)
 -- ============================================================
 CREATE TABLE categories (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -71,7 +92,7 @@ CREATE TABLE categories (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 5. PUBLICATIONS (Sujets postés dans les salons)
+-- 6. PUBLICATIONS (Sujets postés dans les salons)
 -- ============================================================
 CREATE TABLE publications (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -90,7 +111,7 @@ CREATE TABLE publications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 6. COMMENTAIRES (Réponses aux publications)
+-- 7. COMMENTAIRES (Réponses aux publications)
 -- ============================================================
 CREATE TABLE commentaires (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -100,6 +121,7 @@ CREATE TABLE commentaires (
     est_solution        BOOLEAN NOT NULL DEFAULT FALSE,
     est_epingle         BOOLEAN NOT NULL DEFAULT FALSE,
     est_signale         BOOLEAN NOT NULL DEFAULT FALSE,
+    nb_likes            INT UNSIGNED NOT NULL DEFAULT 0,
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification   DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
@@ -107,7 +129,29 @@ CREATE TABLE commentaires (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 7. REACTIONS (Likes, Utile, J'adore sur publications & commentaires)
+-- 8. SONDAGES (options et votes)
+-- ============================================================
+CREATE TABLE sondage_options (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    publication_id  INT UNSIGNED NOT NULL,
+    texte           VARCHAR(255) NOT NULL,
+    ordre           INT NOT NULL DEFAULT 0,
+    nb_votes        INT UNSIGNED NOT NULL DEFAULT 0,
+    FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE sondage_votes (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    option_id       INT UNSIGNED NOT NULL,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    date_vote       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_vote_user_publication (option_id, utilisateur_id),
+    FOREIGN KEY (option_id) REFERENCES sondage_options(id) ON DELETE CASCADE,
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 9. REACTIONS (Likes, Utile, J'adore sur publications & commentaires)
 -- ============================================================
 CREATE TABLE reactions (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -121,7 +165,7 @@ CREATE TABLE reactions (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 8. PIECES JOINTES
+-- 10. PIECES JOINTES
 -- ============================================================
 CREATE TABLE pieces_jointes (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -134,8 +178,28 @@ CREATE TABLE pieces_jointes (
     date_upload     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE publications_sauvegardees (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    publication_id  INT UNSIGNED NOT NULL,
+    date_sauvegarde DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_publication_sauvegardee (utilisateur_id, publication_id),
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE pieces_jointes_sauvegardees (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    piece_jointe_id INT UNSIGNED NOT NULL,
+    date_sauvegarde DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_piece_jointe_sauvegardee (utilisateur_id, piece_jointe_id),
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (piece_jointe_id) REFERENCES pieces_jointes(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ============================================================
--- 9. TAGS
+-- 11. TAGS
 -- ============================================================
 CREATE TABLE tags (
     id      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +207,7 @@ CREATE TABLE tags (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 10. PUBLICATION_TAGS
+-- 12. PUBLICATION_TAGS
 -- ============================================================
 CREATE TABLE publication_tags (
     publication_id  INT UNSIGNED NOT NULL,
@@ -154,7 +218,7 @@ CREATE TABLE publication_tags (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 11. SIGNALEMENTS
+-- 13. SIGNALEMENTS
 -- ============================================================
 CREATE TABLE signalements (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -171,7 +235,7 @@ CREATE TABLE signalements (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 12. NOTIFICATIONS
+-- 14. NOTIFICATIONS
 -- ============================================================
 CREATE TABLE notifications (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -185,7 +249,7 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 13. MOTS INTERDITS (Modération automatique)
+-- 15. MOTS INTERDITS (Modération automatique)
 -- ============================================================
 CREATE TABLE mots_interdits (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -201,13 +265,17 @@ CREATE TABLE mots_interdits (
 -- ============================================================
 CREATE INDEX idx_pub_categorie       ON publications(categorie_id);
 CREATE INDEX idx_pub_utilisateur     ON publications(utilisateur_id);
+CREATE INDEX idx_pub_type            ON publications(type_publication);
 CREATE INDEX idx_pub_statut          ON publications(statut);
 CREATE INDEX idx_com_publication     ON commentaires(publication_id);
+CREATE INDEX idx_com_nb_likes        ON commentaires(nb_likes);
 CREATE INDEX idx_reactions_cible     ON reactions(type_cible, cible_id);
 CREATE INDEX idx_pieces_cible        ON pieces_jointes(type_cible, cible_id);
 CREATE INDEX idx_appartenance_role   ON appartenance_zones(role_dans_zone);
 CREATE INDEX idx_signalements_statut ON signalements(statut);
 CREATE INDEX idx_notif_user_lu       ON notifications(utilisateur_id, lu);
+CREATE INDEX idx_utilisateurs_filiere ON utilisateurs(filiere_id);
+CREATE INDEX idx_sondage_options_pub ON sondage_options(publication_id);
 CREATE INDEX idx_pub_signale         ON publications(est_signale);
 CREATE INDEX idx_com_signale         ON commentaires(est_signale);
 
@@ -228,6 +296,13 @@ INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modul
 ('Modo', 'Paul', 'paul.modo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'moderateur', NULL, NULL, 'Modérateur global de la plateforme.'),
 ('Bakayoko', 'Amadou', 'amadou.bakayoko@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Génie Mécanique', NULL, 'Étudiant en Génie Mécanique (filière en attente de zone).');
 
+INSERT INTO filieres (nom, code, description) VALUES
+('BTS IDA', 'IDA', 'BTS Informatique de Développement d''Applications'),
+('Licence Informatique', 'LIC-INFO', 'Licence professionnelle Informatique'),
+('Génie Mécanique', 'GM', 'Filière Génie Mécanique'),
+('Génie Civil', 'GC', 'BTS / Licence Génie Civil & BTP'),
+('Finance Comptabilité', 'FCGE', 'Finance, Comptabilité et Gestion des Entreprises');
+
 -- ZONES
 INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
 ('Zone Générale - Vie de l''École', 'generale', 'Espace public pour les annonces officielles et la vie étudiante (Salon Général).', 8),
@@ -235,6 +310,15 @@ INSERT INTO zones (nom, type_zone, description, createur_id) VALUES
 ('Filière Licence Informatique', 'filiere', 'Espace dédié aux étudiants de Licence Informatique.', 8),
 ('Espace Professeurs', 'professeurs', 'Zone restreinte réservée aux enseignants.', 8),
 ('Bureau de la Délégation', 'delegation', 'Espace de travail de la Délégation étudiante.', 5);
+
+UPDATE filieres f
+JOIN zones z ON z.nom = CONCAT('Filière ', f.nom) AND z.type_zone = 'filiere'
+SET f.zone_id = z.id;
+
+UPDATE utilisateurs u
+JOIN filieres f ON f.nom = TRIM(u.filiere)
+SET u.filiere_id = f.id
+WHERE u.filiere IS NOT NULL;
 
 -- APPARTENANCES
 INSERT INTO appartenance_zones (utilisateur_id, zone_id, role_dans_zone) VALUES

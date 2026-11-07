@@ -162,6 +162,7 @@ class Notification {
         if (!$this->pdo || $userId <= 0) {
             return [];
         }
+        $limit = max(1, min($limit, 100));
 
         $sql = "SELECT id, type_notification, contenu, lien, lu, date_creation 
                 FROM notifications 
@@ -199,19 +200,19 @@ class Notification {
      * Marque une notification comme lue
      */
     public function markAsRead(int $notificationId, int $userId): bool {
-        if (!$this->pdo) {
+        if (!$this->pdo || $notificationId <= 0 || $userId <= 0) {
             return false;
         }
 
         $stmt = $this->pdo->prepare("UPDATE notifications SET lu = 1 WHERE id = :id AND utilisateur_id = :user_id");
-        return $stmt->execute(['id' => $notificationId, 'user_id' => $userId]);
+        return $stmt->execute(['id' => $notificationId, 'user_id' => $userId]) && $stmt->rowCount() > 0;
     }
 
     /**
      * Marque toutes les notifications d'un utilisateur comme lues
      */
     public function markAllAsRead(int $userId): bool {
-        if (!$this->pdo) {
+        if (!$this->pdo || $userId <= 0) {
             return false;
         }
 
@@ -223,11 +224,11 @@ class Notification {
      * Supprime une notification
      */
     public function delete(int $notificationId, int $userId): bool {
-        if (!$this->pdo) {
+        if (!$this->pdo || $notificationId <= 0 || $userId <= 0) {
             return false;
         }
 
         $stmt = $this->pdo->prepare("DELETE FROM notifications WHERE id = :id AND utilisateur_id = :user_id");
-        return $stmt->execute(['id' => $notificationId, 'user_id' => $userId]);
+        return $stmt->execute(['id' => $notificationId, 'user_id' => $userId]) && $stmt->rowCount() > 0;
     }
 }

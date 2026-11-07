@@ -160,7 +160,7 @@ class AuthController {
             } elseif ($role === 'professeur' && empty($modulesEnseignes) && empty($profFilieres)) {
                 $error = "En tant que professeur, veuillez indiquer vos modules d'enseignement ou vos filières rattachées.";
             } elseif ($this->userModel->emailExists($email)) {
-                $error = "Cette adresse email institutionnelle est déjà associée à un compte.";
+                $error = "Cette adresse email est déjà associée à un compte.";
             } else {
                 $userId = $this->userModel->register(
                     $email,
@@ -238,7 +238,7 @@ class AuthController {
             $email = trim($_POST['email'] ?? '');
 
             if (empty($email)) {
-                $error = "Veuillez saisir votre adresse email institutionnelle.";
+                $error = "Veuillez saisir votre adresse email.";
             } else {
                 $user = $this->userModel->findByEmail($email);
                 // Message sécurisé (ne divulgue pas si l'email existe ou non)

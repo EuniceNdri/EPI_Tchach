@@ -155,7 +155,7 @@ $filiereImages = [
         <h2>Rejoignez la communauté en trois étapes</h2>
       </div>
       <ol class="phone-steps">
-        <li><span>01</span><div><h3>Créez votre profil</h3><p>Inscrivez-vous avec votre adresse email institutionnelle <code>@epi-yakro.ci</code>.</p></div></li>
+        <li><span>01</span><div><h3>Créez votre profil</h3><p>Inscrivez-vous avec une adresse email valide et accessible, comme Gmail.</p></div></li>
         <li><span>02</span><div><h3>Retrouvez votre filière</h3><p>Accédez aux échanges et ressources de votre communauté académique.</p></div></li>
         <li><span>03</span><div><h3>Partagez et progressez</h3><p>Posez vos questions, aidez vos camarades et partagez vos ressources.</p></div></li>
       </ol>
@@ -186,7 +186,7 @@ $filiereImages = [
       <details>
         <summary>Charte d'utilisation & confidentialité</summary>
         <p>EPI Tchach est un espace d'entraide et de bienveillance. Les propos haineux, diffamatoires, discriminatoires ou irrespectueux sont interdits.</p>
-        <p>L'inscription est réservée aux titulaires d'une adresse officielle de l'école (<code>@epi-yakro.ci</code>). Chaque compte est personnel.</p>
+        <p>Utilisez une adresse email valide et accessible, personnelle ou institutionnelle. Chaque compte est personnel.</p>
         <p>Le partage de ressources est encouragé, dans le respect des droits d'auteur et des consignes des enseignants.</p>
         <p>Vos informations personnelles sont utilisées uniquement pour l'organisation pédagogique et le fonctionnement de la plateforme.</p>
         <p>Les échanges sont modérés. Signalez tout contenu inapproprié à l'équipe de modération.</p>

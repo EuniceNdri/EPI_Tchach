@@ -77,10 +77,10 @@ $logoPath = $asset . '/images/logo.jpeg';
 
       <form action="<?= $base ?>/forgot-password" method="POST" class="auth-form">
         <div class="form-group">
-          <label for="email" class="form-label">Adresse Email Institutionnelle</label>
+          <label for="email" class="form-label">Adresse email</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <input type="email" id="email" name="email" class="form-input" placeholder="prenom.nom@epi-yakro.ci" required autocomplete="email" />
+            <input type="email" id="email" name="email" class="form-input" placeholder="exemple@gmail.com" required autocomplete="email" />
           </div>
         </div>
 

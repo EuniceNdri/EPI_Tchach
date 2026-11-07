@@ -55,6 +55,319 @@ class Salon {
         return $zones;
     }
 
+    public function getAccessibleZones(int $userId, string $role): array {
+        if (!$this->pdo || $userId <= 0) {
+            return [];
+        }
+
+        $canViewAll = in_array($role, ['administrateur', 'moderateur'], true);
+        $statement = $this->pdo->prepare("
+            SELECT z.id, z.nom, z.type_zone, z.description,
+                   az.role_dans_zone,
+                   (SELECT COUNT(*) FROM appartenance_zones members WHERE members.zone_id = z.id) AS membres_count
+            FROM zones z
+            LEFT JOIN appartenance_zones az
+              ON az.zone_id = z.id AND az.utilisateur_id = :membership_user
+            WHERE z.est_active = 1
+              AND (:view_all = 1 OR az.utilisateur_id IS NOT NULL)
+            ORDER BY FIELD(z.type_zone, 'generale', 'filiere', 'professeurs', 'delegation'), z.nom
+        ");
+        $statement->execute([
+            'membership_user' => $userId,
+            'view_all' => $canViewAll ? 1 : 0,
+        ]);
+        $zones = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$zones) {
+            return [];
+        }
+
+        $zoneIds = array_column($zones, 'id');
+        $placeholders = implode(',', array_fill(0, count($zoneIds), '?'));
+        $categoriesStatement = $this->pdo->prepare("
+            SELECT c.id, c.zone_id, c.nom, c.description,
+                   (SELECT COUNT(*) FROM publications p WHERE p.categorie_id = c.id AND p.est_signale = 0) AS publications_count
+            FROM categories c
+            WHERE c.est_active = 1 AND c.zone_id IN ($placeholders)
+            ORDER BY c.ordre, c.nom
+        ");
+        $categoriesStatement->execute($zoneIds);
+        $categoriesByZone = [];
+        foreach ($categoriesStatement->fetchAll(PDO::FETCH_ASSOC) as $category) {
+            $categoriesByZone[(int)$category['zone_id']][] = $category;
+        }
+
+        foreach ($zones as &$zone) {
+            $zone['categories'] = $categoriesByZone[(int)$zone['id']] ?? [];
+        }
+        unset($zone);
+
+        return $zones;
+    }
+
+    public function getPublications(
+        int $userId,
+        string $role,
+        string $view = 'latest',
+        ?int $categoryId = null,
+        int $limit = 50
+    ): array {
+        if (!$this->pdo || $userId <= 0) {
+            return [];
+        }
+
+        $view = in_array($view, ['popular', 'saved'], true) ? $view : 'latest';
+        $canViewAll = in_array($role, ['administrateur', 'moderateur'], true);
+        $limit = max(1, min($limit, 100));
+        $conditions = ["p.est_signale = 0"];
+        $parameters = ['saved_user' => $userId];
+
+        if ($view === 'saved') {
+            $conditions[] = 'saved.id IS NOT NULL';
+        }
+        if (!$canViewAll) {
+            $conditions[] = "EXISTS (
+                SELECT 1 FROM appartenance_zones member_access
+                WHERE member_access.utilisateur_id = :access_user
+                  AND member_access.zone_id = z.id
+            )";
+            $parameters['access_user'] = $userId;
+        }
+
+        if ($categoryId !== null && $categoryId > 0) {
+            $conditions[] = 'c.id = :category_id';
+            $parameters['category_id'] = $categoryId;
+        }
+
+        $orderBy = $view === 'popular'
+            ? '(likes_count + comments_count) DESC, likes_count DESC, p.date_creation DESC'
+            : 'p.date_creation DESC';
+
+        $sql = "
+            SELECT p.id, p.titre, p.contenu, p.type_publication, p.statut, p.date_creation,
+                   u.id AS author_id, u.prenom, u.nom, u.role AS author_role, u.avatar_url,
+                   c.id AS category_id, c.nom AS category_name,
+                   z.id AS zone_id, z.nom AS zone_name, z.type_zone,
+                   (SELECT COUNT(*) FROM reactions r
+                    WHERE r.type_cible = 'publication'
+                      AND r.type_reaction = 'like'
+                      AND r.cible_id = p.id) AS likes_count,
+                   (SELECT COUNT(*) FROM commentaires co
+                    WHERE co.publication_id = p.id AND co.est_signale = 0) AS comments_count,
+                   (SELECT COUNT(*) FROM pieces_jointes attachment
+                    WHERE attachment.type_cible = 'publication' AND attachment.cible_id = p.id) AS attachment_count,
+                   saved.id AS saved_id
+            FROM publications p
+            JOIN utilisateurs u ON u.id = p.utilisateur_id
+            JOIN categories c ON c.id = p.categorie_id AND c.est_active = 1
+            JOIN zones z ON z.id = c.zone_id AND z.est_active = 1
+            LEFT JOIN publications_sauvegardees saved
+              ON saved.publication_id = p.id AND saved.utilisateur_id = :saved_user
+            WHERE " . implode(' AND ', $conditions) . "
+            ORDER BY $orderBy
+            LIMIT $limit
+        ";
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($parameters);
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPublicationAttachments(array $publicationIds, int $userId): array {
+        if (!$this->pdo || !$publicationIds || $userId <= 0) {
+            return [];
+        }
+
+        $publicationIds = array_values(array_filter(array_map('intval', $publicationIds), static fn (int $id): bool => $id > 0));
+        if (!$publicationIds) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($publicationIds), '?'));
+        $statement = $this->pdo->prepare("
+            SELECT attachment.id, attachment.cible_id AS publication_id,
+                   attachment.nom_fichier, attachment.chemin_fichier,
+                   attachment.type_mime, attachment.taille,
+                   saved.id AS saved_id
+            FROM pieces_jointes attachment
+            LEFT JOIN pieces_jointes_sauvegardees saved
+              ON saved.piece_jointe_id = attachment.id AND saved.utilisateur_id = ?
+            WHERE attachment.type_cible = 'publication'
+              AND attachment.cible_id IN ($placeholders)
+            ORDER BY attachment.date_upload
+        ");
+        $statement->execute(array_merge([$userId], $publicationIds));
+        $attachmentsByPublication = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
+            $attachmentsByPublication[(int)$attachment['publication_id']][] = $attachment;
+        }
+
+        return $attachmentsByPublication;
+    }
+
+    public function getSavedAttachments(int $userId, string $role): array {
+        if (!$this->pdo || $userId <= 0) {
+            return [];
+        }
+
+        $canViewAll = in_array($role, ['administrateur', 'moderateur'], true);
+        $statement = $this->pdo->prepare("
+            SELECT attachment.id, attachment.nom_fichier, attachment.chemin_fichier,
+                   attachment.type_mime, attachment.taille,
+                   publication.id AS publication_id, publication.titre,
+                   category.nom AS category_name, zone.nom AS zone_name
+            FROM pieces_jointes_sauvegardees saved
+            JOIN pieces_jointes attachment ON attachment.id = saved.piece_jointe_id
+            LEFT JOIN publications direct_publication
+              ON attachment.type_cible = 'publication'
+             AND direct_publication.id = attachment.cible_id
+            LEFT JOIN commentaires comment
+              ON attachment.type_cible = 'commentaire'
+             AND comment.id = attachment.cible_id
+            JOIN publications publication
+              ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
+            JOIN categories category ON category.id = publication.categorie_id
+            JOIN zones zone ON zone.id = category.zone_id
+            WHERE saved.utilisateur_id = :user_id
+              AND (:can_view_all = 1 OR EXISTS (
+                  SELECT 1 FROM appartenance_zones membership
+                  WHERE membership.utilisateur_id = :membership_user
+                    AND membership.zone_id = zone.id
+              ))
+            ORDER BY saved.date_sauvegarde DESC
+        ");
+        $statement->execute([
+            'user_id' => $userId,
+            'membership_user' => $userId,
+            'can_view_all' => $canViewAll ? 1 : 0,
+        ]);
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPopularPublications(int $userId, string $role, int $limit = 5): array {
+        return $this->getPublications($userId, $role, 'popular', null, $limit);
+    }
+
+    public function getOnlineUsers(): array {
+        if (!$this->pdo) {
+            return [];
+        }
+
+        $statement = $this->pdo->query("
+            SELECT id, prenom, nom, role, filiere, avatar_url
+            FROM utilisateurs
+            WHERE est_actif = 1
+              AND derniere_activite >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+            ORDER BY prenom, nom
+        ");
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function touchActivity(int $userId): bool {
+        if (!$this->pdo || $userId <= 0) {
+            return false;
+        }
+
+        $statement = $this->pdo->prepare('UPDATE utilisateurs SET derniere_activite = NOW() WHERE id = :user_id');
+        return $statement->execute(['user_id' => $userId]);
+    }
+
+    public function toggleSavedPublication(int $userId, int $publicationId, string $role): ?bool {
+        if (!$this->pdo || $userId <= 0 || $publicationId <= 0) {
+            return null;
+        }
+
+        $canViewAll = in_array($role, ['administrateur', 'moderateur'], true);
+        $check = $this->pdo->prepare("
+            SELECT publication.id
+            FROM publications publication
+            JOIN categories category ON category.id = publication.categorie_id
+            JOIN zones zone ON zone.id = category.zone_id
+            WHERE publication.id = :publication_id
+              AND publication.est_signale = 0
+              AND (:can_view_all = 1 OR EXISTS (
+                  SELECT 1 FROM appartenance_zones membership
+                  WHERE membership.utilisateur_id = :user_id
+                    AND membership.zone_id = zone.id
+              ))
+            LIMIT 1
+        ");
+        $check->execute([
+            'publication_id' => $publicationId,
+            'can_view_all' => $canViewAll ? 1 : 0,
+            'user_id' => $userId,
+        ]);
+        if (!$check->fetchColumn()) {
+            return null;
+        }
+
+        $saved = $this->pdo->prepare('SELECT id FROM publications_sauvegardees WHERE utilisateur_id = :user_id AND publication_id = :publication_id');
+        $saved->execute(['user_id' => $userId, 'publication_id' => $publicationId]);
+        $savedId = $saved->fetchColumn();
+        if ($savedId) {
+            $delete = $this->pdo->prepare('DELETE FROM publications_sauvegardees WHERE id = :id');
+            $delete->execute(['id' => $savedId]);
+            return false;
+        }
+
+        $insert = $this->pdo->prepare('INSERT INTO publications_sauvegardees (utilisateur_id, publication_id) VALUES (:user_id, :publication_id)');
+        $insert->execute(['user_id' => $userId, 'publication_id' => $publicationId]);
+        return true;
+    }
+
+    public function toggleSavedAttachment(int $userId, int $attachmentId, string $role): ?bool {
+        if (!$this->pdo || $userId <= 0 || $attachmentId <= 0) {
+            return null;
+        }
+
+        $canViewAll = in_array($role, ['administrateur', 'moderateur'], true);
+        $check = $this->pdo->prepare("
+            SELECT attachment.id
+            FROM pieces_jointes attachment
+            LEFT JOIN publications direct_publication
+              ON attachment.type_cible = 'publication'
+             AND direct_publication.id = attachment.cible_id
+            LEFT JOIN commentaires comment
+              ON attachment.type_cible = 'commentaire'
+             AND comment.id = attachment.cible_id
+            JOIN publications publication
+              ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
+            JOIN categories category ON category.id = publication.categorie_id
+            JOIN zones zone ON zone.id = category.zone_id
+            WHERE attachment.id = :attachment_id
+              AND publication.est_signale = 0
+              AND (:can_view_all = 1 OR EXISTS (
+                  SELECT 1 FROM appartenance_zones membership
+                  WHERE membership.utilisateur_id = :user_id
+                    AND membership.zone_id = zone.id
+              ))
+            LIMIT 1
+        ");
+        $check->execute([
+            'attachment_id' => $attachmentId,
+            'can_view_all' => $canViewAll ? 1 : 0,
+            'user_id' => $userId,
+        ]);
+        if (!$check->fetchColumn()) {
+            return null;
+        }
+
+        $saved = $this->pdo->prepare('SELECT id FROM pieces_jointes_sauvegardees WHERE utilisateur_id = :user_id AND piece_jointe_id = :attachment_id');
+        $saved->execute(['user_id' => $userId, 'attachment_id' => $attachmentId]);
+        $savedId = $saved->fetchColumn();
+        if ($savedId) {
+            $delete = $this->pdo->prepare('DELETE FROM pieces_jointes_sauvegardees WHERE id = :id');
+            $delete->execute(['id' => $savedId]);
+            return false;
+        }
+
+        $insert = $this->pdo->prepare('INSERT INTO pieces_jointes_sauvegardees (utilisateur_id, piece_jointe_id) VALUES (:user_id, :attachment_id)');
+        $insert->execute(['user_id' => $userId, 'attachment_id' => $attachmentId]);
+        return true;
+    }
+
     /**
      * Crée une nouvelle zone et y ajoute automatiquement les étudiants de la filière si applicable
      *

@@ -63,13 +63,12 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
           <!-- 2. Sécurité & Contrôle des Inscriptions -->
           <div class="admin-card">
             <div class="card-header-flex">
-              <h2 class="card-title">2. Sécurité des Accès & Restreinte Institutionnelle</h2>
+              <h2 class="card-title">2. Sécurité des accès</h2>
             </div>
             <div class="card-body" style="display:flex; flex-direction:column; gap:1.25rem;">
               <div>
-                <label style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Domaine Email Obligatoire pour Inscription</label>
-                <input type="text" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" value="@epi-yakro.ci" required />
-                <p style="font-size:0.8rem; color:var(--admin-muted); margin-top:0.35rem;">Seuls les utilisateurs munis de ce suffixe peuvent créer un compte autonome.</p>
+                <strong style="display:block; font-size:0.875rem; margin-bottom:0.4rem;">Adresse email requise</strong>
+                <p style="font-size:0.8rem; color:var(--admin-muted); margin:0;">Toute adresse email valide est acceptée à l'inscription, y compris Gmail. Aucun domaine scolaire n'est imposé.</p>
               </div>
 
               <div style="display:flex; flex-direction:column; gap:0.75rem; padding-top:0.5rem; border-top:1px solid var(--admin-border);">
@@ -102,8 +101,8 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
 1. Respect mutuel & Éthique académique
 Tout propos haineux, diffamatoire ou irrespectueux envers un camarade ou enseignant est strictement interdit.
 
-2. Utilisation de l'Email Institutionnel
-L'accès est réservé aux détenteurs d'une adresse officielle @epi-yakro.ci.
+2. Utilisation de l'adresse email
+Une adresse email valide et accessible, personnelle ou institutionnelle, est acceptée.
 
 3. Partage de Documents & Propriété Intellectuelle
 Le partage d'annales est encouragé mais la diffusion de sujets sous secret d'examen est proscrite.

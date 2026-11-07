@@ -163,6 +163,11 @@ if (in_array(strtolower($ext), ['css', 'js', 'png', 'jpg', 'jpeg', 'svg', 'gif',
     exit;
 }
 
+if (!empty($_SESSION['user_id']) && $pdo instanceof PDO) {
+    $activityStatement = $pdo->prepare('UPDATE utilisateurs SET derniere_activite = NOW() WHERE id = :user_id');
+    $activityStatement->execute(['user_id' => (int)$_SESSION['user_id']]);
+}
+
 // =============================================================
 // ROUTEUR UNIVERSEL DES VUES DESKTOP
 // =============================================================
@@ -194,6 +199,16 @@ switch ($fullRoute) {
     case 'Salon':
         require_once ROOT_PATH . '/controllers/SalonController.php';
         (new SalonController())->index();
+        break;
+
+    case 'salon/save':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->toggleSaved();
+        break;
+
+    case 'salon/presence':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->presence();
         break;
 
     case 'salons/create-zone':

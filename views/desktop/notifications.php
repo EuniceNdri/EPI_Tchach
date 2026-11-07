@@ -298,6 +298,7 @@ if (!function_exists('formatDateNotif')) {
       // 2. Tout marquer comme lu
       const btnAll = document.getElementById("btnMarkAllRead");
       if (btnAll) {
+
         btnAll.addEventListener("click", async function() {
           try {
             const res = await fetch(`${baseUrl}/notifications/mark-all-read`, {

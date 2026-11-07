@@ -13,9 +13,11 @@
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Salon.php';
     require_once ROOT_PATH . '/models/User.php';
+    require_once ROOT_PATH . '/models/Notification.php';
 } else {
     require_once dirname(__DIR__) . '/models/Salon.php';
     require_once dirname(__DIR__) . '/models/User.php';
+    require_once dirname(__DIR__) . '/models/Notification.php';
 }
 
 class SalonController {
@@ -51,10 +53,85 @@ class SalonController {
     public function index(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $zones = $this->salonModel->getZonesWithCategories();
-        $filiereActivity = $this->salonModel->getFiliereActivity();
+        $userId = (int)$_SESSION['user_id'];
+        $userRole = strtolower(trim($_SESSION['user_role'] ?? 'etudiant'));
+        $this->salonModel->touchActivity($userId);
+        $zones = $this->salonModel->getAccessibleZones($userId, $userRole);
+        $feedView = $_GET['view'] ?? 'latest';
+        if (!in_array($feedView, ['latest', 'popular', 'saved'], true)) {
+            $feedView = 'latest';
+        }
+        $categoryId = isset($_GET['category']) ? max(0, (int)$_GET['category']) : null;
+        $feedPosts = $this->salonModel->getPublications($userId, $userRole, $feedView, $categoryId);
+        $postAttachments = $this->salonModel->getPublicationAttachments(
+            array_column($feedPosts, 'id'),
+            $userId
+        );
+        $savedAttachments = $feedView === 'saved'
+            ? $this->salonModel->getSavedAttachments($userId, $userRole)
+            : [];
+        $popularPosts = $this->salonModel->getPopularPublications($userId, $userRole, 5);
+        $onlineUsers = $this->salonModel->getOnlineUsers();
+        $unreadCount = (new Notification($this->pdo))->countUnread($userId);
+        $flashSuccess = $_SESSION['flash_success'] ?? '';
+        $flashError = $_SESSION['flash_error'] ?? '';
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
         require_once ROOT_PATH . '/views/desktop/salon/salon_generale.php';
+    }
+
+    public function toggleSaved(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            http_response_code(405);
+            exit('Méthode non autorisée.');
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $userRole = strtolower(trim($_SESSION['user_role'] ?? 'etudiant'));
+        $targetType = $_POST['target_type'] ?? '';
+        $targetId = (int)($_POST['target_id'] ?? 0);
+
+        if ($targetType === 'publication') {
+            $isSaved = $this->salonModel->toggleSavedPublication($userId, $targetId, $userRole);
+        } elseif ($targetType === 'attachment') {
+            $isSaved = $this->salonModel->toggleSavedAttachment($userId, $targetId, $userRole);
+        } else {
+            $isSaved = null;
+        }
+
+        if ($isSaved === null) {
+            $_SESSION['flash_error'] = 'Cet élément ne peut pas être sauvegardé depuis votre espace.';
+        } else {
+            $_SESSION['flash_success'] = $isSaved
+                ? 'Élément ajouté à vos sauvegardes.'
+                : 'Élément retiré de vos sauvegardes.';
+        }
+
+        $view = in_array($_POST['return_view'] ?? '', ['latest', 'popular', 'saved'], true)
+            ? $_POST['return_view']
+            : 'latest';
+        $categoryId = max(0, (int)($_POST['return_category'] ?? 0));
+        $returnUrl = url('salon') . '?view=' . rawurlencode($view);
+        if ($categoryId > 0) {
+            $returnUrl .= '&category=' . $categoryId;
+        }
+        header('Location: ' . $returnUrl);
+        exit;
+    }
+
+    public function presence(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            header('Content-Type: application/json; charset=UTF-8', true, 405);
+            echo json_encode(['success' => false, 'message' => 'Méthode non autorisée.']);
+            exit;
+        }
+
+        $success = $this->salonModel->touchActivity((int)$_SESSION['user_id']);
+        header('Content-Type: application/json; charset=UTF-8', true, $success ? 200 : 500);
+        echo json_encode(['success' => $success]);
+        exit;
     }
 
     /**

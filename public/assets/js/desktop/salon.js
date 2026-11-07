@@ -1,4 +1,23 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const baseUrl = document.body.dataset.baseUrl || "";
+  const updatePresence = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/salon/presence`, {
+        method: "POST",
+        headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("La mise à jour de présence a échoué.");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de présence :", error);
+    }
+  };
+  window.setInterval(() => {
+    if (document.visibilityState === "visible") updatePresence();
+  }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") updatePresence();
+  });
+
   const searchInput = document.getElementById("publicationSearch");
   const defaultPosts = document.querySelector("main .posts:not(#searchResults)");
   const searchResults = document.getElementById("searchResults");

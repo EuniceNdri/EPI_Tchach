@@ -1,7 +1,62 @@
 <?php
-$base = isset($baseUrl) ? $baseUrl : '';
-$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
+/**
+ * Variables supplied by SalonController::index() before this view is included.
+ *
+ * @var string|null $baseUrl
+ * @var string|null $assetBase
+ * @var array|null $zones
+ * @var array|null $feedPosts
+ * @var array|null $postAttachments
+ * @var array|null $savedAttachments
+ * @var array|null $popularPosts
+ * @var array|null $onlineUsers
+ * @var string|null $flashSuccess
+ * @var string|null $flashError
+ */
+$base = is_string($baseUrl ?? null) ? $baseUrl : '';
+$asset = is_string($assetBase ?? null)
+  ? $assetBase
+  : ($base !== '' ? $base . '/public/assets' : '/public/assets');
 $logoFile = $asset . '/images/logo.jpeg';
+$feedView = isset($feedView) && in_array($feedView, ['latest', 'popular', 'saved'], true)
+  ? $feedView
+  : 'latest';
+$categoryId = isset($categoryId) ? max(0, (int)$categoryId) : null;
+$zones = is_array($zones ?? null) ? $zones : [];
+$feedPosts = is_array($feedPosts ?? null) ? $feedPosts : [];
+$postAttachments = is_array($postAttachments ?? null) ? $postAttachments : [];
+$savedAttachments = is_array($savedAttachments ?? null) ? $savedAttachments : [];
+$popularPosts = is_array($popularPosts ?? null) ? $popularPosts : [];
+$onlineUsers = is_array($onlineUsers ?? null) ? $onlineUsers : [];
+$unreadCount = max(0, (int)($unreadCount ?? 0));
+$flashSuccess = is_string($flashSuccess ?? null) ? $flashSuccess : '';
+$flashError = is_string($flashError ?? null) ? $flashError : '';
+if (!isset($_SESSION) || !is_array($_SESSION)) {
+  $_SESSION = [];
+}
+$viewLabels = ['latest' => 'Récentes', 'popular' => 'Populaires', 'saved' => 'Sauvegardées'];
+$roleLabels = [
+  'etudiant' => 'Étudiant',
+  'professeur' => 'Professeur',
+  'moderateur' => 'Modérateur',
+  'delegue_general' => 'Délégué général',
+  'administrateur' => 'Administrateur',
+];
+
+if (!function_exists('formatSalonDate')) {
+  function formatSalonDate(string $date): string {
+    try {
+      $createdAt = new DateTimeImmutable($date);
+      $seconds = max(0, time() - $createdAt->getTimestamp());
+      if ($seconds < 60) return "À l'instant";
+      if ($seconds < 3600) return 'Il y a ' . (int)floor($seconds / 60) . ' min';
+      if ($seconds < 86400) return 'Il y a ' . (int)floor($seconds / 3600) . ' h';
+      return 'Il y a ' . (int)floor($seconds / 86400) . ' j';
+    } catch (Exception $exception) {
+      return $date;
+    }
+  }
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -16,7 +71,7 @@ $logoFile = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/salon.css" />
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <div class="tricolor-bar"></div>
   <div class="app">
 
@@ -30,79 +85,47 @@ $logoFile = $asset . '/images/logo.jpeg';
         </div>
       </div>
 
-      <nav class="nav-menu">
-        <a href="#" class="nav-item active">
+      <nav class="nav-menu" aria-label="Navigation du salon">
+        <a href="<?= $base ?>/salon" class="nav-item <?= $feedView === 'latest' && !$categoryId ? 'active' : '' ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span>Accueil</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#accessible-categories" class="nav-item <?= $categoryId ? 'active' : '' ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           <span>Catégories</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="<?= $base ?>/salon?view=popular" class="nav-item <?= $feedView === 'popular' ? 'active' : '' ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
           <span>Populaires</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="<?= $base ?>/salon?view=saved" class="nav-item <?= $feedView === 'saved' ? 'active' : '' ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           <span>Sauvegardés</span>
         </a>
       </nav>
 
-      <div>
-        <div class="section-title">Zones / Catégories</div>
+      <div id="accessible-categories">
+        <div class="section-title">Catégories et salons accessibles</div>
         <div class="category-list">
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#ede9fe; color:#7c3aed;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
-            </div>
-            <div>
-              <div>Annonces Officielles</div>
-            </div>
-          </a>
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#dbeafe; color:#1d4ed8;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
-            </div>
-            <div>
-              <div>BTS IDA – Cours & TP</div>
-            </div>
-            <span class="cat-count">12.4k</span>
-          </a>
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#d1fae5; color:#047857;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4 18h16l-6-8.69V2z"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </div>
-            <div>
-              <div>Projets de Classe</div>
-            </div>
-          </a>
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#fef3c7; color:#b45309;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-            </div>
-            <div>
-              <div>Examens & Révisions</div>
-            </div>
-          </a>
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#fce7f3; color:#db2777;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-            </div>
-            <div>
-              <div>Licence Informatique</div>
-            </div>
-          </a>
-          <a href="#" class="category-item">
-            <div class="icon" style="background:#e0e7ff; color:#4338ca;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <div>
-              <div>Bureau de la Délégation</div>
-            </div>
-          </a>
+          <?php if (empty($zones)): ?>
+            <p class="sidebar-empty">Aucun salon n'est encore rattaché à votre compte.</p>
+          <?php else: ?>
+            <?php foreach ($zones as $zone): ?>
+              <div class="category-zone-title"><?= htmlspecialchars($zone['nom']) ?></div>
+              <?php foreach ($zone['categories'] as $category): ?>
+                <a href="<?= $base ?>/salon?view=<?= htmlspecialchars($feedView) ?>&category=<?= (int)$category['id'] ?>"
+                   class="category-item <?= $categoryId === (int)$category['id'] ? 'is-selected' : '' ?>">
+                  <span class="category-icon" aria-hidden="true">#</span>
+                  <span class="category-name"><?= htmlspecialchars($category['nom']) ?></span>
+                  <span class="cat-count"><?= (int)$category['publications_count'] ?></span>
+                </a>
+              <?php endforeach; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
-        <a href="#" class="btn-browse">Parcourir toutes les catégories →</a>
+        <?php if ($categoryId): ?>
+          <a href="<?= $base ?>/salon?view=<?= htmlspecialchars($feedView) ?>" class="btn-browse">Afficher toutes les catégories</a>
+        <?php endif; ?>
       </div>
 
       <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--border);">
@@ -112,6 +135,10 @@ $logoFile = $asset . '/images/logo.jpeg';
           </div>
           <div style="display:flex; flex-direction:column; gap:0.25rem;">
             <a href="<?= $base ?>/profile" class="nav-item" style="padding:6px 8px; font-size:0.85rem;">Mon Profil</a>
+            <a href="<?= $base ?>/notifications" class="nav-item nav-item-notifications" style="padding:6px 8px; font-size:0.85rem;">
+              <span>Notifications</span>
+              <?php if (!empty($unreadCount)): ?><span class="nav-notification-count"><?= (int)$unreadCount ?></span><?php endif; ?>
+            </a>
             <?php if (strtolower($_SESSION['user_role'] ?? '') === 'administrateur'): ?>
               <a href="<?= $base ?>/admin" class="nav-item" style="padding:6px 8px; font-size:0.85rem; color:var(--accent);">Panneau Admin</a>
             <?php endif; ?>
@@ -138,174 +165,114 @@ $logoFile = $asset . '/images/logo.jpeg';
         <input id="publicationSearch" type="search" class="search-input" placeholder="Rechercher des discussions, tags, utilisateurs ou fichiers..." autocomplete="off">
       </div>
 
-      <div class="tabs">
-        <button class="tab active">Récentes</button>
-        <button class="tab">Top</button>
-        <button class="tab">Suivies</button>
-        <button class="tab" style="margin-left:auto;">Filtrer ▾</button>
+      <?php if ($flashSuccess): ?><div class="salon-flash salon-flash-success" role="status"><?= htmlspecialchars($flashSuccess) ?></div><?php endif; ?>
+      <?php if ($flashError): ?><div class="salon-flash salon-flash-error" role="alert"><?= htmlspecialchars($flashError) ?></div><?php endif; ?>
+
+      <div class="tabs" aria-label="Trier les publications">
+        <a class="tab <?= $feedView === 'latest' ? 'active' : '' ?>" href="<?= $base ?>/salon?view=latest">Récentes</a>
+        <a class="tab <?= $feedView === 'popular' ? 'active' : '' ?>" href="<?= $base ?>/salon?view=popular">Populaires</a>
+        <a class="tab <?= $feedView === 'saved' ? 'active' : '' ?>" href="<?= $base ?>/salon?view=saved">Sauvegardées</a>
+        <?php if ($categoryId): ?>
+          <a class="tab tab-clear-filter" href="<?= $base ?>/salon?view=<?= htmlspecialchars($feedView) ?>">Effacer le filtre</a>
+        <?php endif; ?>
       </div>
 
       <div id="searchResults" class="posts" hidden aria-live="polite"></div>
 
-      <div class="posts">
-
-        <!-- Publication 1 (Annonce épinglée) -->
-        <article class="post-card">
-          <div style="display:flex; gap:16px;">
-            <div class="votes">
-              <div class="vote-count">128</div>
-              <div class="vote-label">votes</div>
-            </div>
-            <div style="flex:1;">
-              <div class="post-header">
-                <div class="avatar">AK</div>
-                <div class="author-info">
-                  <div class="author-name">Admin Système <span class="badge badge-pro">ADMIN</span></div>
-                  <div class="author-meta">Annonces Officielles · il y a 2 h</div>
-                </div>
-              </div>
-              <h2 class="post-title">Rentrée 2026 – Informations importantes</h2>
-              <p class="post-excerpt">Chers étudiants, la rentrée officielle est fixée au 5 octobre 2026. Merci de consulter régulièrement cet espace pour les mises à jour.</p>
-              <div class="post-footer">
-                <div class="tags">
-                  <span class="tag">annonce</span>
-                  <span class="tag">rentrée</span>
-                </div>
-                <div class="stats">
-                  <span class="stat">💬 12</span>
-                  <span class="stat">📌 Épinglé</span>
-                </div>
-              </div>
-            </div>
+      <div class="posts" id="publicationList">
+        <?php if (empty($feedPosts) && empty($savedAttachments)): ?>
+          <div class="salon-empty-state">
+            <h2><?= $feedView === 'saved' ? 'Aucun élément sauvegardé' : 'Aucune publication à afficher' ?></h2>
+            <p><?= $feedView === 'saved'
+              ? 'Sauvegardez une publication ou un document pour le retrouver ici.'
+              : 'Les publications de vos catégories accessibles apparaîtront ici.' ?></p>
           </div>
-        </article>
+        <?php endif; ?>
 
-        <!-- Publication 2 -->
-        <article class="post-card">
-          <div style="display:flex; gap:16px;">
-            <div class="votes">
-              <div class="vote-count">96</div>
-              <div class="vote-label">votes</div>
-            </div>
-            <div style="flex:1;">
-              <div class="post-header">
-                <div class="avatar">MK</div>
-                <div class="author-info">
-                  <div class="author-name">Momo Kouassi <span class="badge badge-dev">ÉTUDIANT</span></div>
-                  <div class="author-meta">BTS IDA · Cours & TP · il y a 5 h</div>
+        <?php foreach ($feedPosts as $post):
+          $postId = (int)$post['id'];
+          $authorName = trim($post['prenom'] . ' ' . $post['nom']);
+          $authorInitials = strtoupper(mb_substr($post['prenom'], 0, 1) . mb_substr($post['nom'], 0, 1));
+          $authorRole = $roleLabels[$post['author_role']] ?? ucfirst($post['author_role']);
+          $isSaved = !empty($post['saved_id']);
+          $excerpt = mb_strimwidth(strip_tags($post['contenu']), 0, 500, '…');
+        ?>
+          <article class="post-card" id="publication-<?= $postId ?>">
+            <div class="post-header">
+              <div class="avatar"><?= htmlspecialchars($authorInitials) ?></div>
+              <div class="author-info">
+                <div class="author-name"><?= htmlspecialchars($authorName) ?> <span class="badge badge-role"><?= htmlspecialchars($authorRole) ?></span></div>
+                <div class="author-meta">
+                  <?= htmlspecialchars($post['zone_name']) ?> · <?= htmlspecialchars($post['category_name']) ?> · <?= htmlspecialchars(formatSalonDate($post['date_creation'])) ?>
                 </div>
               </div>
-              <h2 class="post-title">Erreur SQL dans mon TP Laravel</h2>
-              <p class="post-excerpt">Bonjour, j’ai une erreur "Column not found" sur une jointure. Quelqu’un peut m’aider ?</p>
-              <div class="post-footer">
-                <div class="tags">
-                  <span class="tag">laravel</span>
-                  <span class="tag">php</span>
-                  <span class="tag">mysql</span>
-                  <span class="tag">debug</span>
-                </div>
-                <div class="stats">
-                  <span class="stat">💬 3</span>
-                  <span class="stat">✅ Résolu</span>
-                </div>
-              </div>
+              <form action="<?= $base ?>/salon/save" method="post" class="save-form">
+                <input type="hidden" name="target_type" value="publication">
+                <input type="hidden" name="target_id" value="<?= $postId ?>">
+                <input type="hidden" name="return_view" value="<?= htmlspecialchars($feedView) ?>">
+                <input type="hidden" name="return_category" value="<?= (int)($categoryId ?? 0) ?>">
+                <button type="submit" class="save-button <?= $isSaved ? 'is-saved' : '' ?>" aria-label="<?= $isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder cette publication' ?>">
+                  <?= $isSaved ? '★ Sauvegardée' : '☆ Sauvegarder' ?>
+                </button>
+              </form>
             </div>
-          </div>
-        </article>
+            <h2 class="post-title"><?= htmlspecialchars($post['titre']) ?></h2>
+            <p class="post-excerpt"><?= nl2br(htmlspecialchars($excerpt)) ?></p>
 
-        <!-- Publication 3 -->
-        <article class="post-card">
-          <div style="display:flex; gap:16px;">
-            <div class="votes">
-              <div class="vote-count">74</div>
-              <div class="vote-label">votes</div>
-            </div>
-            <div style="flex:1;">
-              <div class="post-header">
-                <div class="avatar">ST</div>
-                <div class="author-info">
-                  <div class="author-name">Sarah Traoré</div>
-                  <div class="author-meta">BTS IDA · Cours & TP · il y a 1 j</div>
-                </div>
+            <?php if (!empty($postAttachments[$postId])): ?>
+              <div class="post-attachments" aria-label="Documents joints">
+                <?php foreach ($postAttachments[$postId] as $attachment): ?>
+                  <div class="post-attachment">
+                    <a href="<?= $base ?>/attachment/download/<?= (int)$attachment['id'] ?>">
+                      📎 <?= htmlspecialchars($attachment['nom_fichier']) ?>
+                    </a>
+                    <form action="<?= $base ?>/salon/save" method="post" class="save-form">
+                      <input type="hidden" name="target_type" value="attachment">
+                      <input type="hidden" name="target_id" value="<?= (int)$attachment['id'] ?>">
+                      <input type="hidden" name="return_view" value="<?= htmlspecialchars($feedView) ?>">
+                      <input type="hidden" name="return_category" value="<?= (int)($categoryId ?? 0) ?>">
+                      <button type="submit" class="save-document-button">
+                        <?= !empty($attachment['saved_id']) ? 'Retirer des favoris' : 'Sauvegarder le document' ?>
+                      </button>
+                    </form>
+                  </div>
+                <?php endforeach; ?>
               </div>
-              <h2 class="post-title">Comment faire une API REST avec Laravel ?</h2>
-              <p class="post-excerpt">Quelles sont les bonnes pratiques pour les routes et les controllers ?</p>
-              <div class="post-footer">
-                <div class="tags">
-                  <span class="tag">laravel</span>
-                  <span class="tag">api</span>
-                </div>
-                <div class="stats">
-                  <span class="stat">💬 2</span>
-                  <span class="stat">✅ Résolu</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
+            <?php endif; ?>
 
-        <!-- Publication 4 -->
-        <article class="post-card">
-          <div style="display:flex; gap:16px;">
-            <div class="votes">
-              <div class="vote-count">53</div>
-              <div class="vote-label">votes</div>
-            </div>
-            <div style="flex:1;">
-              <div class="post-header">
-                <div class="avatar">AN</div>
-                <div class="author-info">
-                  <div class="author-name">Awa N'Guessan <span class="badge badge-mentor">CHEF DE CLASSE</span></div>
-                  <div class="author-meta">BTS IDA · Examens & Révisions · il y a 2 j</div>
-                </div>
+            <div class="post-footer">
+              <div class="tags">
+                <span class="tag"><?= htmlspecialchars(ucfirst($post['type_publication'])) ?></span>
+                <?php if ($post['statut'] === 'epingle'): ?><span class="tag">Épinglée</span><?php endif; ?>
+                <?php if ($post['statut'] === 'resolu'): ?><span class="tag">Résolue</span><?php endif; ?>
               </div>
-              <h2 class="post-title">Annales de l’examen de Base de données 2025</h2>
-              <p class="post-excerpt">Voici les sujets de l’année dernière. Bonne révision !</p>
-              <div class="post-footer">
-                <div class="tags">
-                  <span class="tag">mysql</span>
-                  <span class="tag">examen</span>
-                </div>
-                <div class="stats">
-                  <span class="stat">💬 2</span>
-                  <span class="stat">📎 1 fichier</span>
-                </div>
+              <div class="stats">
+                <span class="stat">♥ <?= (int)$post['likes_count'] ?> likes</span>
+                <span class="stat">💬 <?= (int)$post['comments_count'] ?> commentaires</span>
+                <?php if ((int)$post['attachment_count'] > 0): ?><span class="stat">📎 <?= (int)$post['attachment_count'] ?> document(s)</span><?php endif; ?>
               </div>
             </div>
-          </div>
-        </article>
+          </article>
+        <?php endforeach; ?>
 
-        <!-- Publication 5 -->
-        <article class="post-card">
-          <div style="display:flex; gap:16px;">
-            <div class="votes">
-              <div class="vote-count">41</div>
-              <div class="vote-label">votes</div>
-            </div>
-            <div style="flex:1;">
-              <div class="post-header">
-                <div class="avatar">KY</div>
-                <div class="author-info">
-                  <div class="author-name">Kofi Yao <span class="badge badge-mentor">DÉLÉGUÉ</span></div>
-                  <div class="author-meta">Bureau de la Délégation · il y a 3 j</div>
-                </div>
+        <?php if ($feedView === 'saved' && $savedAttachments): ?>
+          <h2 class="saved-documents-heading">Documents sauvegardés</h2>
+          <?php foreach ($savedAttachments as $attachment): ?>
+            <article class="saved-document-card">
+              <div>
+                <strong><?= htmlspecialchars($attachment['nom_fichier']) ?></strong>
+                <span><?= htmlspecialchars($attachment['titre']) ?> · <?= htmlspecialchars($attachment['zone_name']) ?> · <?= number_format(((int)$attachment['taille']) / 1048576, 2, ',', ' ') ?> Mo</span>
               </div>
-              <h2 class="post-title">Réunion du Bureau de la Délégation – 20 octobre</h2>
-              <p class="post-excerpt">Ordre du jour : point sur les filières et organisation de la journée portes ouvertes.</p>
-              <div class="post-footer">
-                <div class="tags">
-                  <span class="tag">délégation</span>
-                  <span class="tag">réunion</span>
-                </div>
-                <div class="stats">
-                  <span class="stat">💬 0</span>
-                  <span class="stat">📌 Épinglé</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-
+              <a class="saved-document-download" href="<?= $base ?>/attachment/download/<?= (int)$attachment['id'] ?>">Télécharger</a>
+              <form action="<?= $base ?>/salon/save" method="post" class="save-form">
+                <input type="hidden" name="target_type" value="attachment">
+                <input type="hidden" name="target_id" value="<?= (int)$attachment['id'] ?>">
+                <input type="hidden" name="return_view" value="saved">
+                <button type="submit" class="save-document-button">Retirer</button>
+              </form>
+            </article>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
     </main>
 
@@ -315,95 +282,51 @@ $logoFile = $asset . '/images/logo.jpeg';
         <div class="widget-title">
           <span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px; color:var(--accent);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            Tendances
+            Publications populaires
           </span>
-          <a href="#">Voir tout</a>
+          <a href="<?= $base ?>/salon?view=popular">Voir tout</a>
         </div>
-        <div class="trending-item">
-          <div class="trending-rank">1</div>
-          <div class="trending-info">
-            <h4>Laravel & API REST</h4>
-            <span>128 posts</span>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-rank">2</div>
-          <div class="trending-info">
-            <h4>Examens BTS IDA</h4>
-            <span>96 posts</span>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-rank">3</div>
-          <div class="trending-info">
-            <h4>Projets tuteurés</h4>
-            <span>84 posts</span>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-rank">4</div>
-          <div class="trending-info">
-            <h4>Base de données</h4>
-            <span>67 posts</span>
-          </div>
-        </div>
-        <div class="trending-item">
-          <div class="trending-rank">5</div>
-          <div class="trending-info">
-            <h4>Vie étudiante</h4>
-            <span>53 posts</span>
-          </div>
-        </div>
+        <?php if (!$popularPosts): ?>
+          <p class="sidebar-empty">Aucune publication populaire pour le moment.</p>
+        <?php else: ?>
+          <?php foreach ($popularPosts as $rank => $popularPost): ?>
+            <a class="trending-item" href="<?= $base ?>/salon?view=popular#publication-<?= (int)$popularPost['id'] ?>">
+              <span class="trending-rank"><?= $rank + 1 ?></span>
+              <span class="trending-info">
+                <strong><?= htmlspecialchars($popularPost['titre']) ?></strong>
+                <span>♥ <?= (int)$popularPost['likes_count'] ?> · 💬 <?= (int)$popularPost['comments_count'] ?></span>
+              </span>
+            </a>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
 
       <div>
         <div class="widget-title">
           <span>
             <span style="display:inline-block; width:8px; height:8px; background:var(--success); border-radius:50%; margin-right:6px;"></span>
-            En ligne (24)
+            En ligne (<?= count($onlineUsers) ?>)
           </span>
-          <a href="#">Voir tout</a>
+          <span class="online-refresh-note">activité des 5 dernières minutes</span>
         </div>
-        <div class="online-user">
-          <div class="online-avatar">SC<span class="online-dot"></span></div>
-          <div>
-            <div class="online-name">Sarah Chen</div>
-            <div class="online-role">Product Designer</div>
-          </div>
-        </div>
-        <div class="online-user">
-          <div class="online-avatar">MR<span class="online-dot"></span></div>
-          <div>
-            <div class="online-name">Marcus Rodriguez</div>
-            <div class="online-role">FrontendEngineer</div>
-          </div>
-        </div>
-        <div class="online-user">
-          <div class="online-avatar">EP<span class="online-dot"></span></div>
-          <div>
-            <div class="online-name">Emily Park</div>
-            <div class="online-role">UX Researcher</div>
-          </div>
-        </div>
-        <div class="online-user">
-          <div class="online-avatar">JM<span class="online-dot"></span></div>
-          <div>
-            <div class="online-name">Jordan Miles</div>
-            <div class="online-role">Software Engineer</div>
-          </div>
-        </div>
-        <div class="online-user">
-          <div class="online-avatar">PS<span class="online-dot"></span></div>
-          <div>
-            <div class="online-name">Priya Sharma</div>
-            <div class="online-role">Community Manager</div>
-          </div>
-        </div>
+        <?php if (!$onlineUsers): ?>
+          <p class="sidebar-empty">Aucun compte actif dans les cinq dernières minutes.</p>
+        <?php else: ?>
+          <?php foreach ($onlineUsers as $onlineUser):
+            $onlineInitials = strtoupper(mb_substr($onlineUser['prenom'], 0, 1) . mb_substr($onlineUser['nom'], 0, 1));
+            $onlineName = trim($onlineUser['prenom'] . ' ' . $onlineUser['nom']);
+            $onlineRole = $roleLabels[$onlineUser['role']] ?? ucfirst($onlineUser['role']);
+          ?>
+            <div class="online-user">
+              <div class="online-avatar"><?= htmlspecialchars($onlineInitials) ?><span class="online-dot" aria-label="En ligne"></span></div>
+              <div class="online-user-info">
+                <div class="online-name"><?= htmlspecialchars($onlineName) ?></div>
+                <div class="online-role"><?= htmlspecialchars($onlineRole) ?><?= !empty($onlineUser['filiere']) ? ' · ' . htmlspecialchars($onlineUser['filiere']) : '' ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
-
-      <button class="btn-new-post">
-        + Nouvelle publication
-      </button>
     </aside>
 
   </div>

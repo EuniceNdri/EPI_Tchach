@@ -82,13 +82,13 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="email">Adresse Email Institutionnelle</label>
+          <label class="form-label" for="email">Adresse email</label>
           <input type="email" id="email" class="form-control" value="<?= htmlspecialchars($sessionEmail) ?>" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="email">Email Institutionnel</label>
-          <input type="email" id="email" class="form-control" value="momo.kouassi@epi-yakro.ci" readonly style="background:#f8fafc; cursor:not-allowed;" title="L'adresse institutionnelle ne peut être modifiée que par l'administration" />
+          <label class="form-label" for="email">Adresse email enregistrée</label>
+          <input type="email" id="email" class="form-control" value="<?= htmlspecialchars($sessionEmail) ?>" readonly style="background:#f8fafc; cursor:not-allowed;" title="L'adresse email ne peut être modifiée que par l'administration" />
         </div>
 
         <div class="form-group">

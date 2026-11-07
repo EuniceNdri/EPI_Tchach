@@ -31,42 +31,42 @@ $filiereImages = [
 <body>
   <!-- ===== Barre de navigation fixe (Widescreen) ===== -->
   <header class="header-wrapper">
-    <nav class="nav container-fluid animate-fade-down">
-      <a href="<?= $base ?>/landing" class="brand">
-        <div class="brand-logo-wrapper">
-          <img src="<?= htmlspecialchars($logoFile) ?>" 
-               alt="Logo École Polytechnique Internationale Yamoussoukro" 
-               class="brand-logo-img" 
-               onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
-        </div>
-        <div class="brand-text">
-          <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
-          <span class="brand-subtitle">Yamoussoukro</span>
-        </div>
-      </a>
+    <nav class="nav container-fluid animate-fade-down" aria-label="Navigation principale">
+      <div class="nav-main">
+        <a href="<?= $base ?>/landing" class="brand">
+          <div class="brand-logo-wrapper">
+            <img src="<?= htmlspecialchars($logoFile) ?>"
+                 alt="Logo École Polytechnique Internationale Yamoussoukro"
+                 class="brand-logo-img"
+                 onerror="this.src='<?= $asset ?>/images/logo.jpeg'" />
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">EPI <span class="brand-accent">Tchach</span></span>
+            <span class="brand-subtitle">Yamoussoukro</span>
+          </div>
+        </a>
 
-      <!-- Liens de navigation internes -->
+        <div class="nav-actions">
+          <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
+          <a href="<?= $base ?>/register" class="btn btn-primary btn-sm">S'inscrire</a>
+          <a href="<?= $base ?>/profile" class="btn btn-outline btn-sm" title="Voir le profil étudiant">Profil</a>
+        </div>
+
+        <button class="nav-toggle" type="button" aria-label="Ouvrir la navigation" aria-expanded="false" aria-controls="primaryNavigation">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
       <ul class="nav-links" id="primaryNavigation">
         <li><a href="#apercu" class="nav-link">Aperçu</a></li>
         <li><a href="#filieres" class="nav-link">Filières</a></li>
         <li><a href="#comment-ca-marche" class="nav-link">Fonctionnement</a></li>
         <li><a href="#temoignages" class="nav-link">Témoignages</a></li>
         <li><a href="#faq" class="nav-link">FAQ</a></li>
-        <li><a href="#policyModal" class="nav-link open-policy-modal" onclick="window.openPolicyModal(event)" style="color:var(--accent); font-weight:700;">Charte & Règlement</a></li>
+        <li><a href="#policyModal" class="nav-link nav-link-policy open-policy-modal" onclick="window.openPolicyModal(event)">Charte & Règlement</a></li>
       </ul>
-
-      <button class="nav-toggle" type="button" aria-label="Ouvrir la navigation" aria-expanded="false" aria-controls="primaryNavigation">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      <div class="nav-actions">
-        <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
-        <a href="<?= $base ?>/register" class="btn btn-primary btn-sm">S'inscrire</a>
-        <a href="<?= $base ?>/profile" class="btn btn-outline btn-sm" title="Voir le profil étudiant">Profil</a>
-        <a href="<?= $base ?>/admin" class="btn btn-accent btn-sm" title="Accès administration">Admin</a>
-      </div>
     </nav>
   </header>
 
@@ -93,7 +93,7 @@ $filiereImages = [
             
             <div class="hero-actions hero-copy-step hero-copy-step-4">
               <a href="<?= $base ?>/register" class="btn btn-accent group">
-                Commencer gratuitement
+                Commencer
                 <svg class="icon arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
                 </svg>
@@ -374,7 +374,7 @@ $filiereImages = [
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
             </div>
             <h3>Créez votre profil</h3>
-            <p>Inscrivez-vous simplement avec votre adresse email institutionnelle <code>@epi-yakro.ci</code> et choisissez votre statut.</p>
+            <p>Inscrivez-vous avec une adresse email valide et accessible (Gmail ou autre), puis choisissez votre statut.</p>
           </div>
 
           <div class="step-card reveal" style="--delay: 0.2s">
@@ -463,7 +463,7 @@ $filiereImages = [
               <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="faq-answer">
-              <p>L'accès à la plateforme est strictement réservé aux étudiants régulièrement inscrits à l'EPI (BTS, Licence, Master), ainsi qu'aux professeurs et au personnel administratif de l'école via une adresse email institutionnelle.</p>
+              <p>L'accès à la plateforme est destiné aux étudiants régulièrement inscrits à l'EPI (BTS, Licence, Master), ainsi qu'aux professeurs et au personnel administratif. Une adresse email valide est acceptée, qu'elle soit Gmail ou institutionnelle.</p>
             </div>
           </div>
 
