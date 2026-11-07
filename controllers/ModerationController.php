@@ -41,13 +41,30 @@ class ModerationController {
             @session_start();
         }
 
-        $role = strtolower($_SESSION['user_role'] ?? '');
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+        if ($userId > 0 && !($this->pdo instanceof PDO)) {
+            http_response_code(503);
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode(['success' => false, 'message' => 'Modération indisponible : la base de données ne répond pas.']);
+                exit;
+            }
+
+            exit('Modération indisponible : la base de données ne répond pas.');
+        }
+
+        $role = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
+        if ($userId > 0 && $this->pdo instanceof PDO) {
+            $statement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = :id LIMIT 1');
+            $statement->execute(['id' => $userId]);
+            $role = strtolower(trim((string)$statement->fetchColumn()));
+        }
         $allowed = ['administrateur', 'moderateur'];
 
-        if (empty($_SESSION['user_id']) || !in_array($role, $allowed, true)) {
-            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
-                   || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
-
+        if ($userId <= 0 || !in_array($role, $allowed, true)) {
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8', true, 403);
                 echo json_encode(['success' => false, 'message' => "Accès refusé. Privilèges modérateur requis."]);

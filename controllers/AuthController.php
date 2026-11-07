@@ -14,8 +14,10 @@
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/User.php';
+    require_once ROOT_PATH . '/models/Avatar.php';
 } else {
     require_once dirname(__DIR__) . '/models/User.php';
+    require_once dirname(__DIR__) . '/models/Avatar.php';
 }
 
 class AuthController {
@@ -57,13 +59,25 @@ class AuthController {
         }
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $email = trim($_POST['email'] ?? '');
-            $mot_de_passe = $_POST['mot_de_passe'] ?? '';
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
+            $mot_de_passe = (string)($_POST['mot_de_passe'] ?? '');
 
             if (empty($email) || empty($mot_de_passe)) {
                 $error = "Veuillez renseigner votre email et votre mot de passe.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = "L'adresse email saisie n'est pas valide. Vérifiez son format puis réessayez.";
+            } elseif (!$this->userModel->getPdo() instanceof PDO) {
+                http_response_code(503);
+                $error = "La connexion est momentanément indisponible. Réessayez dans quelques instants.";
             } else {
-                $user = $this->userModel->login($email, $mot_de_passe);
+                try {
+                    $user = $this->userModel->login($email, $mot_de_passe);
+                } catch (PDOException $exception) {
+                    error_log('Connexion utilisateur impossible : ' . $exception->getMessage());
+                    http_response_code(503);
+                    $error = "La connexion est momentanément indisponible. Réessayez dans quelques instants.";
+                    $user = false;
+                }
 
                 if ($user) {
                     $rawRole = strtolower(trim($user['role'] ?? 'etudiant'));
@@ -94,7 +108,9 @@ class AuthController {
                     header('Location: ' . $targetUrl);
                     exit;
                 } else {
-                    $error = "Adresse email ou mot de passe incorrect.";
+                    if ($error === '') {
+                        $error = "Adresse email ou mot de passe incorrect.";
+                    }
                 }
             }
         }
@@ -115,16 +131,21 @@ class AuthController {
             exit;
         }
 
+        if (!$this->userModel->getPdo() instanceof PDO) {
+            http_response_code(503);
+            $error = "L'inscription est momentanément indisponible. Réessayez dans quelques instants.";
+        }
+
         // Récupérer les zones de filières existantes pour l'interface
         $availableFilieres = $this->userModel->getAvailableFiliereZones();
 
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $nom = trim($_POST['nom'] ?? '');
-            $prenom = trim($_POST['prenom'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $role = $_POST['role'] ?? 'etudiant';
-            $mot_de_passe = $_POST['mot_de_passe'] ?? '';
-            $confirmer_mot_de_passe = $_POST['confirmer_mot_de_passe'] ?? '';
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $this->userModel->getPdo() instanceof PDO) {
+            $nom = trim((string)($_POST['nom'] ?? ''));
+            $prenom = trim((string)($_POST['prenom'] ?? ''));
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
+            $role = (string)($_POST['role'] ?? 'etudiant');
+            $mot_de_passe = (string)($_POST['mot_de_passe'] ?? '');
+            $confirmer_mot_de_passe = (string)($_POST['confirmer_mot_de_passe'] ?? '');
             $cgu = !empty($_POST['cgu']);
 
             // Données spécifiques aux rôles
@@ -149,6 +170,8 @@ class AuthController {
 
             if (empty($nom) || empty($prenom) || empty($email) || empty($mot_de_passe)) {
                 $error = "Tous les champs obligatoires doivent être renseignés.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = "Veuillez saisir une adresse email valide.";
             } elseif (!$cgu) {
                 $error = "Vous devez accepter la charte d'utilisation et le règlement de l'école.";
             } elseif ($mot_de_passe !== $confirmer_mot_de_passe) {
@@ -159,21 +182,32 @@ class AuthController {
                 $error = "Veuillez choisir ou renseigner votre filière d'études.";
             } elseif ($role === 'professeur' && empty($modulesEnseignes) && empty($profFilieres)) {
                 $error = "En tant que professeur, veuillez indiquer vos modules d'enseignement ou vos filières rattachées.";
-            } elseif ($this->userModel->emailExists($email)) {
-                $error = "Cette adresse email est déjà associée à un compte.";
             } else {
-                $userId = $this->userModel->register(
-                    $email,
-                    $mot_de_passe,
-                    $nom,
-                    $prenom,
-                    $role,
-                    $filiereFinale,
-                    $modulesEnseignes,
-                    $profFilieres
-                );
+                $userId = false;
+                $avatarUrl = null;
+                try {
+                    if ($this->userModel->emailExists($email)) {
+                        $error = "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse.";
+                    } else {
+                        $avatarUrl = Avatar::storeUploadedFile($_FILES['avatar'] ?? []);
+                        $userId = $this->userModel->register(
+                            $email,
+                            $mot_de_passe,
+                            $nom,
+                            $prenom,
+                            $role,
+                            $filiereFinale,
+                            $modulesEnseignes,
+                            $profFilieres,
+                            $avatarUrl
+                        );
+                        if (!$userId) {
+                            Avatar::removeStoredFile($avatarUrl);
+                            $avatarUrl = null;
+                        }
+                    }
 
-                if ($userId) {
+                if (!empty($userId)) {
                     // Auto-connexion immédiate de l'utilisateur inscrit
                     $_SESSION['user_id'] = $userId;
                     $_SESSION['user_nom'] = $nom;
@@ -182,7 +216,7 @@ class AuthController {
                     $_SESSION['user_role'] = $role;
                     $_SESSION['user_filiere'] = $filiereFinale;
                     $_SESSION['user_modules'] = $modulesEnseignes;
-                    $_SESSION['user_avatar'] = null;
+                    $_SESSION['user_avatar'] = $avatarUrl;
                     $_SESSION['user_bio'] = null;
 
                     // Message d'accueil informatif
@@ -205,8 +239,27 @@ class AuthController {
                         header('Location: ' . url('salon'));
                     }
                     exit;
-                } else {
+                } elseif ($error === '') {
                     $error = "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer.";
+                }
+                } catch (InvalidArgumentException $exception) {
+                    Avatar::removeStoredFile($avatarUrl);
+                    $error = $exception->getMessage();
+                } catch (PDOException $exception) {
+                    Avatar::removeStoredFile($avatarUrl);
+                    error_log('Inscription utilisateur impossible : ' . $exception->getMessage());
+                    $databaseErrorCode = (int)($exception->errorInfo[1] ?? 0);
+                    $error = $databaseErrorCode === 1062
+                        ? "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse."
+                        : "La création du compte est momentanément indisponible. Vérifiez les informations puis réessayez.";
+                    if ($databaseErrorCode !== 1062) {
+                        http_response_code(503);
+                    }
+                } catch (RuntimeException $exception) {
+                    Avatar::removeStoredFile($avatarUrl);
+                    error_log('Stockage de la photo de profil impossible : ' . $exception->getMessage());
+                    http_response_code(503);
+                    $error = "La photo de profil n'a pas pu être enregistrée. Réessayez dans quelques instants.";
                 }
             }
         }

@@ -5,40 +5,8 @@
  * =============================================================
  */
 
-if (!function_exists('mb_strlen')) {
-    function mb_strlen(string $value): int {
-        return strlen($value);
-    }
-}
-
-if (!function_exists('mb_substr')) {
-    function mb_substr(string $value, int $start, ?int $length = null): string {
-        if ($length === null) {
-            return substr($value, $start);
-        }
-        return substr($value, $start, $length);
-    }
-}
-
-if (!function_exists('mb_stripos')) {
-    function mb_stripos(string $haystack, string $needle, int $offset = 0): int|false {
-        return stripos($haystack, $needle, $offset);
-    }
-}
-
-if (!function_exists('mb_strimwidth')) {
-    function mb_strimwidth(string $string, int $start, int $width, string $trimmarker = '...'): string {
-        if ($width <= 0) {
-            return '';
-        }
-
-        if (strlen($string) <= $width) {
-            return $string;
-        }
-
-        $trimLength = max(0, $width - strlen($trimmarker));
-        return substr($string, $start, $trimLength) . $trimmarker;
-    }
+if (!extension_loaded('mbstring')) {
+    throw new RuntimeException('L’extension PHP mbstring est requise par EPI Tchach.');
 }
 
 // Charger les variables d'environnement depuis .env si présent

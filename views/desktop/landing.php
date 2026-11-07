@@ -4,6 +4,15 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
 $logoFile = $asset . '/images/logo.jpeg';
 $filieres = isset($filieres) && is_array($filieres) ? $filieres : [];
 $filieresLoadError = $filieresLoadError ?? false;
+$heroSlides = $landingSettings['hero_slides'] ?? LandingContent::defaultHeroSlides();
+$landingStats = $landingSettings['stats'] ?? LandingContent::defaultStats();
+$landingImageUrl = static function (string $path) use ($asset): string {
+  $path = ltrim($path, '/');
+  $base = strpos($path, 'uploads/') === 0
+    ? (string)preg_replace('#/assets$#', '', $asset)
+    : $asset;
+  return rtrim($base, '/') . '/' . $path;
+};
 $filiereImages = [
   'IDA' => 'filiere-industrielle.jpg',
   'LIC-INFO' => 'filiere-industrielle.jpg',
@@ -49,7 +58,6 @@ $filiereImages = [
         <div class="nav-actions">
           <a href="<?= $base ?>/login" class="btn btn-outline btn-sm">Se connecter</a>
           <a href="<?= $base ?>/register" class="btn btn-primary btn-sm">S'inscrire</a>
-          <a href="<?= $base ?>/profile" class="btn btn-outline btn-sm" title="Voir le profil étudiant">Profil</a>
         </div>
 
         <button class="nav-toggle" type="button" aria-label="Ouvrir la navigation" aria-expanded="false" aria-controls="primaryNavigation">
@@ -108,57 +116,29 @@ $filiereImages = [
 
           <div class="hero-photo-carousel animate-pop" style="animation-delay: 0.35s" role="region" aria-roledescription="carrousel" aria-label="La vie à l'EPI">
             <div class="hero-photo-stage">
-              <button type="button" class="hero-photo-card is-active" data-hero-card aria-label="Afficher la photo : On avance ensemble" aria-hidden="false">
-                <img src="<?= $asset ?>/images/landing-students.jpg" alt="Deux étudiants africains révisent ensemble" fetchpriority="high" />
-                <span class="hero-photo-note">
-                  <span class="hero-note-pin" aria-hidden="true"></span>
-                  <strong>On avance ensemble.</strong>
-                  <small>Une communauté, toutes les filières.</small>
-                </span>
-              </button>
-              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : L'entraide au quotidien" aria-hidden="true" tabindex="-1">
-                <img src="<?= $asset ?>/images/filiere-entraide.jpg" alt="" />
-                <span class="hero-photo-note">
-                  <span class="hero-note-pin" aria-hidden="true"></span>
-                  <strong>L'entraide au quotidien.</strong>
-                  <small>Les bonnes idées se partagent.</small>
-                </span>
-              </button>
-              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Apprendre en construisant" aria-hidden="true" tabindex="-1">
-                <img src="<?= $asset ?>/images/filiere-industrielle.jpg" alt="" />
-                <span class="hero-photo-note">
-                  <span class="hero-note-pin" aria-hidden="true"></span>
-                  <strong>Apprendre en construisant.</strong>
-                  <small>La pratique nous rassemble.</small>
-                </span>
-              </button>
-              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Chacun apporte sa pierre" aria-hidden="true" tabindex="-1">
-                <img src="<?= $asset ?>/images/filiere-ressources.jpg" alt="" />
-                <span class="hero-photo-note">
-                  <span class="hero-note-pin" aria-hidden="true"></span>
-                  <strong>Chacun apporte sa pierre.</strong>
-                  <small>Une école, mille talents.</small>
-                </span>
-              </button>
-              <button type="button" class="hero-photo-card" data-hero-card aria-label="Afficher la photo : Grandir ensemble" aria-hidden="true" tabindex="-1">
-                <img src="<?= $asset ?>/images/filiere-tertiaire.jpg" alt="" />
-                <span class="hero-photo-note">
-                  <span class="hero-note-pin" aria-hidden="true"></span>
-                  <strong>Grandir ensemble.</strong>
-                  <small>Chaque parcours compte.</small>
-                </span>
-              </button>
+              <?php foreach ($heroSlides as $index => $slide): ?>
+                <?php
+                  $slideTitle = (string)($slide['title'] ?? '');
+                  $slideImage = (string)($slide['image'] ?? '');
+                ?>
+                <button type="button" class="hero-photo-card<?= $index === 0 ? ' is-active' : '' ?>" data-hero-card aria-label="Afficher la photo : <?= htmlspecialchars($slideTitle, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="<?= $index === 0 ? 'false' : 'true' ?>"<?= $index === 0 ? '' : ' tabindex="-1"' ?>>
+                  <img src="<?= htmlspecialchars($landingImageUrl($slideImage), ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($slideTitle, ENT_QUOTES, 'UTF-8') ?>"<?= $index === 0 ? ' fetchpriority="high"' : ' loading="lazy"' ?> />
+                  <span class="hero-photo-note">
+                    <span class="hero-note-pin" aria-hidden="true"></span>
+                    <strong><?= htmlspecialchars($slideTitle, ENT_QUOTES, 'UTF-8') ?></strong>
+                    <?php if (!empty($slide['caption'])): ?><small><?= htmlspecialchars((string)$slide['caption'], ENT_QUOTES, 'UTF-8') ?></small><?php endif; ?>
+                  </span>
+                </button>
+              <?php endforeach; ?>
             </div>
             <div class="hero-carousel-controls" aria-label="Commandes du carrousel">
               <button type="button" class="hero-carousel-arrow" data-hero-prev aria-label="Photo précédente">
                 <span aria-hidden="true">←</span>
               </button>
               <div class="hero-carousel-dots" aria-label="Choisir une photo">
-                <button type="button" class="hero-carousel-dot is-active" data-hero-dot="0" aria-label="Afficher la photo 1 sur 5" aria-current="true"></button>
-                <button type="button" class="hero-carousel-dot" data-hero-dot="1" aria-label="Afficher la photo 2 sur 5"></button>
-                <button type="button" class="hero-carousel-dot" data-hero-dot="2" aria-label="Afficher la photo 3 sur 5"></button>
-                <button type="button" class="hero-carousel-dot" data-hero-dot="3" aria-label="Afficher la photo 4 sur 5"></button>
-                <button type="button" class="hero-carousel-dot" data-hero-dot="4" aria-label="Afficher la photo 5 sur 5"></button>
+                <?php foreach ($heroSlides as $index => $slide): ?>
+                  <button type="button" class="hero-carousel-dot<?= $index === 0 ? ' is-active' : '' ?>" data-hero-dot="<?= (int)$index ?>" aria-label="Afficher la photo <?= (int)$index + 1 ?> sur <?= count($heroSlides) ?>"<?= $index === 0 ? ' aria-current="true"' : '' ?>></button>
+                <?php endforeach; ?>
               </div>
               <button type="button" class="hero-carousel-arrow" data-hero-next aria-label="Photo suivante">
                 <span aria-hidden="true">→</span>
@@ -173,29 +153,14 @@ $filiereImages = [
     <section class="stats-banner">
       <div class="container-fluid">
         <div class="stats-grid">
-          <div class="stat-card reveal" style="--delay: 0s">
-            <div class="stat-number" data-target="1250" data-prefix="+">+1 250</div>
-            <div class="stat-label">Membres Actifs</div>
-            <div class="stat-desc">Étudiants, professeurs & délégués</div>
-          </div>
-
-          <div class="stat-card reveal" style="--delay: 0.15s">
-            <div class="stat-number" data-target="12">12</div>
-            <div class="stat-label">Filières Officielles</div>
-            <div class="stat-desc">Pôles Industriels & Tertiaires</div>
-          </div>
-
-          <div class="stat-card reveal" style="--delay: 0.3s">
-            <div class="stat-number" data-target="850" data-prefix="+">+850</div>
-            <div class="stat-label">Ressources & Annales</div>
-            <div class="stat-desc">Sujets corrigés, TP et fiches</div>
-          </div>
-
-          <div class="stat-card reveal" style="--delay: 0.45s">
-            <div class="stat-number" data-target="98" data-suffix="%">98%</div>
-            <div class="stat-label">Taux d'Entraide</div>
-            <div class="stat-desc">Questions avec solution validée</div>
-          </div>
+          <?php foreach ($landingStats as $index => $stat): ?>
+            <?php $value = (int)($stat['value'] ?? 0); ?>
+            <div class="stat-card reveal" style="--delay: <?= number_format($index * 0.15, 2, '.', '') ?>s">
+              <div class="stat-number" data-target="<?= $value ?>" data-prefix="<?= htmlspecialchars((string)($stat['prefix'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" data-suffix="<?= htmlspecialchars((string)($stat['suffix'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string)($stat['prefix'] ?? ''), ENT_QUOTES, 'UTF-8') ?><?= number_format($value, 0, ',', ' ') ?><?= htmlspecialchars((string)($stat['suffix'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="stat-label"><?= htmlspecialchars((string)($stat['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="stat-desc"><?= htmlspecialchars((string)($stat['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+            </div>
+          <?php endforeach; ?>
         </div>
       </div>
     </section>
@@ -313,18 +278,25 @@ $filiereImages = [
               <?php foreach ($filieres as $index => $filiere): ?>
                 <?php
                   $code = strtoupper(trim($filiere['code'] ?? ''));
-                  $image = $filiereImages[$code] ?? 'filiere-entraide.jpg';
+                  $image = trim((string)($filiere['image_url'] ?? ''));
+                  if ($image === '') {
+                    $image = 'images/' . ($filiereImages[$code] ?? 'filiere-entraide.jpg');
+                  }
                   $name = trim($filiere['nom'] ?? '');
                   $description = trim($filiere['description'] ?? '');
+                  $slogan = trim((string)($filiere['slogan'] ?? ''));
                   if ($description === '') {
                     $description = 'Échangez et progressez avec les étudiants de la filière ' . $name . '.';
                   }
+                  if ($slogan === '') {
+                    $slogan = 'Formation EPI · entraide et réussite';
+                  }
                 ?>
                 <article class="filiere-card<?= $index === 0 ? ' is-active' : '' ?>" data-filiere-card role="button" tabindex="0" aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>" aria-label="Filière <?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>">
-                  <img src="<?= htmlspecialchars($asset . '/images/' . $image, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" />
+                  <img src="<?= htmlspecialchars($landingImageUrl($image), ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" />
                   <span class="filiere-card-label"><?= htmlspecialchars($filiere['code'] ?: 'Filière', ENT_QUOTES, 'UTF-8') ?></span>
                   <div class="filiere-card-content">
-                    <span class="filiere-slogan">Formation EPI · entraide et réussite</span>
+                    <span class="filiere-slogan"><?= htmlspecialchars($slogan, ENT_QUOTES, 'UTF-8') ?></span>
                     <h3><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></h3>
                     <p class="filiere-card-description"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
                   </div>

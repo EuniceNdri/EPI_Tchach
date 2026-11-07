@@ -1,19 +1,4 @@
 <?php
-if (!function_exists('mb_strimwidth')) {
-    function mb_strimwidth(string $string, int $start, int $width, string $trimmarker = '...'): string {
-        if ($width <= 0) {
-            return '';
-        }
-
-        if (strlen($string) <= $width) {
-            return $string;
-        }
-
-        $trimLength = max(0, $width - strlen($trimmarker));
-        return substr($string, $start, $trimLength) . $trimmarker;
-    }
-}
-
 $base = $base ?? (isset($baseUrl) ? $baseUrl : '');
 $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
 $activeAdminPage = $activeAdminPage ?? 'dashboard';

@@ -29,6 +29,10 @@ class User {
         }
     }
 
+    public function getPdo(): ?PDO {
+        return $this->pdo;
+    }
+
     /**
      * Charge et retourne le rôle d'un utilisateur par son email
      *
@@ -155,7 +159,8 @@ class User {
         string $role = 'etudiant',
         ?string $filiere = null,
         ?string $modules_enseignes = null,
-        array $profFilieres = []
+        array $profFilieres = [],
+        ?string $avatar_url = null
     ) {
         if (!$this->pdo) {
             return false;
@@ -166,6 +171,10 @@ class User {
         $prenom = trim($prenom);
         $filiere = !empty($filiere) ? trim($filiere) : null;
         $modules_enseignes = !empty($modules_enseignes) ? trim($modules_enseignes) : null;
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
 
         // 1. Vérifier si l'adresse email existe déjà
         if ($this->emailExists($email)) {
@@ -190,8 +199,8 @@ class User {
         $hashedPassword = password_hash($mot_de_passe, PASSWORD_DEFAULT);
 
         // 4. Insertion dans la table `utilisateurs`
-        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes) 
-                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes)";
+        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, avatar_url)
+                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes, :avatar_url)";
         
         $stmt = $this->pdo->prepare($sql);
         $success = $stmt->execute([
@@ -201,7 +210,8 @@ class User {
             'mot_de_passe'      => $hashedPassword,
             'role'              => $role,
             'filiere'           => $filiere,
-            'modules_enseignes' => $modules_enseignes
+            'modules_enseignes' => $modules_enseignes,
+            'avatar_url'        => $avatar_url
         ]);
 
         if (!$success) {

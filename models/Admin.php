@@ -76,6 +76,95 @@ class Admin extends User {
     }
 
     /**
+     * Retourne les zones où l'utilisateur possède un rôle de responsable.
+     *
+     * @param int $userId
+     * @param string $scope 'delegue' ou 'chef_de_classe'
+     * @return array
+     */
+    public function getDashboardZonesForUser(int $userId, string $scope): array {
+        if (!$this->pdo || $userId <= 0) {
+            return [];
+        }
+
+        $rolesByScope = [
+            'delegue' => ['delegue_general', 'sous_delegue'],
+            'chef_de_classe' => ['chef_de_classe'],
+        ];
+
+        if (!isset($rolesByScope[$scope])) {
+            return [];
+        }
+
+        $zoneType = $scope === 'delegue' ? 'delegation' : 'filiere';
+        $rolePlaceholders = [];
+        $params = [
+            'user_id' => $userId,
+            'zone_type' => $zoneType,
+        ];
+
+        foreach ($rolesByScope[$scope] as $index => $role) {
+            $placeholder = 'role_' . $index;
+            $rolePlaceholders[] = ':' . $placeholder;
+            $params[$placeholder] = $role;
+        }
+
+        $statement = $this->pdo->prepare("
+            SELECT z.id, z.nom, z.type_zone, az.role_dans_zone
+            FROM appartenance_zones az
+            JOIN zones z ON z.id = az.zone_id
+            WHERE az.utilisateur_id = :user_id
+              AND az.role_dans_zone IN (" . implode(', ', $rolePlaceholders) . ")
+              AND z.type_zone = :zone_type
+              AND z.est_active = 1
+            ORDER BY z.nom
+        ");
+        $statement->execute($params);
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Liste les membres appartenant à l'une des zones autorisées.
+     *
+     * @param int[] $zoneIds
+     * @return array
+     */
+    public function getUsersInZones(array $zoneIds): array {
+        if (!$this->pdo) {
+            return [];
+        }
+
+        $zoneIds = array_values(array_unique(array_filter(
+            array_map('intval', $zoneIds),
+            static fn (int $zoneId): bool => $zoneId > 0
+        )));
+        if (!$zoneIds) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach ($zoneIds as $index => $zoneId) {
+            $placeholder = 'zone_' . $index;
+            $placeholders[] = ':' . $placeholder;
+            $params[$placeholder] = $zoneId;
+        }
+
+        $statement = $this->pdo->prepare("
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, u.filiere, u.est_actif
+            FROM utilisateurs u
+            JOIN appartenance_zones az ON az.utilisateur_id = u.id
+            JOIN zones z ON z.id = az.zone_id AND z.est_active = 1
+            WHERE z.id IN (" . implode(', ', $placeholders) . ")
+            ORDER BY u.nom, u.prenom
+        ");
+        $statement->execute($params);
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Modifie le rôle d'un utilisateur (ex: promouvoir en modérateur ou administrateur)
      *
      * @param int $userId
@@ -143,12 +232,12 @@ class Admin extends User {
     public function getDashboardKPIs(): array {
         if (!$this->pdo) {
             return [
-                'etudiants_count'    => 1248,
-                'professeurs_count'  => 64,
-                'publications_count' => 3840,
-                'signalements_count' => 3,
-                'zones_count'        => 12,
-                'total_users'        => 1312
+                'etudiants_count'    => 0,
+                'professeurs_count'  => 0,
+                'publications_count' => 0,
+                'signalements_count' => 0,
+                'zones_count'        => 0,
+                'total_users'        => 0
             ];
         }
 
@@ -167,16 +256,6 @@ class Admin extends User {
         $zoneCount = $zoneStmt ? (int)$zoneStmt->fetchColumn() : 0;
 
         $totalUsers = $userCounts['total'] ?? 0;
-        if ($totalUsers === 0) {
-            return [
-                'etudiants_count'    => 1248,
-                'professeurs_count'  => 64,
-                'publications_count' => 3840,
-                'signalements_count' => 0,
-                'zones_count'        => 12,
-                'total_users'        => 1312
-            ];
-        }
 
         return [
             'etudiants_count'    => $userCounts['etudiant'] ?? 0,
@@ -288,42 +367,74 @@ class Admin extends User {
      * @param string|null $statut 'en_attente', 'traite', 'rejete' ou null
      * @return array
      */
-    public function getReports(?string $statut = null): array {
+    public function getReports(?string $statut = null, ?array $zoneIds = null): array {
         if (!$this->pdo) {
             return [];
+        }
+
+        $zonePlaceholders = [];
+        $params = [];
+        if ($zoneIds !== null) {
+            $zoneIds = array_values(array_unique(array_filter(
+                array_map('intval', $zoneIds),
+                static fn (int $zoneId): bool => $zoneId > 0
+            )));
+            if (!$zoneIds) {
+                return [];
+            }
+
+            foreach ($zoneIds as $index => $zoneId) {
+                $placeholder = 'zone_' . $index;
+                $zonePlaceholders[] = ':' . $placeholder;
+                $params[$placeholder] = $zoneId;
+            }
         }
 
         $sql = "
             SELECT 
                 s.id, s.type_cible, s.cible_id, s.motif, s.statut, s.date_signalement,
                 u.nom as auteur_nom, u.prenom as auteur_prenom, u.email as auteur_email, u.role as auteur_role,
+                target_zone.id AS zone_id, target_zone.nom AS zone_name,
                 CASE 
-                    WHEN s.type_cible = 'publication' THEN (SELECT titre FROM publications WHERE id = s.cible_id)
+                    WHEN s.type_cible = 'publication' THEN target_publication.titre
                     ELSE 'Commentaire'
                 END as cible_titre,
                 CASE 
-                    WHEN s.type_cible = 'publication' THEN (SELECT contenu FROM publications WHERE id = s.cible_id)
-                    WHEN s.type_cible = 'commentaire' THEN (SELECT contenu FROM commentaires WHERE id = s.cible_id)
+                    WHEN s.type_cible = 'publication' THEN target_publication.contenu
+                    WHEN s.type_cible = 'commentaire' THEN target_comment.contenu
                     ELSE ''
                 END as cible_contenu
             FROM signalements s
             JOIN utilisateurs u ON s.auteur_id = u.id
+            LEFT JOIN publications target_publication
+              ON s.type_cible = 'publication' AND target_publication.id = s.cible_id
+            LEFT JOIN commentaires target_comment
+              ON s.type_cible = 'commentaire' AND target_comment.id = s.cible_id
+            LEFT JOIN publications comment_publication
+              ON comment_publication.id = target_comment.publication_id
+            LEFT JOIN categories target_category
+              ON target_category.id = COALESCE(target_publication.categorie_id, comment_publication.categorie_id)
+            LEFT JOIN zones target_zone ON target_zone.id = target_category.zone_id
         ";
 
+        $conditions = [];
         if ($statut !== null) {
-            $sql .= " WHERE s.statut = :statut";
+            $conditions[] = 's.statut = :statut';
+            $params['statut'] = $statut;
+        }
+        if ($zoneIds !== null) {
+            $conditions[] = 'target_zone.id IN (' . implode(', ', $zonePlaceholders) . ')';
+        }
+        if ($conditions) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
         $sql .= " ORDER BY s.date_signalement DESC";
 
         $stmt = $this->pdo->prepare($sql);
-        if ($statut !== null) {
-            $stmt->execute(['statut' => $statut]);
-        } else {
-            $stmt->execute();
-        }
+        $stmt->execute($params);
 
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

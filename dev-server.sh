@@ -24,4 +24,4 @@ else
 fi
 echo "Arrêt du serveur : Ctrl+C"
 
-exec php -S "0.0.0.0:${PORT}" -t "$ROOT_DIR" "$ROOT_DIR/dev-router.php"
+exec php -d upload_max_filesize=5M -d post_max_size=8M -S "0.0.0.0:${PORT}" -t "$ROOT_DIR" "$ROOT_DIR/dev-router.php"

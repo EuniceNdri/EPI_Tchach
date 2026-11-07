@@ -4,6 +4,15 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
 $logoFile = $asset . '/images/logo.jpeg';
 $filieres = isset($filieres) && is_array($filieres) ? $filieres : [];
 $filieresLoadError = $filieresLoadError ?? false;
+$heroSlides = $landingSettings['hero_slides'] ?? LandingContent::defaultHeroSlides();
+$landingStats = $landingSettings['stats'] ?? LandingContent::defaultStats();
+$landingImageUrl = static function (string $path) use ($asset): string {
+  $path = ltrim($path, '/');
+  $base = strpos($path, 'uploads/') === 0
+    ? (string)preg_replace('#/assets$#', '', $asset)
+    : $asset;
+  return rtrim($base, '/') . '/' . $path;
+};
 $filiereImages = [
   'IDA' => 'filiere-industrielle.jpg',
   'LIC-INFO' => 'filiere-industrielle.jpg',
@@ -58,24 +67,18 @@ $filiereImages = [
         </div>
       </div>
       <div class="phone-photo-carousel" aria-label="La vie à l'EPI">
-        <figure class="phone-photo is-active" data-phone-slide>
-          <img src="<?= htmlspecialchars($asset, ENT_QUOTES, 'UTF-8') ?>/images/landing-students.jpg" alt="Deux étudiants révisent ensemble" fetchpriority="high" />
-          <figcaption>On avance ensemble.</figcaption>
-        </figure>
-        <figure class="phone-photo" data-phone-slide>
-          <img src="<?= htmlspecialchars($asset, ENT_QUOTES, 'UTF-8') ?>/images/filiere-entraide.jpg" alt="Étudiants qui travaillent en équipe" />
-          <figcaption>L'entraide au quotidien.</figcaption>
-        </figure>
-        <figure class="phone-photo" data-phone-slide>
-          <img src="<?= htmlspecialchars($asset, ENT_QUOTES, 'UTF-8') ?>/images/filiere-industrielle.jpg" alt="Une formation tournée vers la pratique" />
-          <figcaption>Apprendre en construisant.</figcaption>
-        </figure>
+        <?php foreach ($heroSlides as $index => $slide): ?>
+          <figure class="phone-photo<?= $index === 0 ? ' is-active' : '' ?>" data-phone-slide aria-hidden="<?= $index === 0 ? 'false' : 'true' ?>">
+            <img src="<?= htmlspecialchars($landingImageUrl((string)($slide['image'] ?? '')), ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars((string)($slide['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"<?= $index === 0 ? ' fetchpriority="high"' : ' loading="lazy"' ?> />
+            <figcaption><?= htmlspecialchars((string)($slide['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?><?php if (!empty($slide['caption'])): ?> <span><?= htmlspecialchars((string)$slide['caption'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?></figcaption>
+          </figure>
+        <?php endforeach; ?>
         <div class="phone-photo-controls" aria-label="Choisir une photo">
           <button type="button" data-phone-prev aria-label="Photo précédente">←</button>
           <div>
-            <button type="button" class="is-active" data-phone-dot="0" aria-label="Photo 1" aria-current="true"></button>
-            <button type="button" data-phone-dot="1" aria-label="Photo 2"></button>
-            <button type="button" data-phone-dot="2" aria-label="Photo 3"></button>
+            <?php foreach ($heroSlides as $index => $slide): ?>
+              <button type="button" class="<?= $index === 0 ? 'is-active' : '' ?>" data-phone-dot="<?= (int)$index ?>" aria-label="Photo <?= (int)$index + 1 ?>"<?= $index === 0 ? ' aria-current="true"' : '' ?>></button>
+            <?php endforeach; ?>
           </div>
           <button type="button" data-phone-next aria-label="Photo suivante">→</button>
         </div>
@@ -83,10 +86,12 @@ $filiereImages = [
     </section>
 
     <section class="phone-stats" aria-label="EPI Tchach en chiffres">
-      <div><strong>+1 250</strong><span>Membres actifs</span></div>
-      <div><strong>12</strong><span>Filières représentées</span></div>
-      <div><strong>+850</strong><span>Ressources partagées</span></div>
-      <div><strong>98%</strong><span>Questions avec solution</span></div>
+      <?php foreach ($landingStats as $stat): ?>
+        <div>
+          <strong><?= htmlspecialchars((string)($stat['prefix'] ?? ''), ENT_QUOTES, 'UTF-8') ?><?= number_format((int)($stat['value'] ?? 0), 0, ',', ' ') ?><?= htmlspecialchars((string)($stat['suffix'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
+          <span><?= htmlspecialchars((string)($stat['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
+      <?php endforeach; ?>
     </section>
 
     <section class="phone-section" id="apercu">
@@ -123,18 +128,26 @@ $filiereImages = [
           <?php foreach ($filieres as $filiere): ?>
             <?php
               $code = strtoupper(trim($filiere['code'] ?? ''));
-              $image = $filiereImages[$code] ?? 'filiere-entraide.jpg';
+              $image = trim((string)($filiere['image_url'] ?? ''));
+              if ($image === '') {
+                $image = 'images/' . ($filiereImages[$code] ?? 'filiere-entraide.jpg');
+              }
               $name = trim($filiere['nom'] ?? '');
               $description = trim($filiere['description'] ?? '');
+              $slogan = trim((string)($filiere['slogan'] ?? ''));
+              if ($slogan === '') {
+                $slogan = 'Formation EPI · entraide et réussite';
+              }
               if ($description === '') {
                 $description = 'Échangez et progressez avec les étudiants de la filière ' . $name . '.';
               }
             ?>
             <article class="phone-filiere-card">
-              <img src="<?= htmlspecialchars($asset . '/images/' . $image, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" />
+              <img src="<?= htmlspecialchars($landingImageUrl($image), ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" />
               <div>
                 <span><?= htmlspecialchars($filiere['code'] ?: 'Filière', ENT_QUOTES, 'UTF-8') ?></span>
                 <h3><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></h3>
+                <span><?= htmlspecialchars($slogan, ENT_QUOTES, 'UTF-8') ?></span>
                 <p><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
               </div>
             </article>

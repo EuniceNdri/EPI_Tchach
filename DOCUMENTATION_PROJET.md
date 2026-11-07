@@ -159,6 +159,8 @@ Le processus est dans `AuthController::login()` et `User::login()`.
 
 Le processus est centralisé dans `AuthController::register()` et `User::register()`.
 
+Toute adresse au format email standard est acceptée, quel que soit son domaine.
+
 Il prend en charge :
 
 - les rôles,
@@ -179,7 +181,12 @@ Les données de session démonstratives sont stockées dans `$_SESSION` :
 - `user_filiere`
 - `user_modules`
 
-La sécurité de l’accès est effectuée dans les contrôleurs via des garde-fous (`checkAdmin()`, `checkAccess()`, etc.).
+La sécurité de l’accès est effectuée dans les contrôleurs via des garde-fous
+(`checkAdmin()`, `checkAccess()`, etc.). Lorsque la base est disponible, les
+accès administrateur et modération revalident le rôle enregistré en base ; les
+dashboards délégué et chef de classe vérifient leurs appartenances de zone.
+Les écrans d'administration, de modération et les dashboards de responsables
+renvoient une erreur de service indisponible si la base ne peut pas être vérifiée.
 
 ---
 
@@ -201,24 +208,28 @@ Il affiche :
 
 ### 6.2 Dashboard délégué
 
-Le dashboard délégué est filtré sur la filière de l’utilisateur.
+L'accès est accordé à partir du rôle `delegue_general` ou `sous_delegue`
+enregistré dans `appartenance_zones`. Les membres et signalements affichés sont
+limités aux zones de délégation auxquelles l'utilisateur appartient.
 
 Il affiche :
 
-- étudiants de la filière,
-- signalements liés à cette filière,
-- indicateurs spécifiques.
+- membres de la zone,
+- signalements en attente liés à cette zone.
 
 ### 6.3 Dashboard chef de classe
 
-Le dashboard chef de classe filtre selon :
+L'accès est accordé à partir du rôle `chef_de_classe` dans une zone de type
+`filiere`. Les membres et signalements affichés sont limités à cette zone.
 
-- la filière,
-- la classe / groupe de l’utilisateur.
+Le schéma actuel ne définit pas de table de classes ou de groupes : le tableau
+de bord ne peut donc pas encore distinguer plusieurs classes au sein d'une
+même filière.
 
 ### 6.4 Dashboard utilisateur standard
 
-Un utilisateur simple a une vue personnelle avec ses informations et un état global simplifié.
+Un utilisateur standard voit ses informations personnelles. Les indicateurs
+globaux ne sont pas affichés sur ce tableau de bord.
 
 ---
 
@@ -275,6 +286,12 @@ Les filières et les salons sont gérés via le modèle `Salon` et la vue `admin
 - un salon est ajouté dans cette zone,
 - les publications et discussions s’y déroulent.
 
+### 8.4 Contenu de la page d’accueil
+
+Depuis `admin/settings`, les administrateurs peuvent modifier les visuels, slogans et descriptions des filières actives, les photos et légendes du carrousel principal, ainsi que les quatre statistiques affichées sur ordinateur et téléphone. Les images téléversées acceptent JPG, PNG ou WebP, jusqu’à 5 Mo chacune.
+
+Les réglages du carrousel et des statistiques sont conservés dans `landing_settings`. Les champs `image_url` et `slogan` sont ajoutés à `filieres` par la migration `20261107_add_landing_management.sql`.
+
 ---
 
 ## 9. Gestion des signalements et modération
@@ -323,6 +340,10 @@ Elles portent :
 - statut,
 - date de création.
 
+Les publications de type `discussion` ouvrent un panneau latéral contenant le sujet et ses commentaires. Les membres peuvent commenter et aimer les commentaires; le commentaire ayant le plus de likes est automatiquement marqué comme solution. Une `annonce` n'autorise que les likes. Une publication de type `question` est un sondage à choix multiples : les membres votent et peuvent modifier leur vote, sans commentaires ni réactions.
+
+Le formulaire adapte ses champs au type choisi. Un sondage requiert de 2 à 10 choix et chaque membre ne peut avoir qu'un vote par publication.
+
 ### 10.2 Réactions
 
 Les réactions sont gérées dans la table `reactions`.
@@ -341,6 +362,14 @@ Types pris en charge :
 - suppression de publication,
 - réaction sur une publication,
 - signalement reçu.
+
+### 10.4 Profil et bibliothèque personnelle
+
+Le profil de son propre compte regroupe les publications, les salons rejoints, les fichiers partagés et les favoris. Les publications personnelles signalées restent visibles par leur auteur avec leur état de modération; elles restent masquées aux autres visiteurs.
+
+Les fichiers sont joints à une publication ou à un commentaire, et non téléversés dans un espace indépendant. Depuis le profil, leur auteur peut les filtrer par rubrique, les prévisualiser lorsqu’il s’agit d’images, les télécharger et les ajouter ou retirer des favoris. L’accès aux fichiers vérifie également les droits sur la publication et le salon.
+
+Le salon propose également la rubrique « Documents partagés », filtrée par salon ou catégorie. Elle regroupe les fichiers des publications et commentaires accessibles; les PDF peuvent y être prévisualisés et tous les fichiers téléchargés via les routes protégées du projet.
 
 ---
 
@@ -381,6 +410,7 @@ Comptes de test disponibles :
 
 - XAMPP ou WAMP avec Apache + MySQL
 - PHP 8.x
+- Extension PHP `mbstring`
 - MySQL / MariaDB
 - Un navigateur web
 
@@ -427,7 +457,9 @@ Le projet a connu une erreur liée à des fonctions comme :
 
 Cela arrive si l’extension `mbstring` n’est pas activée dans PHP.
 
-La correction consiste à gérer un fallback PHP ou activer `mbstring` dans PHP.
+L'extension `mbstring` est requise par les vues, les notifications et la
+modération. La configuration arrête explicitement l'application si elle est
+absente ; activez-la dans la configuration PHP de l'environnement.
 
 ### 13.2 Vérification syntaxique
 

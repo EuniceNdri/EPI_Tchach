@@ -6,6 +6,22 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  const avatarInput = document.querySelector("[data-avatar-input]");
+  const avatarPreview = document.querySelector("[data-avatar-preview]");
+  const avatarPreviewImage = document.querySelector("[data-avatar-preview-image]");
+  let avatarPreviewUrl = null;
+  avatarInput?.addEventListener("change", () => {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    const file = avatarInput.files?.[0];
+    if (!file || !avatarPreview || !avatarPreviewImage) {
+      if (avatarPreview) avatarPreview.hidden = true;
+      return;
+    }
+    avatarPreviewUrl = URL.createObjectURL(file);
+    avatarPreviewImage.src = avatarPreviewUrl;
+    avatarPreview.hidden = false;
+  });
+
   const registerForm = document.querySelector("[data-register-form]");
   if (registerForm) {
     const panels = Array.from(registerForm.querySelectorAll("[data-register-step]"));

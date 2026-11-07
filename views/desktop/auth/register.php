@@ -74,7 +74,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         </div>
       <?php endif; ?>
 
-      <form action="<?= $base ?>/register" method="POST" class="auth-form" data-register-form data-initial-step="<?= !empty($error) ? '3' : '1' ?>">
+      <form action="<?= $base ?>/register" method="POST" enctype="multipart/form-data" class="auth-form" data-register-form data-initial-step="<?= !empty($error) ? '3' : '1' ?>">
         <div class="register-progress" aria-label="Étapes de création du compte">
           <span class="register-progress-step is-current" data-register-progress="1" aria-current="step"><span>1</span> Identité</span>
           <span class="register-progress-line"></span>
@@ -103,13 +103,14 @@ $logoPath = $asset . '/images/logo.jpeg';
           </div>
         </div>
 
-        <!-- Email Institutionnel -->
+        <!-- Adresse email -->
         <div class="form-group">
           <label for="email" class="form-label">Adresse email</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             <input type="email" id="email" name="email" class="form-input" placeholder="exemple@gmail.com" required autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
           </div>
+          <p class="profile-photo-note">Toutes les adresses valides sont acceptées, y compris les adresses Gmail.</p>
         </div>
 
         <!-- Statut / Rôle dans l'école -->
@@ -126,8 +127,11 @@ $logoPath = $asset . '/images/logo.jpeg';
 
         <div class="form-group">
           <label for="photo_profil" class="form-label">Photo de profil</label>
-          <input type="file" id="photo_profil" accept="image/*" class="form-input profile-photo-input" />
-          <p class="profile-photo-note">Sélection visuelle uniquement : la photo n’est ni envoyée ni enregistrée par cette page.</p>
+          <input type="file" id="photo_profil" name="avatar" accept="image/jpeg,image/png,image/webp" class="form-input profile-photo-input" data-avatar-input />
+          <div class="profile-photo-preview" data-avatar-preview hidden>
+            <img src="" alt="Aperçu de la photo de profil" data-avatar-preview-image />
+          </div>
+          <p class="profile-photo-note">JPG, PNG ou WEBP, jusqu’à 5 Mo. L’aperçu apparaît après la sélection.</p>
         </div>
         </section>
 

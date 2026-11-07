@@ -5,8 +5,8 @@
  * =============================================================
  * Centralise la logique d'affichage du dashboard selon le profil :
  * - administrateur : vue globale avec tous les modules
- * - délégué : vue filtrée par filière
- * - chef de classe : vue filtrée par classe
+ * - délégué : vue limitée aux zones de délégation attribuées
+ * - chef de classe : vue limitée aux zones de filière attribuées
  * =============================================================
  */
 
@@ -26,7 +26,7 @@ class DashboardController {
 
     /**
      * Vérifie que l'utilisateur est connecté.
-     * L'accès admin/délégué/chef de classe est autorisé via le rôle.
+     * L'accès aux rôles de zone est vérifié dans appartenance_zones.
      */
     private function checkAccess(): void {
         if (session_status() === PHP_SESSION_NONE) {
@@ -44,29 +44,68 @@ class DashboardController {
      * Point d'entrée du dashboard.
      */
     public function index(): void {
-        $role = strtolower(trim($_SESSION['user_role'] ?? ''));
-
-        switch ($role) {
-            case 'administrateur':
-            case 'admin':
-                $this->adminDashboard();
-                return;
-
-            case 'delegue':
-            case 'délégué':
-                $this->delegueDashboard();
-                return;
-
-            case 'chef de classe':
-            case 'chef_classe':
-            case 'chefclasse':
-                $this->chefClasseDashboard();
-                return;
-
-            default:
-                $this->userDashboard();
-                return;
+        if ($this->isAdministrator()) {
+            $this->adminDashboard();
+            return;
         }
+
+        $userId = (int)$_SESSION['user_id'];
+        if ($this->adminModel->getDashboardZonesForUser($userId, 'chef_de_classe')) {
+            $this->chefClasseDashboard();
+            return;
+        }
+        if ($this->adminModel->getDashboardZonesForUser($userId, 'delegue')) {
+            $this->delegueDashboard();
+            return;
+        }
+
+        $this->userDashboard();
+    }
+
+    private function isAdministrator(): bool {
+        $email = trim((string)($_SESSION['user_email'] ?? ''));
+        if ($this->adminModel->getPdo() instanceof PDO) {
+            if ($email === '') {
+                return false;
+            }
+
+            $databaseRole = $this->adminModel->chargeRole($email);
+            return in_array($databaseRole, ['administrateur', 'admin'], true);
+        }
+
+        $sessionRole = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
+        return in_array($sessionRole, ['administrateur', 'admin'], true);
+    }
+
+    private function requireDashboardZones(string $scope): array {
+        $this->requireDatabaseConnection();
+
+        $zones = $this->adminModel->getDashboardZonesForUser(
+            (int)($_SESSION['user_id'] ?? 0),
+            $scope
+        );
+
+        if (!$zones) {
+            http_response_code(403);
+            exit('Accès refusé : vous ne possédez pas les droits requis pour ce tableau de bord.');
+        }
+
+        return $zones;
+    }
+
+    private function requireDatabaseConnection(): void {
+        if (!($this->adminModel->getPdo() instanceof PDO)) {
+            http_response_code(503);
+            exit('Tableau de bord indisponible : la base de données ne répond pas.');
+        }
+    }
+
+    private function zoneIds(array $zones): array {
+        return array_map(static fn (array $zone): int => (int)$zone['id'], $zones);
+    }
+
+    private function zoneLabel(array $zones): string {
+        return implode(', ', array_column($zones, 'nom'));
     }
 
     /**
@@ -75,73 +114,59 @@ class DashboardController {
     public function adminDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
+        if (!$this->isAdministrator()) {
+            http_response_code(403);
+            exit('Accès refusé : ce tableau de bord est réservé aux administrateurs.');
+        }
+
+        $this->requireDatabaseConnection();
+
         $kpis = $this->adminModel->getDashboardKPIs();
-        $users = $this->adminModel->listUser() ?? [];
-        $recentReports = $this->adminModel->getReports('en_attente') ?? [];
+        $users = $this->adminModel->getRecentUsers(6);
+        $recentReports = $this->adminModel->getReports('en_attente');
 
         $roleLabel = 'Administrateur';
         $title = 'Dashboard Administrateur';
         $activeAdminPage = 'dashboard';
+        $showAdminLinks = true;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/admin.php';
     }
 
     /**
-     * Dashboard délégué : uniquement la filière liée à l'utilisateur.
+     * Dashboard délégué : uniquement les zones où l'utilisateur est responsable.
      */
     public function delegueDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $userId = (int)($_SESSION['user_id'] ?? 0);
-        $userFiliere = trim($_SESSION['user_filiere'] ?? '');
-
-        $kpis = $this->adminModel->getDashboardKPIs();
-        $users = $this->adminModel->listUser();
-        $filteredUsers = array_values(array_filter($users, function ($user) use ($userFiliere) {
-            $userFiliereValue = strtolower(trim((string)($user['filiere'] ?? '')));
-            return $userFiliereValue === strtolower($userFiliere);
-        }));
-
-        $recentReports = $this->adminModel->getReports('en_attente') ?? [];
-        $recentReports = array_values(array_filter($recentReports, function ($report) use ($userFiliere) {
-            $reportFiliere = strtolower(trim((string)($report['filiere'] ?? '')));
-            return $reportFiliere === strtolower($userFiliere) || empty($reportFiliere);
-        }));
+        $zones = $this->requireDashboardZones('delegue');
+        $zoneIds = $this->zoneIds($zones);
+        $filteredUsers = $this->adminModel->getUsersInZones($zoneIds);
+        $recentReports = $this->adminModel->getReports('en_attente', $zoneIds);
+        $scopeLabel = $this->zoneLabel($zones);
 
         $roleLabel = 'Délégué';
         $title = 'Dashboard Délégué';
+        $showAdminLinks = false;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/delegue.php';
     }
 
     /**
-     * Dashboard chef de classe : filtres sur la classe/groupe de l'utilisateur.
+     * Dashboard chef de classe : membres des zones de filière attribuées.
      */
     public function chefClasseDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $userId = (int)($_SESSION['user_id'] ?? 0);
-        $userFiliere = trim($_SESSION['user_filiere'] ?? '');
-        $userClasse = trim($_SESSION['user_classe'] ?? '');
-
-        $kpis = $this->adminModel->getDashboardKPIs();
-        $users = $this->adminModel->listUser();
-        $filteredUsers = array_values(array_filter($users, function ($user) use ($userFiliere, $userClasse) {
-            $sameFiliere = strtolower(trim((string)($user['filiere'] ?? ''))) === strtolower($userFiliere);
-            $sameClasse = !empty($userClasse) && strtolower(trim((string)($user['classe'] ?? ''))) === strtolower($userClasse);
-            return $sameFiliere && ($sameClasse || empty($userClasse));
-        }));
-
-        $recentReports = $this->adminModel->getReports('en_attente') ?? [];
-        $recentReports = array_values(array_filter($recentReports, function ($report) use ($userFiliere, $userClasse) {
-            $reportFiliere = strtolower(trim((string)($report['filiere'] ?? '')));
-            $reportClasse = strtolower(trim((string)($report['classe'] ?? '')));
-            return ($reportFiliere === strtolower($userFiliere) || empty($reportFiliere))
-                && ($reportClasse === strtolower($userClasse) || empty($reportClasse));
-        }));
+        $zones = $this->requireDashboardZones('chef_de_classe');
+        $zoneIds = $this->zoneIds($zones);
+        $filteredUsers = $this->adminModel->getUsersInZones($zoneIds);
+        $recentReports = $this->adminModel->getReports('en_attente', $zoneIds);
+        $scopeLabel = $this->zoneLabel($zones);
 
         $roleLabel = 'Chef de classe';
         $title = 'Dashboard Chef de classe';
+        $showAdminLinks = false;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/chef_classe.php';
     }
@@ -152,10 +177,9 @@ class DashboardController {
     public function userDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $kpis = $this->adminModel->getDashboardKPIs();
-        $users = $this->adminModel->listUser();
-        $roleLabel = 'Étudiant';
+        $roleLabel = (string)($_SESSION['user_role'] ?? 'Utilisateur');
         $title = 'Mes informations';
+        $showAdminLinks = false;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/user.php';
     }

@@ -25,9 +25,8 @@ class SalonController {
     private ?PDO $pdo;
 
     public function __construct() {
-        // Récupération de la connexion PDO via le modèle User parent ou similaire
-        $userModel = new User();
-        $this->pdo = method_exists($userModel, 'getPdo') ? $userModel->getPdo() : null;
+        global $pdo;
+        $this->pdo = $pdo instanceof PDO ? $pdo : null;
         $this->salonModel = new Salon($this->pdo);
 
         $this->checkAuth();
@@ -54,21 +53,82 @@ class SalonController {
         global $baseUrl, $base, $assetBase, $asset;
 
         $userId = (int)$_SESSION['user_id'];
-        $userRole = strtolower(trim($_SESSION['user_role'] ?? 'etudiant'));
+        if (!($this->pdo instanceof PDO)) {
+            http_response_code(503);
+            exit('Salon indisponible : la base de données ne répond pas.');
+        }
+
+        $roleStatement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = :user_id LIMIT 1');
+        $roleStatement->execute(['user_id' => $userId]);
+        $storedRole = $roleStatement->fetchColumn();
+        if (!is_string($storedRole) || $storedRole === '') {
+            http_response_code(401);
+            exit('Votre compte n’est plus disponible. Veuillez vous reconnecter.');
+        }
+
+        $userRole = strtolower(trim($storedRole));
+        $_SESSION['user_role'] = $userRole;
         $this->salonModel->touchActivity($userId);
         $zones = $this->salonModel->getAccessibleZones($userId, $userRole);
+        $requestedZoneId = isset($_GET['zone']) ? max(0, (int)$_GET['zone']) : 0;
+        $selectedZone = null;
+        if ($requestedZoneId > 0) {
+            foreach ($zones as $zone) {
+                if ((int)$zone['id'] === $requestedZoneId) {
+                    $selectedZone = $zone;
+                    break;
+                }
+            }
+            if ($selectedZone === null) {
+                http_response_code(403);
+                exit('Vous n’avez pas accès à ce salon.');
+            }
+        }
+
         $feedView = $_GET['view'] ?? 'latest';
-        if (!in_array($feedView, ['latest', 'popular', 'saved'], true)) {
+        if (!in_array($feedView, ['latest', 'popular', 'saved', 'documents'], true)) {
             $feedView = 'latest';
         }
         $categoryId = isset($_GET['category']) ? max(0, (int)$_GET['category']) : null;
-        $feedPosts = $this->salonModel->getPublications($userId, $userRole, $feedView, $categoryId);
+        if ($categoryId !== null && $categoryId > 0) {
+            $categoryIsInSelectedZone = $selectedZone === null
+                || in_array($categoryId, array_map(
+                    static fn (array $category): int => (int)$category['id'],
+                    $selectedZone['categories']
+                ), true);
+            if (!$categoryIsInSelectedZone
+                || !$this->salonModel->canAccessCategory($userId, $categoryId, $userRole)) {
+                http_response_code(403);
+                exit('Vous n’avez pas accès à cette catégorie.');
+            }
+        }
+        $composerZones = $selectedZone !== null ? [$selectedZone] : $zones;
+        $feedPosts = $feedView === 'documents' ? [] : $this->salonModel->getPublications(
+            $userId,
+            $userRole,
+            $feedView,
+            $categoryId,
+            50,
+            $selectedZone === null ? null : (int)$selectedZone['id']
+        );
+        $pollOptions = $this->salonModel->getPublicationPolls(
+            array_column($feedPosts, 'id'),
+            $userId
+        );
         $postAttachments = $this->salonModel->getPublicationAttachments(
             array_column($feedPosts, 'id'),
             $userId
         );
         $savedAttachments = $feedView === 'saved'
             ? $this->salonModel->getSavedAttachments($userId, $userRole)
+            : [];
+        $salonDocuments = $feedView === 'documents'
+            ? $this->salonModel->getSalonDocuments(
+                $userId,
+                $userRole,
+                $categoryId,
+                $selectedZone === null ? null : (int)$selectedZone['id']
+            )
             : [];
         $popularPosts = $this->salonModel->getPopularPublications($userId, $userRole, 5);
         $onlineUsers = $this->salonModel->getOnlineUsers();
@@ -88,7 +148,21 @@ class SalonController {
         }
 
         $userId = (int)$_SESSION['user_id'];
-        $userRole = strtolower(trim($_SESSION['user_role'] ?? 'etudiant'));
+        global $pdo;
+        if ($pdo instanceof PDO) {
+            $roleStatement = $pdo->prepare('SELECT role FROM utilisateurs WHERE id = :user_id LIMIT 1');
+            $roleStatement->execute(['user_id' => $userId]);
+            $storedRole = $roleStatement->fetchColumn();
+            if (!is_string($storedRole) || $storedRole === '') {
+                http_response_code(401);
+                exit('Votre compte n’est plus disponible. Veuillez vous reconnecter.');
+            }
+            $userRole = strtolower(trim($storedRole));
+            $_SESSION['user_role'] = $userRole;
+        } else {
+            http_response_code(503);
+            exit('La base de données est indisponible.');
+        }
         $targetType = $_POST['target_type'] ?? '';
         $targetId = (int)($_POST['target_id'] ?? 0);
 
@@ -106,6 +180,15 @@ class SalonController {
             $_SESSION['flash_success'] = $isSaved
                 ? 'Élément ajouté à vos sauvegardes.'
                 : 'Élément retiré de vos sauvegardes.';
+        }
+
+        $returnPage = $_POST['return_page'] ?? '';
+        if ($returnPage === 'profile') {
+            $tab = in_array($_POST['return_tab'] ?? '', ['posts', 'channels', 'docs', 'saved', 'about'], true)
+                ? $_POST['return_tab']
+                : 'saved';
+            header('Location: ' . url('profile') . '?tab=' . rawurlencode($tab));
+            exit;
         }
 
         $view = in_array($_POST['return_view'] ?? '', ['latest', 'popular', 'saved'], true)

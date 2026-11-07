@@ -57,7 +57,7 @@ $logoPath = $asset . '/images/logo.jpeg';
       <div class="auth-card-header">
         <span class="auth-badge">Sécurité</span>
         <h1>Mot de passe oublié ?</h1>
-        <p>Entrez votre email académique. Nous vous enverrons un lien sécurisé pour réinitialiser votre mot de passe.</p>
+        <p>Entrez l'adresse email associée à votre compte. Nous vous enverrons un lien sécurisé pour réinitialiser votre mot de passe.</p>
       </div>
 
       <?php if (!empty($error)): ?>

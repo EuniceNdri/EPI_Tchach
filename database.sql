@@ -53,10 +53,18 @@ CREATE TABLE filieres (
     nom             VARCHAR(150) NOT NULL UNIQUE,
     code            VARCHAR(20) DEFAULT NULL,
     description     TEXT DEFAULT NULL,
+    image_url       VARCHAR(255) DEFAULT NULL,
+    slogan          VARCHAR(180) DEFAULT NULL,
     zone_id         INT UNSIGNED DEFAULT NULL,
     est_active      BOOLEAN NOT NULL DEFAULT TRUE,
     date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE landing_settings (
+    config_key   VARCHAR(64) PRIMARY KEY,
+    config_value LONGTEXT NOT NULL,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 ALTER TABLE utilisateurs

@@ -256,9 +256,11 @@ Pour mettre à jour une base existante, exécuter les migrations dans l'ordre :
 ```bash
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_filieres.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_forum_features.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261105_add_salon_interactions.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261107_add_landing_management.sql
 ```
 
-Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. La seconde ajoute les champs de modération, les sondages et les index manquants sans supprimer les données. Les migrations vérifient les éléments déjà présents. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, puis les champs d'images et de slogans des filières ainsi que les réglages de la landing administrables. Les migrations vérifient les éléments déjà présents. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
 
 ---
 
@@ -289,7 +291,13 @@ la taille et le lien vers la publication ou le commentaire concerné.
 
 Les fichiers ne sont pas servis directement : le téléchargement passe par la route
 contrôlée `attachment/download/{id}` et le dossier d'upload interdit l'exécution de
-scripts.
+scripts. Dans le Salon, la rubrique « Documents partagés » classe les pièces jointes
+selon leur salon/catégorie et permet d'ouvrir les PDF en aperçu ou de les télécharger.
+
+Les discussions ouvrent un panneau latéral pour lire et écrire des commentaires;
+les commentaires peuvent être aimés et le plus aimé devient automatiquement la
+solution. Les annonces acceptent uniquement les likes. Les publications de type
+question sont des sondages avec 2 à 10 choix et un vote par membre, modifiable.
 
 ## 9. 🔎 Recherche
 

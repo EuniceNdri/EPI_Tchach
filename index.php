@@ -22,6 +22,7 @@ define('ROOT_PATH', __DIR__);
 if (file_exists(ROOT_PATH . '/config/database.php')) {
     require_once ROOT_PATH . '/config/database.php';
 }
+require_once ROOT_PATH . '/models/LandingContent.php';
 
 if (!function_exists('getRequestedRoute')) {
     /**
@@ -139,15 +140,26 @@ if (!function_exists('loadActiveFilieres')) {
 
         try {
             $statement = $pdo->query(
-                'SELECT id, nom, code, description
+                'SELECT id, nom, code, description, image_url, slogan
                  FROM filieres
                  WHERE est_active = 1
                  ORDER BY nom ASC'
             );
             return [$statement->fetchAll(), false];
         } catch (PDOException $exception) {
-            error_log('Chargement des filières impossible : ' . $exception->getMessage());
-            return [[], true];
+            error_log('Chargement des champs visuels des filières impossible : ' . $exception->getMessage());
+            try {
+                $statement = $pdo->query(
+                    'SELECT id, nom, code, description, NULL AS image_url, NULL AS slogan
+                     FROM filieres
+                     WHERE est_active = 1
+                     ORDER BY nom ASC'
+                );
+                return [$statement->fetchAll(), false];
+            } catch (PDOException $fallbackException) {
+                error_log('Chargement des filières impossible : ' . $fallbackException->getMessage());
+                return [[], true];
+            }
         }
     }
 }
@@ -171,6 +183,10 @@ if (!empty($_SESSION['user_id']) && $pdo instanceof PDO) {
 // =============================================================
 // ROUTEUR UNIVERSEL DES VUES DESKTOP
 // =============================================================
+if (preg_match('#^attachment/view/([1-9][0-9]*)$#', $fullRoute, $attachmentViewMatch)) {
+    require_once ROOT_PATH . '/controllers/AttachmentController.php';
+    (new AttachmentController())->view((int)$attachmentViewMatch[1]);
+}
 if (preg_match('#^attachment/download/([1-9][0-9]*)$#', $fullRoute, $attachmentMatch)) {
     require_once ROOT_PATH . '/controllers/AttachmentController.php';
     (new AttachmentController())->download((int)$attachmentMatch[1]);
@@ -185,6 +201,7 @@ switch ($fullRoute) {
     case 'landing':
     case 'home':
         [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
+        $landingSettings = (new LandingContent($pdo))->getSettings();
         header('Vary: User-Agent');
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         if (preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)) {
@@ -255,6 +272,16 @@ switch ($fullRoute) {
     case 'publication/create':
         require_once ROOT_PATH . '/controllers/PublicationController.php';
         (new PublicationController())->create();
+        break;
+
+    case 'publication/discussion':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->discussion();
+        break;
+
+    case 'publication/vote':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->vote();
         break;
 
     case 'comment/create':
@@ -430,15 +457,7 @@ switch ($fullRoute) {
     // ROUTE PAR DÉFAUT / SOUS-ROUTER
     // ---------------------------------------------------------
     default:
-        if (strpos($fullRoute, 'admin') === 0) {
-            require_once ROOT_PATH . '/controllers/AdminController.php';
-            (new AdminController())->dashboard();
-        } elseif (strpos($fullRoute, 'profile') === 0) {
-            require_once ROOT_PATH . '/controllers/ProfileController.php';
-            (new ProfileController())->index();
-        } else {
-            [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
-            require_once ROOT_PATH . '/views/desktop/landing.php';
-        }
+        http_response_code(404);
+        require_once ROOT_PATH . '/views/errors/404.php';
         break;
 }

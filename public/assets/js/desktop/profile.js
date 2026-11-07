@@ -37,8 +37,38 @@ document.addEventListener("DOMContentLoaded", () => {
           c.classList.remove("active");
         }
       });
+
+      const tabName = targetId.replace("tab-", "");
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set("tab", tabName);
+      window.history.replaceState(null, "", currentUrl);
     });
   });
+
+  const postCategoryFilter = document.getElementById("profilePostCategoryFilter");
+  const postStatusFilter = document.getElementById("profilePostStatusFilter");
+  const documentCategoryFilter = document.getElementById("profileDocumentCategoryFilter");
+  const filterProfilePosts = () => {
+    document.querySelectorAll("[data-profile-post]").forEach((post) => {
+      const categoryMatches = !postCategoryFilter
+        || postCategoryFilter.value === "all"
+        || post.dataset.categoryId === postCategoryFilter.value;
+      const statusMatches = !postStatusFilter
+        || postStatusFilter.value === "all"
+        || post.dataset.postStatus === postStatusFilter.value;
+      post.hidden = !(categoryMatches && statusMatches);
+    });
+  };
+  const filterProfileDocuments = () => {
+    document.querySelectorAll("[data-profile-document]").forEach((documentRow) => {
+      documentRow.hidden = Boolean(documentCategoryFilter)
+        && documentCategoryFilter.value !== "all"
+        && documentRow.dataset.categoryId !== documentCategoryFilter.value;
+    });
+  };
+  postCategoryFilter?.addEventListener("change", filterProfilePosts);
+  postStatusFilter?.addEventListener("change", filterProfilePosts);
+  documentCategoryFilter?.addEventListener("change", filterProfileDocuments);
 
   // ============================================================
   // 2. MODALE POPUP D'ÉDITION DU PROFIL
@@ -103,6 +133,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const profileEditForm = document.getElementById("ajaxProfileEditForm");
 
   if (profileEditForm) {
+    const avatarInput = profileEditForm.querySelector("[data-profile-avatar-input]");
+    const avatarPreview = document.getElementById("editAvatarPreview");
+    let avatarPreviewUrl = null;
+    avatarInput?.addEventListener("change", () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+      const file = avatarInput.files?.[0];
+      if (!file || !avatarPreview) return;
+      avatarPreviewUrl = URL.createObjectURL(file);
+      avatarPreview.src = avatarPreviewUrl;
+      avatarPreview.hidden = false;
+    });
+
     profileEditForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -150,6 +192,16 @@ document.addEventListener("DOMContentLoaded", () => {
             el.textContent = newInitials;
           });
 
+          document.querySelectorAll(".profile-avatar-image").forEach((image) => {
+            if (data.user.avatar_url) {
+              image.src = data.user.avatar_url;
+              image.hidden = false;
+            } else {
+              image.removeAttribute("src");
+              image.hidden = true;
+            }
+          });
+
           // Mettre à jour la biographie
           document.querySelectorAll(".profile-dynamic-bio").forEach((el) => {
             el.textContent = newBio || "Aucune biographie renseignée pour l'instant.";
@@ -190,8 +242,92 @@ document.addEventListener("DOMContentLoaded", () => {
       const titre = titleInput ? titleInput.value.trim() : "";
       const contenu = textarea ? textarea.value.trim() : "";
       const categoryLabel = categorySelect?.selectedOptions[0]?.textContent.trim() || "Salon";
+      const categoryId = categorySelect?.value || "";
 
       if (!titre || !contenu) return;
+
+      const appendProfileDocuments = (uploadedAttachments) => {
+        if (!uploadedAttachments.length) return;
+
+        const documentTab = document.getElementById("tab-docs");
+        if (!documentTab) return;
+
+        let documentList = documentTab.querySelector(".profile-documents-list");
+        if (!documentList) {
+          documentList = document.createElement("div");
+          documentList.className = "profile-documents-list";
+          documentTab.querySelector(".profile-empty")?.remove();
+          documentTab.append(documentList);
+        }
+
+        if (documentCategoryFilter && categoryId
+          && !Array.from(documentCategoryFilter.options).some((option) => option.value === categoryId)) {
+          const option = document.createElement("option");
+          option.value = categoryId;
+          option.textContent = categoryLabel;
+          documentCategoryFilter.append(option);
+        }
+
+        const routeBase = new URL(quickPostForm.action, window.location.href)
+          .pathname.replace(/\/publication\/create\/?$/, "");
+        uploadedAttachments.forEach((attachment) => {
+          const row = document.createElement("div");
+          row.className = "profile-document-row";
+          row.dataset.profileDocument = "";
+          row.dataset.categoryId = categoryId;
+
+          const details = document.createElement("div");
+          const name = document.createElement("strong");
+          name.textContent = attachment.name;
+          const metadata = document.createElement("span");
+          metadata.textContent = `${result.title || titre} · ${categoryLabel} · ${(attachment.size / 1048576).toFixed(2)} Mo`;
+          details.append(name, metadata);
+          if (result.moderationPending) {
+            const moderation = document.createElement("small");
+            moderation.className = "profile-status-badge is-warning";
+            moderation.textContent = "Publication en modération";
+            details.append(moderation);
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "profile-file-actions";
+          if (String(attachment.type || "").startsWith("image/")) {
+            const preview = document.createElement("a");
+            preview.className = "btn btn-outline btn-sm";
+            preview.href = attachment.download_url.replace("/attachment/download/", "/attachment/view/");
+            preview.target = "_blank";
+            preview.rel = "noopener";
+            preview.textContent = "Voir la photo";
+            actions.append(preview);
+          }
+          const download = document.createElement("a");
+          download.className = "btn btn-outline btn-sm";
+          download.href = attachment.download_url;
+          download.textContent = "Télécharger";
+          actions.append(download);
+
+          const saveForm = document.createElement("form");
+          saveForm.action = `${routeBase}/salon/save`;
+          saveForm.method = "post";
+          [["target_type", "attachment"], ["target_id", attachment.id],
+            ["return_page", "profile"], ["return_tab", "docs"]].forEach(([name, value]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = name;
+            input.value = String(value);
+            saveForm.append(input);
+          });
+          const saveButton = document.createElement("button");
+          saveButton.className = "btn btn-outline btn-sm";
+          saveButton.type = "submit";
+          saveButton.textContent = "☆ Ajouter aux favoris";
+          saveForm.append(saveButton);
+          actions.append(saveForm);
+          row.append(details, actions);
+          documentList.prepend(row);
+        });
+        filterProfileDocuments();
+      };
 
       const submitButton = quickPostForm.querySelector("button[type='submit']");
       if (submitButton) submitButton.disabled = true;
@@ -227,6 +363,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Création de la carte dans le DOM avec animation
         const postCard = document.createElement("article");
         postCard.className = "post-card animated-entry";
+        postCard.dataset.profilePost = "";
+        postCard.dataset.categoryId = categoryId;
+        postCard.dataset.postStatus = result.moderationPending ? "reported" : "visible";
         postCard.innerHTML = `
         <div class="post-header-flex">
           <div class="post-author-box">
@@ -236,10 +375,14 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="post-time">À l'instant · ${escapeHtml(categoryLabel)}</div>
             </div>
           </div>
-          <span class="post-tag-pill">${escapeHtml(categoryLabel)}</span>
+          <div class="profile-post-badges">
+            <span class="post-tag-pill">${escapeHtml(categoryLabel)}</span>
+            <span class="profile-status-badge ${result.moderationPending ? "is-warning" : "is-active"}">${result.moderationPending ? "En modération" : "Visible"}</span>
+          </div>
         </div>
         <h4 class="post-title">${escapeHtml(result.title || titre)}</h4>
         <p class="post-excerpt">${escapeHtml(result.content || contenu)}</p>
+        ${result.moderationPending ? '<p class="profile-moderation-note">Cette publication est conservée dans votre historique, mais n’est pas affichée dans le salon pendant son examen.</p>' : ""}
         <div class="post-footer-actions">
           ${attachments}
           <span class="profile-post-stat">♥ 0 likes</span>
@@ -248,6 +391,8 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
         postsFeedContainer.prepend(postCard);
+        filterProfilePosts();
+        appendProfileDocuments(result.attachments || []);
 
         // Réinitialiser le formulaire
         quickPostForm.reset();
