@@ -347,6 +347,28 @@ switch ($fullRoute) {
     // ---------------------------------------------------------
     // ESPACE ADMINISTRATION (Géré par AdminController)
     // ---------------------------------------------------------
+    case 'dashboard':
+    case 'dashboard/index':
+        require_once ROOT_PATH . '/controllers/DashboardController.php';
+        (new DashboardController())->index();
+        break;
+
+    case 'dashboard/admin':
+        require_once ROOT_PATH . '/controllers/DashboardController.php';
+        (new DashboardController())->adminDashboard();
+        break;
+
+    case 'dashboard/delegue':
+        require_once ROOT_PATH . '/controllers/DashboardController.php';
+        (new DashboardController())->delegueDashboard();
+        break;
+
+    case 'dashboard/chef-classe':
+    case 'dashboard/chef_classe':
+        require_once ROOT_PATH . '/controllers/DashboardController.php';
+        (new DashboardController())->chefClasseDashboard();
+        break;
+
     case 'admin':
     case 'admin/dashboard':
         require_once ROOT_PATH . '/controllers/AdminController.php';

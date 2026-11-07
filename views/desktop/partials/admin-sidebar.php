@@ -1,4 +1,13 @@
 <?php
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $value, int $start, ?int $length = null): string {
+        if ($length === null) {
+            return substr($value, $start);
+        }
+        return substr($value, $start, $length);
+    }
+}
+
 /**
  * Barre latérale d'administration commune
  * Attend $activeAdminPage (ex: 'dashboard', 'users', 'moderation', 'categories', 'settings')
