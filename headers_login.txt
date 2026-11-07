@@ -1,0 +1,21 @@
+HTTP/1.1 302 Found
+Host: 127.0.0.1:8000
+Date: Wed, 04 Nov 2026 12:04:55 GMT
+Connection: close
+X-Powered-By: PHP/8.2.12
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Location: /admin
+Content-type: text/html; charset=UTF-8
+
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8000
+Date: Wed, 04 Nov 2026 12:04:55 GMT
+Connection: close
+X-Powered-By: PHP/8.2.12
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Content-type: text/html; charset=UTF-8
+
