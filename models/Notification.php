@@ -98,6 +98,111 @@ class Notification {
     }
 
     /**
+     * Notifie les membres de la zone lorsqu'une publication est visible.
+     */
+    public function notifyPublicationMembers(int $auteurId, int $categorieId, string $titrePublication, int $publicationId): int {
+        if (!$this->pdo || $auteurId <= 0 || $categorieId <= 0 || $publicationId <= 0) {
+            return 0;
+        }
+
+        $authorStatement = $this->pdo->prepare(
+            'SELECT prenom, nom FROM utilisateurs WHERE id = :id LIMIT 1'
+        );
+        $authorStatement->execute(['id' => $auteurId]);
+        $author = $authorStatement->fetch(PDO::FETCH_ASSOC);
+        $authorName = $author
+            ? trim((string)$author['prenom'] . ' ' . (string)$author['nom'])
+            : 'Un membre';
+
+        $membersStatement = $this->pdo->prepare(
+            'SELECT DISTINCT membership.utilisateur_id
+             FROM categories category
+             JOIN appartenance_zones membership ON membership.zone_id = category.zone_id
+             JOIN utilisateurs member ON member.id = membership.utilisateur_id AND member.est_actif = 1
+             WHERE category.id = :category_id
+               AND membership.utilisateur_id <> :author_id'
+        );
+        $membersStatement->execute([
+            'category_id' => $categorieId,
+            'author_id' => $auteurId,
+        ]);
+
+        $shortTitle = mb_strimwidth($titrePublication, 0, 60, '...');
+        $message = "{$authorName} a publié « {$shortTitle} » dans un salon que vous avez rejoint.";
+        $link = url('salon?pub=' . $publicationId);
+        $count = 0;
+
+        foreach ($membersStatement->fetchAll(PDO::FETCH_COLUMN) as $memberId) {
+            if (!$this->create((int)$memberId, 'publication', $message, $link)) {
+                throw new RuntimeException('La notification de nouvelle publication n’a pas pu être enregistrée.');
+            }
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Notifie l'auteur d'une publication d'un nouveau commentaire visible.
+     */
+    public function notifyComment(int $auteurPublicationId, int $auteurCommentaireId, string $titrePublication, int $publicationId): bool {
+        if (!$this->pdo || $auteurPublicationId <= 0 || $publicationId <= 0
+            || $auteurPublicationId === $auteurCommentaireId) {
+            return false;
+        }
+
+        $userStatement = $this->pdo->prepare(
+            'SELECT prenom, nom FROM utilisateurs WHERE id = :id LIMIT 1'
+        );
+        $userStatement->execute(['id' => $auteurCommentaireId]);
+        $user = $userStatement->fetch(PDO::FETCH_ASSOC);
+        $userName = $user
+            ? trim((string)$user['prenom'] . ' ' . (string)$user['nom'])
+            : 'Un membre';
+
+        $shortTitle = mb_strimwidth($titrePublication, 0, 60, '...');
+        $message = "{$userName} a commenté votre publication : « {$shortTitle} »";
+
+        $created = $this->create(
+            $auteurPublicationId,
+            'reponse',
+            $message,
+            url('salon?pub=' . $publicationId)
+        );
+        if (!$created) {
+            throw new RuntimeException('La notification de commentaire n’a pas pu être enregistrée.');
+        }
+        return true;
+    }
+
+    public function notifyMention(int $mentionedUserId, int $authorId, string $publicationTitle, string $link): bool {
+        if (!$this->pdo || $mentionedUserId <= 0 || $mentionedUserId === $authorId) {
+            return false;
+        }
+
+        $userStatement = $this->pdo->prepare(
+            'SELECT prenom, nom FROM utilisateurs WHERE id = :id LIMIT 1'
+        );
+        $userStatement->execute(['id' => $authorId]);
+        $user = $userStatement->fetch(PDO::FETCH_ASSOC);
+        $authorName = $user
+            ? trim((string)$user['prenom'] . ' ' . (string)$user['nom'])
+            : 'Un membre';
+        $shortTitle = mb_strimwidth($publicationTitle, 0, 60, '...');
+
+        $created = $this->create(
+            $mentionedUserId,
+            'mention',
+            "{$authorName} vous a mentionné dans la publication « {$shortTitle} ».",
+            $link
+        );
+        if (!$created) {
+            throw new RuntimeException('La notification de mention n’a pas pu être enregistrée.');
+        }
+        return true;
+    }
+
+    /**
      * Notifie un utilisateur d'un avertissement de modération
      */
     public function notifyAvertissement(int $userId, string $motif, ?string $titreContenu = null): bool {
@@ -116,7 +221,7 @@ class Notification {
      */
     public function notifySuppression(int $userId, string $titrePublication, string $motif = ''): bool {
         $titreCourt = mb_strimwidth($titrePublication, 0, 40, '...');
-        $msg = "❌ Votre publication \"{$titreCourt}\" a été supprimée par un modérateur.";
+        $msg = "❌ Votre publication \"{$titreCourt}\" a été supprimée par un responsable de la modération.";
         if (!empty($motif)) {
             $msg .= " Motif : " . $motif;
         }
@@ -135,14 +240,14 @@ class Notification {
     }
 
     /**
-     * Envoie une notification à tous les administrateurs et modérateurs
+     * Envoie une notification aux administrateurs et responsables de zone
      */
     public function notifyAdmins(string $type, string $contenu, ?string $lien = null): int {
         if (!$this->pdo) {
             return 0;
         }
 
-        $stmt = $this->pdo->query("SELECT id FROM utilisateurs WHERE role IN ('administrateur', 'moderateur')");
+        $stmt = $this->pdo->query("SELECT id FROM utilisateurs WHERE role = 'administrateur'");
         $admins = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
 
         $count = 0;
@@ -152,6 +257,67 @@ class Notification {
             }
         }
 
+        return $count;
+    }
+
+    public function notifyClassDelegatesForReport(int $reportId, string $message, ?string $link = null): int
+    {
+        if (!$this->pdo || $reportId <= 0) {
+            return 0;
+        }
+
+        $statement = $this->pdo->prepare(
+            "SELECT DISTINCT membership.utilisateur_id
+             FROM signalements report
+             LEFT JOIN publications publication
+               ON report.type_cible = 'publication' AND publication.id = report.cible_id
+             LEFT JOIN commentaires comment
+               ON report.type_cible = 'commentaire' AND comment.id = report.cible_id
+             LEFT JOIN publications comment_publication
+               ON comment_publication.id = comment.publication_id
+             JOIN categories category
+               ON category.id = COALESCE(publication.categorie_id, comment_publication.categorie_id)
+             JOIN zones zone ON zone.id = category.zone_id AND zone.type_zone = 'filiere' AND zone.est_active = 1
+             JOIN appartenance_zones membership
+               ON membership.zone_id = zone.id
+              AND membership.role_dans_zone = 'delegue_de_classe'
+             JOIN utilisateurs recipient
+               ON recipient.id = membership.utilisateur_id AND recipient.est_actif = 1
+             WHERE report.id = :report_id"
+        );
+        $statement->execute(['report_id' => $reportId]);
+
+        $count = 0;
+        foreach ($statement->fetchAll(PDO::FETCH_COLUMN) as $userId) {
+            if ($this->create((int)$userId, 'moderation', $message, $link)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    public function notifyGlobalDelegates(int $reportId, string $message, ?string $link = null): int
+    {
+        if (!$this->pdo || $reportId <= 0) {
+            return 0;
+        }
+
+        $statement = $this->pdo->query(
+            "SELECT DISTINCT membership.utilisateur_id
+             FROM appartenance_zones membership
+             JOIN zones zone ON zone.id = membership.zone_id
+             JOIN utilisateurs recipient
+               ON recipient.id = membership.utilisateur_id AND recipient.est_actif = 1
+             WHERE membership.role_dans_zone = 'delegue_general'
+               AND zone.type_zone = 'delegation' AND zone.est_active = 1"
+        );
+
+        $count = 0;
+        foreach ($statement->fetchAll(PDO::FETCH_COLUMN) as $userId) {
+            if ($this->create((int)$userId, 'moderation', $message, $link)) {
+                $count++;
+            }
+        }
         return $count;
     }
 

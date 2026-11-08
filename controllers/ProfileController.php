@@ -35,6 +35,7 @@ class ProfileController {
     public function index(): void {
         $this->requireAuthentication();
         global $baseUrl, $base, $assetBase, $asset;
+        require_once ROOT_PATH . '/models/RoleAccess.php';
 
         $currentUserId = $_SESSION['user_id'] ?? null;
         $targetUserId = !empty($_GET['id']) ? (int)$_GET['id'] : $currentUserId;
@@ -258,7 +259,7 @@ class ProfileController {
 
             if ($isOwnProfile) {
                 $currentRole = strtolower(trim((string)($user['role'] ?? 'etudiant')));
-                $canViewAll = in_array($currentRole, ['administrateur', 'admin', 'moderateur'], true);
+                $canViewAll = RoleAccess::canViewAllZones($pdo, (int)$currentUserId);
                 $savedPublicationsStatement = $pdo->prepare("
                     SELECT publication.id, publication.titre, publication.contenu,
                            publication.type_publication, publication.statut,
@@ -368,6 +369,7 @@ class ProfileController {
         $updateError = '';
         $errorStatus = 422;
         $avatarUrl = null;
+        $removeAvatar = ($_POST['remove_avatar'] ?? '0') === '1';
         if ($nom === '' || $prenom === '') {
             $updateError = 'Le nom et le prénom sont obligatoires.';
         } elseif ($nouveauMotDePasse !== '' && mb_strlen($nouveauMotDePasse, 'UTF-8') < 8) {
@@ -378,15 +380,22 @@ class ProfileController {
             if ($updateError === '' && $userId) {
                 $currentUser = $this->userModel->findById((int)$userId);
                 $avatarUrl = Avatar::storeUploadedFile($_FILES['avatar'] ?? []);
-                if (!$this->userModel->updateProfile((int)$userId, $nom, $prenom, $biographie, $avatarUrl)) {
+                if (!$this->userModel->updateProfile(
+                    (int)$userId,
+                    $nom,
+                    $prenom,
+                    $biographie,
+                    $avatarUrl,
+                    removeAvatar: $removeAvatar && $avatarUrl === null
+                )) {
                     Avatar::removeStoredFile($avatarUrl);
                     $updateError = 'La mise à jour du profil a échoué.';
                     $errorStatus = 500;
                 } else {
-                    if ($avatarUrl !== null) {
+                    if ($avatarUrl !== null || $removeAvatar) {
                         Avatar::removeStoredFile($currentUser['avatar_url'] ?? null);
                     }
-                    $_SESSION['user_avatar'] = $avatarUrl ?? ($currentUser['avatar_url'] ?? null);
+                    $_SESSION['user_avatar'] = $avatarUrl ?? ($removeAvatar ? null : ($currentUser['avatar_url'] ?? null));
                     if ($nouveauMotDePasse !== '' && !$this->userModel->updatePassword((int)$userId, $nouveauMotDePasse)) {
                         $updateError = 'La mise à jour du mot de passe a échoué.';
                         $errorStatus = 500;

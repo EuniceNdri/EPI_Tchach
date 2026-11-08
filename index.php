@@ -227,6 +227,11 @@ switch ($fullRoute) {
         (new SalonController())->index();
         break;
 
+    case 'salon/mentionable-users':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->mentionableUsers();
+        break;
+
     case 'salon/save':
         require_once ROOT_PATH . '/controllers/SalonController.php';
         (new SalonController())->toggleSaved();
@@ -484,6 +489,11 @@ switch ($fullRoute) {
     case 'admin/categories/create-category':
         require_once ROOT_PATH . '/controllers/AdminController.php';
         (new AdminController())->createCategory();
+        break;
+
+    case 'admin/tags/action':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->tagAction();
         break;
 
     case 'admin/settings':

@@ -7,7 +7,7 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><?= htmlspecialchars($title ?? 'Dashboard Chef de classe') ?> · EPI Tchach</title>
+  <title><?= htmlspecialchars($title ?? 'Dashboard Délégué de classe') ?> · EPI Tchach</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
@@ -19,15 +19,17 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
     <main class="admin-main-area">
       <header class="admin-topbar">
         <div>
-          <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard Chef de classe') ?></h1>
+          <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard Délégué de classe') ?></h1>
           <p style="margin:0.25rem 0 0; color:var(--admin-muted);">Zone suivie : <?= htmlspecialchars($scopeLabel ?? 'Non renseignée') ?></p>
         </div>
       </header>
 
       <div class="admin-content">
+        <p>Vous pouvez consulter et traiter uniquement les signalements concernant votre zone.</p>
+        <p><a class="btn-table-action" href="<?= htmlspecialchars($base) ?>/moderation">Traiter les signalements de ma zone</a></p>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-header"><span class="kpi-title">Membres de la filière</span></div>
+            <div class="kpi-header"><span class="kpi-title">Membres de ma zone</span></div>
             <div class="kpi-value"><?= number_format(count($filteredUsers ?? []), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
@@ -38,8 +40,8 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
 
         <div class="admin-card">
           <div class="card-header-flex">
-            <h2 class="card-title">Membres de la filière</h2>
-            <span style="color:var(--admin-muted); font-size:0.85rem;">Rôle : <?= htmlspecialchars($roleLabel ?? 'Chef de classe') ?></span>
+            <h2 class="card-title">Membres de ma zone</h2>
+            <span style="color:var(--admin-muted); font-size:0.85rem;">Rôle : <?= htmlspecialchars($roleLabel ?? 'Délégué de classe') ?></span>
           </div>
           <div class="table-responsive">
             <table class="admin-table">

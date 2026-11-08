@@ -28,3 +28,6 @@ node_modules/
 !/public/uploads/
 /public/uploads/*
 !/public/uploads/.htaccess
+!/public/uploads/avatars/
+/public/uploads/avatars/*
+!/public/uploads/avatars/.htaccess

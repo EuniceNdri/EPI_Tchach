@@ -16,10 +16,12 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Admin.php';
     require_once ROOT_PATH . '/models/Salon.php';
     require_once ROOT_PATH . '/models/LandingContent.php';
+    require_once ROOT_PATH . '/models/PublicationMetadata.php';
 } else {
     require_once dirname(__DIR__) . '/models/Admin.php';
     require_once dirname(__DIR__) . '/models/Salon.php';
     require_once dirname(__DIR__) . '/models/LandingContent.php';
+    require_once dirname(__DIR__) . '/models/PublicationMetadata.php';
 }
 
 class AdminController {
@@ -94,6 +96,7 @@ class AdminController {
         $roleFilter = !empty($_GET['role']) && $_GET['role'] !== 'all' ? trim($_GET['role']) : null;
         $users = $this->adminModel->listUser($roleFilter);
         $roleCounts = $this->adminModel->countUsersByRole();
+        $responsibilityZones = $this->adminModel->getResponsibilityZones();
 
         require_once ROOT_PATH . '/views/desktop/admin/users.php';
     }
@@ -116,9 +119,12 @@ class AdminController {
             exit;
         }
 
+        $responsibilities = $this->adminModel->getUserZoneResponsibilities($userId);
         echo json_encode([
             'success' => true,
-            'user'    => $user
+            'user'    => $user,
+            'zone_roles' => $responsibilities,
+            'zone_exceptions' => $this->adminModel->getUserZoneExceptions($userId),
         ]);
         exit;
     }
@@ -177,6 +183,18 @@ class AdminController {
         }
         $email = strtolower($email);
 
+        if (!in_array($role, ['etudiant', 'professeur', 'administrateur'], true)) {
+            $msg = 'Le rôle de compte sélectionné n’est pas valide.';
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=UTF-8', true, 422);
+                echo json_encode(['success' => false, 'message' => $msg]);
+                exit;
+            }
+            $_SESSION['flash_error'] = $msg;
+            header('Location: ' . url('admin/users'));
+            exit;
+        }
+
         $updateData = [
             'nom'               => $nom,
             'prenom'            => $prenom,
@@ -186,17 +204,51 @@ class AdminController {
             'modules_enseignes' => $modules,
             'biographie'        => $biographie
         ];
+        $zoneRoles = $_POST['zone_roles'] ?? [];
+        $zoneExceptions = $_POST['zone_exceptions'] ?? [];
+        if (!is_array($zoneRoles) || !is_array($zoneExceptions)) {
+            $msg = 'Les responsabilités par zone sont invalides.';
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=UTF-8', true, 422);
+                echo json_encode(['success' => false, 'message' => $msg]);
+                exit;
+            }
+            $_SESSION['flash_error'] = $msg;
+            header('Location: ' . url('admin/users'));
+            exit;
+        }
+        $updateData['zone_roles'] = $zoneRoles;
+        $updateData['zone_exceptions'] = $zoneExceptions;
 
-        $success = $this->adminModel->updateUser($userId, $updateData);
+        try {
+            $success = $this->adminModel->updateUser($userId, $updateData);
+        } catch (InvalidArgumentException $exception) {
+            $msg = $exception->getMessage();
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=UTF-8', true, 422);
+                echo json_encode(['success' => false, 'message' => $msg]);
+                exit;
+            }
+            $_SESSION['flash_error'] = $msg;
+            header('Location: ' . url('admin/users'));
+            exit;
+        }
 
         if ($success) {
+            $updatedUser = $this->adminModel->getUserById($userId);
+            $updatedUser['responsabilites'] = implode(', ', array_map(
+                static fn (array $zone): string => $zone['nom'] . ' — ' . (
+                    $zone['role_dans_zone'] === 'delegue_de_classe' ? 'Délégué de classe' : 'Délégué général'
+                ),
+                $this->adminModel->getUserResponsibilities($userId)
+            ));
             $msg = "Utilisateur {$prenom} {$nom} mis à jour avec succès.";
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => true,
                     'message' => $msg,
-                    'user'    => array_merge(['id' => $userId], $updateData)
+                    'user'    => $updatedUser
                 ]);
                 exit;
             }
@@ -315,8 +367,67 @@ class AdminController {
         global $baseUrl, $base, $assetBase, $asset;
 
         $zones = $this->salonModel->getZonesWithCategories();
+        $publicationMetadata = new PublicationMetadata($this->adminModel->getPdo());
+        $publicationTags = $publicationMetadata->getAdminTags();
+        if (empty($_SESSION['admin_tag_csrf'])) {
+            $_SESSION['admin_tag_csrf'] = bin2hex(random_bytes(32));
+        }
+        $adminTagCsrf = $_SESSION['admin_tag_csrf'];
 
         require_once ROOT_PATH . '/views/desktop/admin/categories.php';
+    }
+
+    public function tagAction(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            http_response_code(405);
+            exit('Méthode non autorisée.');
+        }
+
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (empty($_SESSION['admin_tag_csrf']) || !hash_equals($_SESSION['admin_tag_csrf'], $token)) {
+            $_SESSION['flash_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
+            header('Location: ' . url('admin/categories#tags'));
+            exit;
+        }
+
+        $tagId = (int)($_POST['tag_id'] ?? 0);
+        $action = (string)($_POST['action'] ?? '');
+        $metadata = new PublicationMetadata($this->adminModel->getPdo());
+
+        try {
+            if ($action === 'create') {
+                $metadata->createAdminTag((string)($_POST['nom'] ?? ''), (int)$_SESSION['user_id']);
+                $_SESSION['flash_success'] = 'Le tag a été créé et activé.';
+            } elseif ($tagId <= 0) {
+                throw new InvalidArgumentException('Tag introuvable.');
+            } elseif ($action === 'rename') {
+                $metadata->renameTag($tagId, (string)($_POST['nom'] ?? ''));
+                $_SESSION['flash_success'] = 'Le tag a été renommé.';
+            } elseif ($action === 'approve') {
+                $metadata->setTagStatus($tagId, 'actif', (int)$_SESSION['user_id']);
+                $_SESSION['flash_success'] = 'La proposition de tag est maintenant active.';
+            } elseif ($action === 'deactivate') {
+                $metadata->setTagStatus($tagId, 'inactif', (int)$_SESSION['user_id']);
+                $_SESSION['flash_success'] = 'Le tag a été désactivé.';
+            } elseif ($action === 'activate') {
+                $metadata->setTagStatus($tagId, 'actif', (int)$_SESSION['user_id']);
+                $_SESSION['flash_success'] = 'Le tag a été réactivé.';
+            } elseif ($action === 'delete') {
+                $metadata->deleteTag($tagId);
+                $_SESSION['flash_success'] = 'Le tag a été supprimé.';
+            } else {
+                throw new InvalidArgumentException('Action sur le tag invalide.');
+            }
+        } catch (InvalidArgumentException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Gestion des tags impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'Le tag n’a pas pu être enregistré. Vérifiez qu’aucun tag du même nom n’existe.';
+        }
+
+        header('Location: ' . url('admin/categories#tags'));
+        exit;
     }
 
     /**

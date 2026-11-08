@@ -3,7 +3,7 @@
  * =============================================================
  * controllers/ModerationController.php – Contrôleur de Modération
  * =============================================================
- * Espace réservé aux administrateurs et modérateurs pour examiner
+ * Espace réservé aux administrateurs et délégués de classe pour examiner
  * les signalements et appliquer les décisions (avertir l'auteur,
  * supprimer le contenu, bloquer la publication, rejeter).
  * =============================================================
@@ -13,16 +13,21 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/config/database.php';
     require_once ROOT_PATH . '/models/ModerationService.php';
     require_once ROOT_PATH . '/models/Signalement.php';
+    require_once ROOT_PATH . '/models/RoleAccess.php';
 } else {
     require_once dirname(__DIR__) . '/config/database.php';
     require_once dirname(__DIR__) . '/models/ModerationService.php';
     require_once dirname(__DIR__) . '/models/Signalement.php';
+    require_once dirname(__DIR__) . '/models/RoleAccess.php';
 }
 
 class ModerationController {
     private ?PDO $pdo;
     private ModerationService $moderationService;
     private Signalement $signalementModel;
+    private bool $isAdministrator = false;
+    /** @var int[] */
+    private array $classDelegateZones = [];
 
     public function __construct() {
         global $pdo;
@@ -30,13 +35,13 @@ class ModerationController {
         $this->moderationService = new ModerationService($this->pdo);
         $this->signalementModel = new Signalement($this->pdo);
 
-        $this->checkAdminOrModerator();
+        $this->checkModerationAccess();
     }
 
     /**
-     * Garde de sécurité : seuls les administrateurs et modérateurs peuvent agir
+     * L'administration voit toute la plateforme; un délégué de classe reste limité à ses filières.
      */
-    private function checkAdminOrModerator(): void {
+    private function checkModerationAccess(): void {
         if (session_status() === PHP_SESSION_NONE) {
             @session_start();
         }
@@ -56,23 +61,20 @@ class ModerationController {
             exit('Modération indisponible : la base de données ne répond pas.');
         }
 
-        $role = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
         if ($userId > 0 && $this->pdo instanceof PDO) {
-            $statement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = :id LIMIT 1');
-            $statement->execute(['id' => $userId]);
-            $role = strtolower(trim((string)$statement->fetchColumn()));
+            $this->isAdministrator = RoleAccess::isAdministrator($this->pdo, $userId);
+            $this->classDelegateZones = RoleAccess::classDelegateZoneIds($this->pdo, $userId);
         }
-        $allowed = ['administrateur', 'moderateur'];
 
-        if ($userId <= 0 || !in_array($role, $allowed, true)) {
+        if ($userId <= 0 || (!$this->isAdministrator && !$this->classDelegateZones)) {
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8', true, 403);
-                echo json_encode(['success' => false, 'message' => "Accès refusé. Privilèges modérateur requis."]);
+                echo json_encode(['success' => false, 'message' => 'Accès réservé à l’administration et aux délégués de classe.']);
                 exit;
             }
 
-            $_SESSION['flash_error'] = "Accès refusé. Zone réservée à la modération.";
-            header('Location: ' . url('login'));
+            $_SESSION['flash_error'] = 'Accès réservé à l’administration et aux délégués de classe.';
+            header('Location: ' . url('profile'));
             exit;
         }
     }
@@ -84,7 +86,14 @@ class ModerationController {
         global $baseUrl, $base, $assetBase, $asset;
 
         $statut = $_GET['statut'] ?? null;
-        $reports = $this->signalementModel->getAllReports($statut);
+        $reports = $this->signalementModel->getAllReports(
+            $statut,
+            $this->isAdministrator ? null : $this->classDelegateZones
+        );
+        $activeAdminPage = 'moderation';
+        $showAdminLinks = $this->isAdministrator;
+        $showModerationLink = true;
+        $canModerateReports = true;
 
         require_once ROOT_PATH . '/views/desktop/admin/moderation.php';
     }
@@ -119,14 +128,27 @@ class ModerationController {
         $message = trim($input['message'] ?? $input['motif'] ?? '');
 
         if ($reportId <= 0) {
-            $msg = "Identifiant de signalement manquant.";
+            $msg = 'Identifiant de signalement invalide.';
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8', true, 400);
                 echo json_encode(['success' => false, 'message' => $msg]);
                 exit;
             }
             $_SESSION['flash_error'] = $msg;
-            header('Location: ' . url('admin/moderation'));
+            header('Location: ' . url('moderation'));
+            exit;
+        }
+
+        if (!($this->pdo instanceof PDO)
+            || !RoleAccess::canModerateReport($this->pdo, $adminId, $reportId)) {
+            $msg = 'Vous ne pouvez pas traiter ce signalement en dehors de votre périmètre.';
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=UTF-8', true, 403);
+                echo json_encode(['success' => false, 'message' => $msg]);
+                exit;
+            }
+            $_SESSION['flash_error'] = $msg;
+            header('Location: ' . url('moderation'));
             exit;
         }
 

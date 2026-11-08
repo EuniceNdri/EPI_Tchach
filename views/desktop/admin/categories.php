@@ -157,6 +157,90 @@ $zones = isset($zones) ? $zones : [];
           </div>
 
         </div>
+
+        <section class="admin-card" id="tags" style="margin-top:2rem;">
+          <div class="card-header-flex">
+            <div>
+              <h2 class="card-title">Gestion des tags</h2>
+              <p style="font-size:0.85rem; color:var(--admin-muted); margin-top:0.35rem;">
+                Validez les propositions des membres, renommez les tags ou activez-les et désactivez-les.
+              </p>
+            </div>
+          </div>
+          <div class="card-body">
+            <form action="<?= $base ?>/admin/tags/action" method="post" style="display:flex; gap:0.75rem; align-items:end; margin-bottom:1.5rem; flex-wrap:wrap;">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+              <input type="hidden" name="action" value="create">
+              <label style="flex:1; min-width:220px;">
+                <span style="display:block; font-size:0.875rem; font-weight:700; margin-bottom:0.4rem;">Créer un tag actif</span>
+                <input type="text" name="nom" maxlength="50" class="search-box" style="width:100%; border-radius:var(--radius-sm); border:1.5px solid var(--admin-border); background:#ffffff; padding:0.75rem 1rem;" placeholder="Ex. Algèbre" required>
+              </label>
+              <button type="submit" class="btn-table-action" style="background:var(--admin-primary); color:#ffffff; padding:0.75rem 1rem; border-radius:var(--radius-sm);">Créer le tag</button>
+            </form>
+
+            <?php if (empty($publicationTags)): ?>
+              <p style="color:var(--admin-muted);">Aucun tag ni aucune proposition pour le moment.</p>
+            <?php else: ?>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr><th>Nom</th><th>Statut</th><th>Proposé par</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($publicationTags as $publicationTag):
+                      $tagStatusLabels = ['en_attente' => 'À valider', 'actif' => 'Actif', 'inactif' => 'Désactivé'];
+                      $tagCreator = trim((string)($publicationTag['creator_prenom'] ?? '') . ' ' . (string)($publicationTag['creator_nom'] ?? ''));
+                    ?>
+                      <tr>
+                        <td>
+                          <form action="<?= $base ?>/admin/tags/action" method="post" style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="action" value="rename">
+                            <input type="hidden" name="tag_id" value="<?= (int)$publicationTag['id'] ?>">
+                            <input type="text" name="nom" value="<?= htmlspecialchars($publicationTag['nom']) ?>" maxlength="50" aria-label="Nom du tag" required style="width:100%; max-width:220px; padding:0.5rem; border:1px solid var(--admin-border); border-radius:var(--radius-sm);">
+                            <button type="submit" class="btn-table-action">Renommer</button>
+                          </form>
+                        </td>
+                        <td><?= htmlspecialchars($tagStatusLabels[$publicationTag['statut']] ?? $publicationTag['statut']) ?></td>
+                        <td><?= htmlspecialchars($tagCreator !== '' ? $tagCreator : 'Administration') ?></td>
+                        <td style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                          <?php if ($publicationTag['statut'] === 'en_attente'): ?>
+                            <form action="<?= $base ?>/admin/tags/action" method="post">
+                              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+                              <input type="hidden" name="tag_id" value="<?= (int)$publicationTag['id'] ?>">
+                              <input type="hidden" name="action" value="approve">
+                              <button type="submit" class="btn-table-action">Valider</button>
+                            </form>
+                          <?php elseif ($publicationTag['statut'] === 'actif'): ?>
+                            <form action="<?= $base ?>/admin/tags/action" method="post">
+                              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+                              <input type="hidden" name="tag_id" value="<?= (int)$publicationTag['id'] ?>">
+                              <input type="hidden" name="action" value="deactivate">
+                              <button type="submit" class="btn-table-action">Désactiver</button>
+                            </form>
+                          <?php else: ?>
+                            <form action="<?= $base ?>/admin/tags/action" method="post">
+                              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+                              <input type="hidden" name="tag_id" value="<?= (int)$publicationTag['id'] ?>">
+                              <input type="hidden" name="action" value="activate">
+                              <button type="submit" class="btn-table-action">Activer</button>
+                            </form>
+                          <?php endif; ?>
+                          <form action="<?= $base ?>/admin/tags/action" method="post" onsubmit="return confirm('Supprimer ce tag de toutes les publications ?');">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminTagCsrf, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="tag_id" value="<?= (int)$publicationTag['id'] ?>">
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="btn-table-action" style="color:var(--admin-danger);">Supprimer</button>
+                          </form>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
+        </section>
       </div>
     </main>
   </div>

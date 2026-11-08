@@ -27,9 +27,8 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       <!-- Topbar -->
       <header class="admin-topbar">
         <?php
-          $totalCount = array_sum($roleCounts ?? []);
+          $totalCount = $roleCounts['total'] ?? 0;
           $countEtudiants = $roleCounts['etudiant'] ?? 0;
-          $countDelegues = $roleCounts['delegue'] ?? 0;
           $countProfesseurs = $roleCounts['professeur'] ?? 0;
           $countAdmins = ($roleCounts['administrateur'] ?? 0) + ($roleCounts['admin'] ?? 0);
         ?>
@@ -54,7 +53,6 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
           <span style="font-size:0.85rem; font-weight:700; color:var(--admin-muted); margin-right:0.5rem;">Filtrer par rôle :</span>
           <button type="button" class="btn-table-action filter-btn active" data-role="all">Tous (<?= number_format($totalCount, 0, ',', ' ') ?>)</button>
           <button type="button" class="btn-table-action filter-btn" data-role="etudiant">Étudiants (<?= number_format($countEtudiants, 0, ',', ' ') ?>)</button>
-          <button type="button" class="btn-table-action filter-btn" data-role="delegue">Délégués (<?= number_format($countDelegues, 0, ',', ' ') ?>)</button>
           <button type="button" class="btn-table-action filter-btn" data-role="professeur">Professeurs (<?= number_format($countProfesseurs, 0, ',', ' ') ?>)</button>
           <button type="button" class="btn-table-action filter-btn" data-role="administrateur">Administrateurs (<?= number_format($countAdmins, 0, ',', ' ') ?>)</button>
         </div>
@@ -69,6 +67,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
                   <th>Matricule / Réf</th>
                   <th>Filière / Modules</th>
                   <th>Rôle</th>
+                  <th>Responsabilités</th>
                   <th>Date d'inscription</th>
                   <th>Statut</th>
                   <th>Actions</th>
@@ -77,7 +76,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               <tbody>
                 <?php if (empty($users)): ?>
                   <tr>
-                    <td colspan="7" style="text-align:center; padding:2rem; color:var(--admin-muted);">Aucun utilisateur trouvé.</td>
+                    <td colspan="8" style="text-align:center; padding:2rem; color:var(--admin-muted);">Aucun utilisateur trouvé.</td>
                   </tr>
                 <?php else: ?>
                   <?php foreach ($users as $u):
@@ -105,12 +104,13 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
                         <span class="role-pill role-admin">Administrateur</span>
                       <?php elseif ($roleKey === 'professeur'): ?>
                         <span class="role-pill role-prof">Professeur</span>
-                      <?php elseif ($roleKey === 'delegue'): ?>
-                        <span class="role-pill role-delegue">Délégué</span>
+                      <?php elseif ($roleKey === 'moderateur' || $roleKey === 'delegue_general'): ?>
+                        <span class="role-pill role-delegue">Compte à migrer</span>
                       <?php else: ?>
                         <span class="role-pill">Étudiant</span>
                       <?php endif; ?>
                     </td>
+                    <td class="user-responsibilities-cell"><?= htmlspecialchars($u['responsabilites'] ?: 'Aucune') ?></td>
                     <td><?= htmlspecialchars($createdAt) ?></td>
                     <td><span class="status-pill status-active">Actif</span></td>
                     <td>
@@ -238,11 +238,38 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
           <label for="editUserRole" class="form-label" style="display:block; font-size:0.825rem; font-weight:700; color:var(--admin-dark); margin-bottom:0.35rem;">Rôle sur la plateforme</label>
           <select id="editUserRole" name="role" class="admin-input-text" style="width:100%; padding:0.6rem 0.85rem; border:1px solid #cbd5e1; border-radius:8px; font-family:inherit; font-size:0.9rem; background:#ffffff;">
             <option value="etudiant">Étudiant</option>
-            <option value="delegue">Délégué de classe</option>
             <option value="professeur">Professeur / Enseignant</option>
             <option value="administrateur">Administrateur</option>
           </select>
         </div>
+
+        <fieldset style="margin-bottom:1.25rem; border:1px solid #cbd5e1; border-radius:8px; padding:1rem;">
+          <legend style="font-size:.825rem;font-weight:700;">Responsabilités dans les zones</legend>
+          <p style="font-size:.8rem;color:var(--admin-muted);">Seul un étudiant peut recevoir une responsabilité. Le Délégué Général est unique dans l’école; un Délégué de classe est rattaché à sa propre filière. Une attribution hors filière exige l’exception explicite de l’administrateur. Chaque Délégué de classe devient automatiquement membre de la Délégation.</p>
+          <div id="editUserZoneRoles" style="display:grid;gap:.65rem;">
+            <?php foreach (($responsibilityZones ?? []) as $zone): ?>
+              <div style="display:grid;grid-template-columns:1fr minmax(150px, 220px);align-items:center;gap:.75rem;">
+                <span><?= htmlspecialchars($zone['nom']) ?> (<?= htmlspecialchars($zone['type_zone']) ?>)</span>
+                <div>
+                  <select name="zone_roles[<?= (int)$zone['id'] ?>]" data-zone-role="<?= (int)$zone['id'] ?>" data-zone-type="<?= htmlspecialchars($zone['type_zone'], ENT_QUOTES) ?>" class="admin-input-text">
+                    <option value="membre">Membre</option>
+                    <?php if ($zone['type_zone'] === 'filiere'): ?>
+                      <option value="delegue_de_classe">Délégué de classe</option>
+                    <?php elseif ($zone['type_zone'] === 'delegation'): ?>
+                      <option value="delegue_general">Délégué général</option>
+                    <?php endif; ?>
+                  </select>
+                  <?php if ($zone['type_zone'] === 'filiere'): ?>
+                    <label style="display:block;margin-top:.35rem;font-size:.75rem;color:var(--admin-muted);">
+                      <input type="checkbox" name="zone_exceptions[<?= (int)$zone['id'] ?>]" value="1" data-zone-exception="<?= (int)$zone['id'] ?>">
+                      Exception : autoriser hors filière principale
+                    </label>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </fieldset>
 
         <div id="filiereGroup" style="margin-bottom:1rem;">
           <label for="editUserFiliere" class="form-label" style="display:block; font-size:0.825rem; font-weight:700; color:var(--admin-dark); margin-bottom:0.35rem;">Filière (pour Étudiant / Délégué)</label>

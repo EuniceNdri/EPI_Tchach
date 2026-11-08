@@ -183,7 +183,7 @@ $filiereImages = [
         <details><summary>Qui peut rejoindre EPI Tchach ?</summary><p>Les étudiants, professeurs et délégués de l'École Polytechnique Internationale de Yamoussoukro.</p></details>
         <details><summary>L'inscription est-elle gratuite ?</summary><p>Oui, la création d'un compte et l'accès à la communauté sont gratuits.</p></details>
         <details><summary>Comment accéder aux ressources de ma filière ?</summary><p>Après inscription et connexion, vous pourrez rejoindre les espaces de discussion correspondant à votre filière.</p></details>
-        <details><summary>Comment les échanges sont-ils modérés ?</summary><p>Des modérateurs, délégués et enseignants veillent au respect de la charte et au bon déroulement des échanges.</p></details>
+        <details><summary>Comment les échanges sont-ils modérés ?</summary><p>L’administration et les délégués de classe veillent au respect de la charte et au bon déroulement des échanges dans leur périmètre.</p></details>
       </div>
     </section>
 

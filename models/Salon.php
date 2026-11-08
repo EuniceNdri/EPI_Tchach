@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/RoleAccess.php';
 
 class Salon {
     private ?PDO $pdo;
@@ -60,7 +61,7 @@ class Salon {
             return [];
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $statement = $this->pdo->prepare("
             SELECT z.id, z.nom, z.type_zone, z.description,
                    az.role_dans_zone,
@@ -110,7 +111,7 @@ class Salon {
             return false;
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $statement = $this->pdo->prepare("
             SELECT 1
             FROM categories c
@@ -141,14 +142,16 @@ class Salon {
         string $view = 'latest',
         ?int $categoryId = null,
         int $limit = 50,
-        ?int $zoneId = null
+        ?int $zoneId = null,
+        ?int $tagId = null,
+        ?int $publicationId = null
     ): array {
         if (!$this->pdo || $userId <= 0) {
             return [];
         }
 
         $view = in_array($view, ['popular', 'saved'], true) ? $view : 'latest';
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $limit = max(1, min($limit, 100));
         $conditions = ["p.est_signale = 0"];
         $parameters = ['saved_user' => $userId, 'reaction_user' => $userId];
@@ -172,6 +175,17 @@ class Salon {
         if ($zoneId !== null && $zoneId > 0) {
             $conditions[] = 'z.id = :zone_id';
             $parameters['zone_id'] = $zoneId;
+        }
+        if ($tagId !== null && $tagId > 0) {
+            $conditions[] = 'EXISTS (
+                SELECT 1 FROM publications_tags publication_tag
+                WHERE publication_tag.publication_id = p.id AND publication_tag.tag_id = :tag_id
+            )';
+            $parameters['tag_id'] = $tagId;
+        }
+        if ($publicationId !== null && $publicationId > 0) {
+            $conditions[] = 'p.id = :publication_id';
+            $parameters['publication_id'] = $publicationId;
         }
 
         $orderBy = $view === 'popular'
@@ -261,9 +275,13 @@ class Salon {
             return [];
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $limit = max(1, min($limit, 200));
-        $conditions = ['publication.est_signale = 0', '(comment.id IS NULL OR comment.est_signale = 0)'];
+        $conditions = [
+            "attachment.type_mime IN ('application/pdf', 'image/png', 'image/jpeg', 'image/gif')",
+            'publication.est_signale = 0',
+            '(comment.id IS NULL OR comment.est_signale = 0)',
+        ];
         $parameters = [];
 
         if (!$canViewAll) {
@@ -303,7 +321,7 @@ class Salon {
             JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
             WHERE " . implode(' AND ', $conditions) . "
-            ORDER BY attachment.date_upload DESC
+            ORDER BY attachment.ordre_affichage, attachment.id
             LIMIT $limit
         ");
         $statement->execute($parameters);
@@ -362,7 +380,7 @@ class Salon {
               ON saved.piece_jointe_id = attachment.id AND saved.utilisateur_id = ?
             WHERE attachment.type_cible = 'publication'
               AND attachment.cible_id IN ($placeholders)
-            ORDER BY attachment.date_upload
+            ORDER BY attachment.ordre_affichage, attachment.id
         ");
         $statement->execute(array_merge([$userId], $publicationIds));
         $attachmentsByPublication = [];
@@ -378,7 +396,7 @@ class Salon {
             return [];
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $statement = $this->pdo->prepare("
             SELECT attachment.id, attachment.nom_fichier, attachment.chemin_fichier,
                    attachment.type_mime, attachment.taille,
@@ -447,7 +465,7 @@ class Salon {
             return null;
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $check = $this->pdo->prepare("
             SELECT publication.id
             FROM publications publication
@@ -502,7 +520,7 @@ class Salon {
             return false;
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $check = $this->pdo->prepare("
             SELECT attachment.id
             FROM pieces_jointes attachment

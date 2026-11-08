@@ -12,8 +12,10 @@
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Admin.php';
+    require_once ROOT_PATH . '/models/RoleAccess.php';
 } else {
     require_once dirname(__DIR__) . '/models/Admin.php';
+    require_once dirname(__DIR__) . '/models/RoleAccess.php';
 }
 
 class DashboardController {
@@ -50,12 +52,13 @@ class DashboardController {
         }
 
         $userId = (int)$_SESSION['user_id'];
-        if ($this->adminModel->getDashboardZonesForUser($userId, 'chef_de_classe')) {
-            $this->chefClasseDashboard();
+        if ($this->adminModel->getPdo() instanceof PDO
+            && RoleAccess::isGlobalDelegate($this->adminModel->getPdo(), $userId)) {
+            $this->delegueDashboard();
             return;
         }
-        if ($this->adminModel->getDashboardZonesForUser($userId, 'delegue')) {
-            $this->delegueDashboard();
+        if ($this->adminModel->getDashboardZonesForUser($userId, 'delegue_de_classe')) {
+            $this->chefClasseDashboard();
             return;
         }
 
@@ -123,7 +126,7 @@ class DashboardController {
 
         $kpis = $this->adminModel->getDashboardKPIs();
         $users = $this->adminModel->getRecentUsers(6);
-        $recentReports = $this->adminModel->getReports('en_attente');
+        $recentReports = $this->adminModel->getReports('en_attente', null, 25);
 
         $roleLabel = 'Administrateur';
         $title = 'Dashboard Administrateur';
@@ -134,20 +137,20 @@ class DashboardController {
     }
 
     /**
-     * Dashboard délégué : uniquement les zones où l'utilisateur est responsable.
+     * Dashboard du délégué général : statistiques et signalements globaux en lecture seule.
      */
     public function delegueDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $zones = $this->requireDashboardZones('delegue');
-        $zoneIds = $this->zoneIds($zones);
-        $filteredUsers = $this->adminModel->getUsersInZones($zoneIds);
-        $recentReports = $this->adminModel->getReports('en_attente', $zoneIds);
-        $scopeLabel = $this->zoneLabel($zones);
+        $this->requireDashboardZones('delegue');
+        $globalKPIs = $this->adminModel->getDashboardKPIs();
+        $schoolActivity = $this->adminModel->getSchoolActivityByZone();
+        $recentReports = $this->adminModel->getReports('en_attente', null, 8);
 
-        $roleLabel = 'Délégué';
-        $title = 'Dashboard Délégué';
+        $roleLabel = 'Délégué général';
+        $title = 'Vue globale de l’école';
         $showAdminLinks = false;
+        $showModerationLink = false;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/delegue.php';
     }
@@ -158,15 +161,16 @@ class DashboardController {
     public function chefClasseDashboard(): void {
         global $baseUrl, $base, $assetBase, $asset;
 
-        $zones = $this->requireDashboardZones('chef_de_classe');
+        $zones = $this->requireDashboardZones('delegue_de_classe');
         $zoneIds = $this->zoneIds($zones);
         $filteredUsers = $this->adminModel->getUsersInZones($zoneIds);
         $recentReports = $this->adminModel->getReports('en_attente', $zoneIds);
         $scopeLabel = $this->zoneLabel($zones);
 
-        $roleLabel = 'Chef de classe';
-        $title = 'Dashboard Chef de classe';
+        $roleLabel = 'Délégué de classe';
+        $title = 'Dashboard Délégué de classe';
         $showAdminLinks = false;
+        $showModerationLink = true;
 
         require_once ROOT_PATH . '/views/desktop/dashboard/chef_classe.php';
     }

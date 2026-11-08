@@ -22,6 +22,7 @@ class Attachment
         'jpg' => ['image/jpeg'],
         'jpeg' => ['image/jpeg'],
         'gif' => ['image/gif'],
+        'webp' => ['image/webp'],
     ];
 
     /**
@@ -86,7 +87,7 @@ class Attachment
 
     /**
      * @param array<int, array{name: string, tmp_name: string, size: int, type: string, extension: string}> $files
-     * @return array<int, array{id: int, name: string, size: int, type: string, download_url: string}>
+     * @return array<int, array{id: int, name: string, size: int, type: string, download_url: string, storage_path: string}>
      */
     public function store(PDO $pdo, string $targetType, int $targetId, array $files): array
     {
@@ -94,35 +95,58 @@ class Attachment
             return [];
         }
 
-        $uploadDirectory = ROOT_PATH . '/public/uploads';
-        if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0750, true) && !is_dir($uploadDirectory)) {
+        $uploadDirectory = self::storageDirectory();
+        if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0700, true) && !is_dir($uploadDirectory)) {
             throw new RuntimeException('Le dossier de stockage des fichiers est indisponible.');
+        }
+        $resolvedUploadDirectory = realpath($uploadDirectory);
+        $publicDirectory = realpath(ROOT_PATH . '/public');
+        if ($resolvedUploadDirectory === false || $publicDirectory === false
+            || $resolvedUploadDirectory === $publicDirectory
+            || str_starts_with($resolvedUploadDirectory, $publicDirectory . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('Le stockage des pièces jointes doit rester hors du dossier public.');
         }
 
         $storedPaths = [];
         $attachments = [];
         try {
+            $orderStatement = $pdo->prepare(
+                'SELECT COALESCE(MAX(ordre_affichage) + 1, 0)
+                 FROM pieces_jointes
+                 WHERE type_cible = :type_cible AND cible_id = :cible_id'
+            );
+            $orderStatement->execute(['type_cible' => $targetType, 'cible_id' => $targetId]);
+            $displayOrder = (int)$orderStatement->fetchColumn();
             $statement = $pdo->prepare(
-                'INSERT INTO pieces_jointes (type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, taille)
-                 VALUES (:type_cible, :cible_id, :nom_fichier, :chemin_fichier, :type_mime, :taille)'
+                'INSERT INTO pieces_jointes (
+                    type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, type_media, taille, ordre_affichage
+                 ) VALUES (
+                    :type_cible, :cible_id, :nom_fichier, :chemin_fichier, :type_mime, :type_media, :taille, :ordre_affichage
+                 )'
             );
 
-            foreach ($files as $file) {
+            foreach ($files as $index => $file) {
                 $storedName = bin2hex(random_bytes(16)) . '.' . $file['extension'];
                 $destination = $uploadDirectory . '/' . $storedName;
                 if (!move_uploaded_file($file['tmp_name'], $destination)) {
                     throw new RuntimeException("Impossible de stocker le fichier « {$file['name']} ».");
                 }
+                if (!chmod($destination, 0600)) {
+                    unlink($destination);
+                    throw new RuntimeException("Impossible de sécuriser le fichier « {$file['name']} ».");
+                }
 
                 $storedPaths[] = $destination;
-                $relativePath = '/uploads/' . $storedName;
+                $relativePath = 'private/attachments/' . $storedName;
                 $statement->execute([
                     'type_cible' => $targetType,
                     'cible_id' => $targetId,
                     'nom_fichier' => $file['name'],
                     'chemin_fichier' => $relativePath,
                     'type_mime' => $file['type'],
+                    'type_media' => str_starts_with($file['type'], 'image/') ? 'image' : 'document',
                     'taille' => $file['size'],
+                    'ordre_affichage' => $displayOrder + $index,
                 ]);
 
                 $attachments[] = [
@@ -131,6 +155,7 @@ class Attachment
                     'size' => $file['size'],
                     'type' => $file['type'],
                     'download_url' => url('attachment/download/' . $pdo->lastInsertId()),
+                    'storage_path' => $relativePath,
                 ];
             }
         } catch (PDOException | RuntimeException $exception) {
@@ -143,5 +168,137 @@ class Attachment
         }
 
         return $attachments;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $attachments
+     * @return array<int, array<string, mixed>>
+     */
+    public static function responseMetadata(array $attachments): array
+    {
+        return array_map(static function (array $attachment): array {
+            unset($attachment['storage_path']);
+            return $attachment;
+        }, $attachments);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $attachments
+     */
+    public static function removeNewFiles(array $attachments): void
+    {
+        foreach ($attachments as $attachment) {
+            $relativePath = $attachment['storage_path'] ?? null;
+            if (!is_string($relativePath)) {
+                continue;
+            }
+            $filePath = self::resolveStoredPath($relativePath);
+            if ($filePath !== null && !unlink($filePath)) {
+                error_log('Impossible de supprimer un fichier après l’échec de son enregistrement.');
+            }
+        }
+    }
+
+    public static function storageDirectory(): string
+    {
+        $configuredPath = getenv('EPI_PRIVATE_STORAGE');
+        $storageRoot = is_string($configuredPath) && trim($configuredPath) !== ''
+            ? rtrim($configuredPath, DIRECTORY_SEPARATOR)
+            : dirname(ROOT_PATH) . '/epi-tchach-storage';
+
+        return $storageRoot . '/attachments';
+    }
+
+    public static function resolveStoredPath(string $relativePath): ?string
+    {
+        if (preg_match('#^private/attachments/([a-f0-9]{32}\.[a-z0-9]{1,5})$#', $relativePath, $matches)) {
+            $directory = realpath(self::storageDirectory());
+            $publicDirectory = realpath(ROOT_PATH . '/public');
+            $filePath = $directory === false ? false : realpath($directory . DIRECTORY_SEPARATOR . $matches[1]);
+            if ($directory !== false && $publicDirectory !== false
+                && $directory !== $publicDirectory
+                && !str_starts_with($directory, $publicDirectory . DIRECTORY_SEPARATOR)
+                && $filePath !== false
+                && str_starts_with($filePath, $directory . DIRECTORY_SEPARATOR)
+                && is_file($filePath)) {
+                return $filePath;
+            }
+
+            return null;
+        }
+
+        if (preg_match('#^/?uploads/([a-zA-Z0-9][a-zA-Z0-9._-]{0,254})$#', $relativePath, $matches)) {
+            $directory = realpath(ROOT_PATH . '/public/uploads');
+            $filePath = $directory === false ? false : realpath($directory . DIRECTORY_SEPARATOR . $matches[1]);
+            if ($directory !== false && $filePath !== false
+                && str_starts_with($filePath, $directory . DIRECTORY_SEPARATOR)
+                && is_file($filePath)) {
+                return $filePath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array{id: int, chemin_fichier: string}>
+     */
+    public static function findForTarget(PDO $pdo, string $targetType, int $targetId): array
+    {
+        if ($targetType === 'publication') {
+            $statement = $pdo->prepare(
+                "SELECT attachment.id, attachment.chemin_fichier
+                 FROM pieces_jointes attachment
+                 WHERE attachment.type_cible = 'publication' AND attachment.cible_id = :target_id
+                 UNION
+                 SELECT attachment.id, attachment.chemin_fichier
+                 FROM pieces_jointes attachment
+                 JOIN commentaires comment ON comment.id = attachment.cible_id
+                 WHERE attachment.type_cible = 'commentaire' AND comment.publication_id = :comment_publication_id"
+            );
+            $statement->execute([
+                'target_id' => $targetId,
+                'comment_publication_id' => $targetId,
+            ]);
+        } elseif ($targetType === 'commentaire') {
+            $statement = $pdo->prepare(
+                "SELECT id, chemin_fichier FROM pieces_jointes
+                 WHERE type_cible = 'commentaire' AND cible_id = :target_id"
+            );
+            $statement->execute(['target_id' => $targetId]);
+        } else {
+            throw new InvalidArgumentException('Type de cible de pièce jointe invalide.');
+        }
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param array<int, array{id: int, chemin_fichier: string}> $attachments
+     */
+    public static function removeStoredFiles(PDO $pdo, array $attachments): void
+    {
+        if ($attachments === []) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_map(
+            static fn (array $attachment): int => (int)$attachment['id'],
+            $attachments
+        )));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $delete = $pdo->prepare("DELETE FROM pieces_jointes WHERE id IN ($placeholders)");
+        $delete->execute($ids);
+
+        foreach ($attachments as $attachment) {
+            $filePath = self::resolveStoredPath((string)$attachment['chemin_fichier']);
+            if ($filePath === null) {
+                error_log('Pièce jointe absente ou chemin non autorisé lors du nettoyage : ' . (int)$attachment['id']);
+                continue;
+            }
+            if (!unlink($filePath)) {
+                error_log('Impossible de supprimer le fichier de la pièce jointe : ' . (int)$attachment['id']);
+            }
+        }
     }
 }

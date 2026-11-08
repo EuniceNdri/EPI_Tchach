@@ -23,7 +23,7 @@ CREATE TABLE utilisateurs (
     filiere             VARCHAR(150) DEFAULT NULL,          -- Filière principale (étudiants)
     filiere_id          INT UNSIGNED DEFAULT NULL,          -- Référence normalisée, conservée en parallèle
     modules_enseignes   TEXT DEFAULT NULL,                  -- Modules (professeurs) - texte séparé par virgules
-    role                ENUM('etudiant','professeur','moderateur','administrateur') NOT NULL DEFAULT 'etudiant',
+    role                ENUM('etudiant','professeur','administrateur') NOT NULL DEFAULT 'etudiant',
     est_actif           BOOLEAN NOT NULL DEFAULT TRUE,
     date_inscription    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     derniere_connexion  DATETIME DEFAULT NULL,
@@ -77,9 +77,14 @@ ALTER TABLE utilisateurs
 CREATE TABLE appartenance_zones (
     utilisateur_id  INT UNSIGNED NOT NULL,
     zone_id         INT UNSIGNED NOT NULL,
-    role_dans_zone  ENUM('membre','chef_de_classe','delegue_general','sous_delegue','moderateur_zone') NOT NULL DEFAULT 'membre',
+    role_dans_zone  ENUM('membre','delegue_de_classe','delegue_general') NOT NULL DEFAULT 'membre',
+    delegation_exception BOOLEAN NOT NULL DEFAULT FALSE,
+    delegue_general_slot TINYINT DEFAULT NULL,
+    delegue_classe_zone_id INT UNSIGNED DEFAULT NULL,
     date_ajout      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (utilisateur_id, zone_id),
+    UNIQUE KEY uq_appartenance_global_delegate (delegue_general_slot),
+    UNIQUE KEY uq_appartenance_class_delegate_zone (delegue_classe_zone_id),
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -125,7 +130,6 @@ CREATE TABLE commentaires (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     publication_id      INT UNSIGNED NOT NULL,
     utilisateur_id      INT UNSIGNED NOT NULL,
-    parent_comment_id   INT UNSIGNED DEFAULT NULL,
     contenu             TEXT NOT NULL,
     est_solution        BOOLEAN NOT NULL DEFAULT FALSE,
     est_epingle         BOOLEAN NOT NULL DEFAULT FALSE,
@@ -133,10 +137,8 @@ CREATE TABLE commentaires (
     nb_likes            INT UNSIGNED NOT NULL DEFAULT 0,
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification   DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_commentaires_parent (parent_comment_id),
     FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
-    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_comment_id) REFERENCES commentaires(id) ON DELETE CASCADE
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -185,7 +187,9 @@ CREATE TABLE pieces_jointes (
     nom_fichier     VARCHAR(255) NOT NULL,
     chemin_fichier  VARCHAR(500) NOT NULL,
     type_mime       VARCHAR(100) NOT NULL,
+    type_media      ENUM('image','document') NOT NULL DEFAULT 'document',
     taille          INT UNSIGNED NOT NULL DEFAULT 0,
+    ordre_affichage INT UNSIGNED NOT NULL DEFAULT 0,
     date_upload     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -260,63 +264,42 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 14.5 AMIS & MESSAGES PRIVÉS
+-- 15. TAGS ET MENTIONS DES PUBLICATIONS
 -- ============================================================
-CREATE TABLE friendships (
-    user_one_id INT UNSIGNED NOT NULL,
-    user_two_id INT UNSIGNED NOT NULL,
-    requested_by INT UNSIGNED NOT NULL,
-    status ENUM('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_one_id, user_two_id),
-    INDEX idx_friendships_requested_by_status (requested_by, status),
-    CONSTRAINT chk_friendships_user_order CHECK (user_one_id < user_two_id),
-    CONSTRAINT chk_friendships_requester_in_pair CHECK (requested_by IN (user_one_id, user_two_id)),
-    FOREIGN KEY (user_one_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_two_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (requested_by) REFERENCES utilisateurs(id) ON DELETE CASCADE
+CREATE TABLE tags_publication (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom             VARCHAR(50) NOT NULL UNIQUE,
+    statut          ENUM('en_attente','actif','inactif') NOT NULL DEFAULT 'en_attente',
+    cree_par        INT UNSIGNED DEFAULT NULL,
+    valide_par      INT UNSIGNED DEFAULT NULL,
+    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cree_par) REFERENCES utilisateurs(id) ON DELETE SET NULL,
+    FOREIGN KEY (valide_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-CREATE TABLE private_messages (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    sender_id INT UNSIGNED NOT NULL,
-    recipient_id INT UNSIGNED NOT NULL,
-    contenu TEXT NOT NULL,
-    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    read_at DATETIME DEFAULT NULL,
-    deleted_for_everyone_at DATETIME DEFAULT NULL,
-    INDEX idx_private_messages_thread (sender_id, recipient_id, date_creation, id),
-    INDEX idx_private_messages_unread (recipient_id, sender_id, read_at),
-    FOREIGN KEY (sender_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (recipient_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    CHECK (sender_id <> recipient_id)
+CREATE TABLE publications_tags (
+    publication_id  INT UNSIGNED NOT NULL,
+    tag_id          INT UNSIGNED NOT NULL,
+    PRIMARY KEY (publication_id, tag_id),
+    INDEX idx_publications_tags_tag (tag_id, publication_id),
+    FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags_publication(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE private_message_deletions (
-    message_id BIGINT UNSIGNED NOT NULL,
-    user_id INT UNSIGNED NOT NULL,
-    deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (message_id, user_id),
-    INDEX idx_private_message_deletions_user (user_id, message_id),
-    FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
-CREATE TABLE private_message_attachments (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    message_id BIGINT UNSIGNED NOT NULL,
-    nom_fichier VARCHAR(255) NOT NULL,
-    chemin_fichier VARCHAR(255) NOT NULL,
-    type_mime VARCHAR(127) NOT NULL,
-    taille BIGINT UNSIGNED NOT NULL,
-    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_private_message_attachments_message (message_id),
-    FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE
+CREATE TABLE publications_mentions (
+    publication_id  INT UNSIGNED NOT NULL,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    mentionne_par   INT UNSIGNED NOT NULL,
+    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (publication_id, utilisateur_id),
+    INDEX idx_publications_mentions_user (utilisateur_id, publication_id),
+    FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (mentionne_par) REFERENCES utilisateurs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 15. MOTS INTERDITS (Modération automatique)
+-- 16. MOTS INTERDITS (Modération automatique)
 -- ============================================================
 CREATE TABLE mots_interdits (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -328,16 +311,16 @@ CREATE TABLE mots_interdits (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- INDEX DE PERFORMANCE (9 indexes + drapeaux de modération)
+-- INDEX DE PERFORMANCE
 -- ============================================================
 CREATE INDEX idx_pub_categorie       ON publications(categorie_id);
 CREATE INDEX idx_pub_utilisateur     ON publications(utilisateur_id);
 CREATE INDEX idx_pub_type            ON publications(type_publication);
 CREATE INDEX idx_pub_statut          ON publications(statut);
+CREATE INDEX idx_pieces_cible_ordre ON pieces_jointes(type_cible, cible_id, ordre_affichage, id);
 CREATE INDEX idx_com_publication     ON commentaires(publication_id);
 CREATE INDEX idx_com_nb_likes        ON commentaires(nb_likes);
 CREATE INDEX idx_reactions_cible     ON reactions(type_cible, cible_id);
-CREATE INDEX idx_pieces_cible        ON pieces_jointes(type_cible, cible_id);
 CREATE INDEX idx_appartenance_role   ON appartenance_zones(role_dans_zone);
 CREATE INDEX idx_signalements_statut ON signalements(statut);
 CREATE INDEX idx_notif_user_lu       ON notifications(utilisateur_id, lu);
@@ -355,12 +338,12 @@ INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modul
 ('Kouassi', 'Momo', 'momo.kouassi@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiant en BTS IDA, passionné de développement web.'),
 ('Traoré', 'Sarah', 'sarah.traore@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Étudiante en BTS IDA.'),
 ('Diallo', 'Jean', 'jean.diallo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Licence Informatique', NULL, 'Étudiant en Licence Informatique.'),
-('N''Guessan', 'Awa', 'awa.nguessan@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Chef de classe BTS IDA + membre du Bureau de la Délégation.'),
+('N''Guessan', 'Awa', 'awa.nguessan@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'BTS IDA', NULL, 'Déléguée de classe BTS IDA.'),
 ('Yao', 'Kofi', 'kofi.yao@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Licence Informatique', NULL, 'Délégué Général des étudiants.'),
 ('Koné', 'Dr. Ibrahim', 'ibrahim.kone@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'professeur', NULL, 'Développement Web, Base de données, Algorithmique', 'Professeur de Développement Web et Base de données.'),
 ('Bamba', 'Fatou', 'fatou.bamba@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'professeur', NULL, 'Réseaux, Systèmes d''Exploitation, Sécurité', 'Professeure de Réseaux et Systèmes.'),
 ('Admin', 'Système', 'admin@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'administrateur', NULL, NULL, 'Compte administrateur principal.'),
-('Modo', 'Paul', 'paul.modo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'moderateur', NULL, NULL, 'Modérateur global de la plateforme.'),
+('Yao', 'Paul', 'paul.modo@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', NULL, NULL, 'Membre de la plateforme.'),
 ('Bakayoko', 'Amadou', 'amadou.bakayoko@epi-yakro.ci', '$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG', 'etudiant', 'Génie Mécanique', NULL, 'Étudiant en Génie Mécanique (filière en attente de zone).');
 
 INSERT INTO filieres (nom, code, description) VALUES
@@ -390,12 +373,27 @@ WHERE u.filiere IS NOT NULL;
 -- APPARTENANCES
 INSERT INTO appartenance_zones (utilisateur_id, zone_id, role_dans_zone) VALUES
 (1,1,'membre'),(2,1,'membre'),(3,1,'membre'),(4,1,'membre'),
-(5,1,'membre'),(6,1,'membre'),(7,1,'membre'),(8,1,'moderateur_zone'),
-(9,1,'moderateur_zone'),(10,1,'membre'),
-(1,2,'membre'),(2,2,'membre'),(4,2,'chef_de_classe'),(6,2,'membre'),(5,2,'membre'),
+(5,1,'membre'),(6,1,'membre'),(7,1,'membre'),(8,1,'membre'),
+(9,1,'membre'),(10,1,'membre'),
+(1,2,'membre'),(2,2,'membre'),(4,2,'delegue_de_classe'),(6,2,'membre'),(5,2,'membre'),
 (3,3,'membre'),(7,3,'membre'),
-(6,4,'membre'),(7,4,'membre'),(8,4,'moderateur_zone'),
-(5,5,'delegue_general'),(4,5,'chef_de_classe'),(1,5,'membre'),(9,5,'moderateur_zone');
+(6,4,'membre'),(7,4,'membre'),(8,4,'membre'),
+(5,5,'delegue_general'),(4,5,'membre'),(1,5,'membre'),(9,5,'membre');
+
+UPDATE appartenance_zones
+SET delegue_classe_zone_id = CASE
+        WHEN role_dans_zone = 'delegue_de_classe' THEN zone_id
+        ELSE NULL
+    END,
+    delegue_general_slot = CASE
+        WHEN role_dans_zone = 'delegue_general' THEN 1
+        ELSE NULL
+    END
+WHERE role_dans_zone = 'delegue_de_classe';
+
+UPDATE appartenance_zones
+SET delegue_general_slot = 1
+WHERE role_dans_zone = 'delegue_general';
 
 -- CATEGORIES (Salons)
 INSERT INTO categories (zone_id, nom, slug, description, ordre) VALUES
@@ -450,10 +448,10 @@ INSERT INTO reactions (utilisateur_id, type_cible, cible_id, type_reaction) VALU
 (1,'publication',6,'utile'),(2,'publication',6,'like');
 
 -- PIECES JOINTES
-INSERT INTO pieces_jointes (type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, taille) VALUES
-('publication', 6, 'annales_bdd_2025.pdf', '/uploads/annales_bdd_2025.pdf', 'application/pdf', 245760),
-('commentaire', 1, 'exemple_migration.php', '/uploads/exemple_migration.php', 'application/x-php', 2048),
-('publication', 3, 'screenshot_erreur.png', '/uploads/screenshot_erreur.png', 'image/png', 153600);
+INSERT INTO pieces_jointes (type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, type_media, taille, ordre_affichage) VALUES
+('publication', 6, 'annales_bdd_2025.pdf', '/uploads/annales_bdd_2025.pdf', 'application/pdf', 'document', 245760, 0),
+('commentaire', 1, 'corrige_migration.docx', '/uploads/corrige_migration.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'document', 2048, 0),
+('publication', 3, 'screenshot_erreur.png', '/uploads/screenshot_erreur.png', 'image/png', 'image', 153600, 0);
 
 -- PUBLICATION_TAGS
 INSERT INTO publication_tags (publication_id, tag_id) VALUES

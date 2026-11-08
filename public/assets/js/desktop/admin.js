@@ -126,6 +126,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Bascule dynamique filière vs modules selon le rôle sélectionné
     const updateRoleFields = (role) => {
+        const isStudent = role === "etudiant";
+        document.querySelectorAll("[data-zone-role]").forEach((select) => {
+            select.disabled = !isStudent;
+            if (!isStudent) select.value = "membre";
+        });
+        document.querySelectorAll("[data-zone-exception]").forEach((checkbox) => {
+            checkbox.disabled = !isStudent;
+            if (!isStudent) checkbox.checked = false;
+        });
         if (!filiereGroup || !modulesGroup) return;
         if (role === "professeur") {
             filiereGroup.style.display = "none";
@@ -144,6 +153,11 @@ document.addEventListener("DOMContentLoaded", () => {
             updateRoleFields(this.value);
         });
     }
+    document.getElementById("editUserFiliere")?.addEventListener("input", () => {
+        document.querySelectorAll("[data-zone-exception]").forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+    });
 
     // Clic sur un bouton "Éditer" (délégation pour tous les tableaux)
     document.addEventListener("click", async (e) => {
@@ -177,6 +191,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("editUserFiliere").value = u.filiere || "";
                 document.getElementById("editUserModules").value = u.modules_enseignes || "";
                 document.getElementById("editUserBio").value = u.biographie || "";
+                document.querySelectorAll("[data-zone-role]").forEach((select) => {
+                    select.value = (data.zone_roles || {})[select.dataset.zoneRole] || "membre";
+                });
+                const exceptionZones = new Set((data.zone_exceptions || []).map(String));
+                document.querySelectorAll("[data-zone-exception]").forEach((checkbox) => {
+                    checkbox.checked = exceptionZones.has(checkbox.dataset.zoneException);
+                });
 
                 updateRoleFields(cleanRole);
                 openEditModal();
@@ -247,10 +268,13 @@ document.addEventListener("DOMContentLoaded", () => {
                                 roleHtml = `<span class="role-pill role-admin">Administrateur</span>`;
                             } else if (cleanRole === "professeur") {
                                 roleHtml = `<span class="role-pill role-prof">Professeur</span>`;
-                            } else if (cleanRole === "delegue") {
-                                roleHtml = `<span class="role-pill role-delegue">Délégué</span>`;
                             }
                             roleCell.innerHTML = roleHtml;
+                        }
+
+                        const responsibilitiesCell = row.querySelector(".user-responsibilities-cell");
+                        if (responsibilitiesCell) {
+                            responsibilitiesCell.textContent = u.responsabilites || "Aucune";
                         }
 
                         // Effet visuel subtil de confirmation sur la ligne modifiée

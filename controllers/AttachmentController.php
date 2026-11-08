@@ -1,6 +1,7 @@
 <?php
 
 require_once ROOT_PATH . '/models/Attachment.php';
+require_once ROOT_PATH . '/models/RoleAccess.php';
 
 class AttachmentController
 {
@@ -38,14 +39,12 @@ class AttachmentController
             http_response_code(401);
             exit('Compte utilisateur introuvable.');
         }
-        $canViewAll = in_array(strtolower(trim($role)), ['administrateur', 'admin', 'moderateur'], true);
+        $canViewAll = RoleAccess::canViewAllZones($pdo, $userId);
 
         $statement = $pdo->prepare(
             "SELECT attachment.type_cible, attachment.nom_fichier, attachment.chemin_fichier,
                     attachment.type_mime, attachment.taille,
-                    publication.utilisateur_id AS publication_owner,
                     publication.est_signale AS publication_reported,
-                    comment.utilisateur_id AS comment_owner,
                     comment.est_signale AS comment_reported,
                     category.est_active AS category_active,
                     zone.id AS zone_id, zone.est_active AS zone_active
@@ -70,35 +69,29 @@ class AttachmentController
             exit('Pièce jointe introuvable.');
         }
 
-        $isOwner = $attachment['type_cible'] === 'publication'
-            ? (int)$attachment['publication_owner'] === $userId
-            : (int)($attachment['comment_owner'] ?? 0) === $userId;
-        if (!$isOwner) {
-            $hasZoneAccess = false;
-            if ($canViewAll && (int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1) {
-                $hasZoneAccess = true;
-            } elseif ((int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1
-                && !(bool)$attachment['publication_reported'] && !(bool)($attachment['comment_reported'] ?? false)) {
-                $membership = $pdo->prepare(
-                    'SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1'
-                );
-                $membership->execute(['user_id' => $userId, 'zone_id' => (int)$attachment['zone_id']]);
-                $hasZoneAccess = (bool)$membership->fetchColumn();
-            }
-            if (!$hasZoneAccess) {
-                http_response_code(403);
-                exit('Vous n’avez pas accès à ce fichier.');
-            }
+        $hasZoneAccess = false;
+        if ($canViewAll && (int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1) {
+            $hasZoneAccess = true;
+        } elseif ((int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1
+            && !(bool)$attachment['publication_reported'] && !(bool)($attachment['comment_reported'] ?? false)) {
+            $membership = $pdo->prepare(
+                'SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1'
+            );
+            $membership->execute(['user_id' => $userId, 'zone_id' => (int)$attachment['zone_id']]);
+            $hasZoneAccess = (bool)$membership->fetchColumn();
+        }
+        if (!$hasZoneAccess) {
+            http_response_code(403);
+            exit('Vous n’avez pas accès à ce fichier.');
         }
 
-        if ($inline && !in_array($attachment['type_mime'], ['image/png', 'image/jpeg', 'image/gif', 'application/pdf'], true)) {
+        if ($inline && !in_array($attachment['type_mime'], ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'], true)) {
             http_response_code(415);
             exit('Aperçu indisponible pour ce format de fichier.');
         }
 
-        $uploadDirectory = realpath(ROOT_PATH . '/public/uploads');
-        $filePath = realpath(ROOT_PATH . '/public/' . ltrim($attachment['chemin_fichier'], '/'));
-        if (!$uploadDirectory || !$filePath || !str_starts_with($filePath, $uploadDirectory . DIRECTORY_SEPARATOR) || !is_file($filePath)) {
+        $filePath = Attachment::resolveStoredPath((string)$attachment['chemin_fichier']);
+        if ($filePath === null) {
             http_response_code(404);
             exit('Fichier indisponible.');
         }
@@ -107,6 +100,7 @@ class AttachmentController
         header('Content-Length: ' . (int)$attachment['taille']);
         $safeFilename = preg_replace('/[\r\n"\\\\]/', '_', (string)$attachment['nom_fichier']);
         header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $safeFilename . '"; filename*=UTF-8\'\'' . rawurlencode((string)$attachment['nom_fichier']));
+        header('Cache-Control: private, no-store');
         header('X-Content-Type-Options: nosniff');
         readfile($filePath);
         exit;

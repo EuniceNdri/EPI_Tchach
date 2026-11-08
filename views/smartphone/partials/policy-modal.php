@@ -46,7 +46,7 @@
 
         <section class="policy-section">
           <h4>5. Modération & Système de Signalement</h4>
-          <p>L'équipe des modérateurs, délégués et enseignants vérifie régulièrement les échanges. Tout utilisateur a la possibilité de signaler un message inapproprié via le bouton de signalement pour traitement immédiat.</p>
+          <p>L’administration et les délégués de classe vérifient les signalements relevant de leur périmètre. Tout utilisateur peut signaler un message inapproprié via le bouton de signalement.</p>
         </section>
       </div>
 

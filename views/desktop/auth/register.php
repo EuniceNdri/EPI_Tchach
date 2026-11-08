@@ -15,11 +15,8 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
-  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
-  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
@@ -64,7 +61,7 @@ $logoPath = $asset . '/images/logo.jpeg';
       </div>
 
       <?php if (!empty($error)): ?>
-        <div class="alert alert-error">
+        <div class="alert alert-error" role="alert" aria-live="assertive">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span><?= htmlspecialchars($error) ?></span>
         </div>
@@ -77,7 +74,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         </div>
       <?php endif; ?>
 
-      <form action="<?= $base ?>/register" method="POST" enctype="multipart/form-data" class="auth-form" data-register-form data-initial-step="<?= (int)($registerStep ?? 1) ?>">
+      <form action="<?= $base ?>/register" method="POST" enctype="multipart/form-data" class="auth-form" data-register-form data-initial-step="<?= (int)($registerErrorStep ?? 1) ?>">
         <div class="register-progress" aria-label="Étapes de création du compte">
           <span class="register-progress-step is-current" data-register-progress="1" aria-current="step"><span>1</span> Identité</span>
           <span class="register-progress-line"></span>

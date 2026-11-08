@@ -28,7 +28,6 @@ class AuthController {
     }
 
     private function renderAuthView(string $view): void {
-        global $baseUrl, $base, $assetBase, $asset;
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         $device = preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)
             ? 'smartphone'
@@ -63,8 +62,12 @@ class AuthController {
             $email = strtolower(trim((string)($_POST['email'] ?? '')));
             $mot_de_passe = (string)($_POST['mot_de_passe'] ?? '');
 
-            if (empty($email) || empty($mot_de_passe)) {
-                $error = "Veuillez renseigner votre email et votre mot de passe.";
+            if ($email === '' && $mot_de_passe === '') {
+                $error = "Veuillez renseigner votre adresse email et votre mot de passe.";
+            } elseif ($email === '') {
+                $error = "Veuillez renseigner votre adresse email.";
+            } elseif ($mot_de_passe === '') {
+                $error = "Veuillez renseigner votre mot de passe.";
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "L'adresse email saisie n'est pas valide. Vérifiez son format puis réessayez.";
             } elseif (!$this->userModel->getPdo() instanceof PDO) {
@@ -110,7 +113,12 @@ class AuthController {
                     exit;
                 } else {
                     if ($error === '') {
-                        $error = "Adresse email ou mot de passe incorrect.";
+                        $error = match ($this->userModel->getLastLoginFailure()) {
+                            'database' => "La connexion est momentanément indisponible. Réessayez dans quelques instants.",
+                            'inactive' => "Ce compte est désactivé. Contactez un administrateur.",
+                            'invalid_password' => "Mot de passe incorrect. Vérifiez votre saisie puis réessayez.",
+                            default => "Adresse email ou mot de passe incorrect.",
+                        };
                     }
                 }
             }
@@ -126,7 +134,7 @@ class AuthController {
         global $baseUrl, $base, $assetBase, $asset;
         $error = '';
         $success = '';
-        $registerStep = 1;
+        $registerErrorStep = 1;
 
         if (!empty($_SESSION['user_id'])) {
             header('Location: ' . url('profile'));
@@ -142,21 +150,19 @@ class AuthController {
         $availableFilieres = $this->userModel->getAvailableFiliereZones();
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $this->userModel->getPdo() instanceof PDO) {
-            $nom = trim(is_string($_POST['nom'] ?? null) ? $_POST['nom'] : '');
-            $prenom = trim(is_string($_POST['prenom'] ?? null) ? $_POST['prenom'] : '');
-            $email = strtolower(trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : ''));
-            $role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
-            $mot_de_passe = is_string($_POST['mot_de_passe'] ?? null) ? $_POST['mot_de_passe'] : '';
-            $confirmer_mot_de_passe = is_string($_POST['confirmer_mot_de_passe'] ?? null) ? $_POST['confirmer_mot_de_passe'] : '';
+            $nom = trim((string)($_POST['nom'] ?? ''));
+            $prenom = trim((string)($_POST['prenom'] ?? ''));
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
+            $role = (string)($_POST['role'] ?? 'etudiant');
+            $mot_de_passe = (string)($_POST['mot_de_passe'] ?? '');
+            $confirmer_mot_de_passe = (string)($_POST['confirmer_mot_de_passe'] ?? '');
             $cgu = !empty($_POST['cgu']);
 
             // Données spécifiques aux rôles
-            $filiereInput = trim(is_string($_POST['filiere'] ?? null) ? $_POST['filiere'] : '');
-            $autreFiliere = trim(is_string($_POST['autre_filiere'] ?? null) ? $_POST['autre_filiere'] : '');
-            $profFilieres = isset($_POST['prof_filieres']) && is_array($_POST['prof_filieres'])
-                ? array_values(array_filter($_POST['prof_filieres'], 'is_string'))
-                : [];
-            $modulesEnseignes = trim(is_string($_POST['modules_enseignes'] ?? null) ? $_POST['modules_enseignes'] : '');
+            $filiereInput = trim($_POST['filiere'] ?? '');
+            $autreFiliere = trim($_POST['autre_filiere'] ?? '');
+            $profFilieres = isset($_POST['prof_filieres']) && is_array($_POST['prof_filieres']) ? $_POST['prof_filieres'] : [];
+            $modulesEnseignes = trim($_POST['modules_enseignes'] ?? '');
 
             // Normalisation de la filière étudiante
             $filiereFinale = null;
@@ -174,36 +180,24 @@ class AuthController {
 
             if (empty($nom) || empty($prenom) || empty($email) || empty($mot_de_passe)) {
                 $error = "Tous les champs obligatoires doivent être renseignés.";
-                $registerStep = empty($nom) || empty($prenom) || empty($email) ? 1 : 3;
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "Veuillez saisir une adresse email valide.";
-                $registerStep = 1;
-            } elseif (!in_array($role, ['etudiant', 'professeur'], true)) {
-                $error = "Veuillez choisir un rôle valide.";
-                $registerStep = 1;
             } elseif (!$cgu) {
                 $error = "Vous devez accepter la charte d'utilisation et le règlement de l'école.";
-                $registerStep = 3;
             } elseif ($mot_de_passe !== $confirmer_mot_de_passe) {
                 $error = "Les deux mots de passe ne correspondent pas.";
-                $registerStep = 3;
             } elseif (strlen($mot_de_passe) < 8) {
                 $error = "Le mot de passe doit comporter au moins 8 caractères.";
-                $registerStep = 3;
             } elseif ($role === 'etudiant' && empty($filiereFinale)) {
                 $error = "Veuillez choisir ou renseigner votre filière d'études.";
-                $registerStep = 2;
             } elseif ($role === 'professeur' && empty($modulesEnseignes) && empty($profFilieres)) {
                 $error = "En tant que professeur, veuillez indiquer vos modules d'enseignement ou vos filières rattachées.";
-                $registerStep = 2;
             } else {
-                $registerStep = 3;
                 $userId = false;
                 $avatarUrl = null;
                 try {
                     if ($this->userModel->emailExists($email)) {
                         $error = "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse.";
-                        $registerStep = 1;
                     } else {
                         $avatarUrl = Avatar::storeUploadedFile($_FILES['avatar'] ?? []);
                         $userId = $this->userModel->register(
@@ -261,7 +255,6 @@ class AuthController {
                 } catch (InvalidArgumentException $exception) {
                     Avatar::removeStoredFile($avatarUrl);
                     $error = $exception->getMessage();
-                    $registerStep = 1;
                 } catch (PDOException $exception) {
                     Avatar::removeStoredFile($avatarUrl);
                     error_log('Inscription utilisateur impossible : ' . $exception->getMessage());
@@ -269,9 +262,6 @@ class AuthController {
                     $error = $databaseErrorCode === 1062
                         ? "Cette adresse email est déjà associée à un compte. Connectez-vous ou utilisez une autre adresse."
                         : "La création du compte est momentanément indisponible. Vérifiez les informations puis réessayez.";
-                    if ($databaseErrorCode === 1062) {
-                        $registerStep = 1;
-                    }
                     if ($databaseErrorCode !== 1062) {
                         http_response_code(503);
                     }
@@ -280,8 +270,15 @@ class AuthController {
                     error_log('Stockage de la photo de profil impossible : ' . $exception->getMessage());
                     http_response_code(503);
                     $error = "La photo de profil n'a pas pu être enregistrée. Réessayez dans quelques instants.";
-                    $registerStep = 1;
                 }
+            }
+        }
+
+        if ($error !== '') {
+            if (stripos($error, 'mot de passe') !== false || stripos($error, 'charte') !== false) {
+                $registerErrorStep = 3;
+            } elseif (stripos($error, 'filière') !== false || stripos($error, 'professeur') !== false) {
+                $registerErrorStep = 2;
             }
         }
 
@@ -309,12 +306,13 @@ class AuthController {
         $success = '';
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $email = trim($_POST['email'] ?? '');
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
 
-            if (empty($email)) {
+            if ($email === '') {
                 $error = "Veuillez saisir votre adresse email.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = "L'adresse email saisie n'est pas valide. Vérifiez son format puis réessayez.";
             } else {
-                $user = $this->userModel->findByEmail($email);
                 // Message sécurisé (ne divulgue pas si l'email existe ou non)
                 $success = "Si un compte est associé à cette adresse, un lien de réinitialisation vous a été envoyé.";
             }
@@ -336,7 +334,13 @@ class AuthController {
             $nouveau_mot_de_passe = $_POST['nouveau_mot_de_passe'] ?? '';
             $confirmer_mot_de_passe = $_POST['confirmer_mot_de_passe'] ?? '';
 
-            if (empty($nouveau_mot_de_passe) || strlen($nouveau_mot_de_passe) < 8) {
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = "L'adresse email saisie n'est pas valide.";
+            } elseif ($nouveau_mot_de_passe === '') {
+                $error = "Veuillez saisir un nouveau mot de passe.";
+            } elseif ($confirmer_mot_de_passe === '') {
+                $error = "Veuillez confirmer votre nouveau mot de passe.";
+            } elseif (strlen($nouveau_mot_de_passe) < 8) {
                 $error = "Le mot de passe doit comporter au moins 8 caractères.";
             } elseif ($nouveau_mot_de_passe !== $confirmer_mot_de_passe) {
                 $error = "Les deux mots de passe saisis ne sont pas identiques.";

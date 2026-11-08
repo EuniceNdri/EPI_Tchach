@@ -11,13 +11,9 @@
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/config/database.php';
     require_once ROOT_PATH . '/models/Notification.php';
-    require_once ROOT_PATH . '/models/Salon.php';
-    require_once ROOT_PATH . '/models/Social.php';
 } else {
     require_once dirname(__DIR__) . '/config/database.php';
     require_once dirname(__DIR__) . '/models/Notification.php';
-    require_once dirname(__DIR__) . '/models/Salon.php';
-    require_once dirname(__DIR__) . '/models/Social.php';
 }
 
 class NotificationController {
@@ -65,20 +61,14 @@ class NotificationController {
      * Affiche la liste des notifications ou renvoie le JSON
      */
     public function index(): void {
-        global $baseUrl, $base, $assetBase, $asset, $pdo;
+        global $baseUrl, $base, $assetBase, $asset;
+        require_once ROOT_PATH . '/models/RoleAccess.php';
 
         $userId = (int)$_SESSION['user_id'];
         $notifications = $this->notificationModel->getUserNotifications($userId, 50);
         $unreadCount = $this->notificationModel->countUnread($userId);
-        $unreadMessagesCount = $this->pdo instanceof PDO
-            ? (new Social($this->pdo))->getUnreadMessageCount($userId)
-            : 0;
-        $composerZones = $pdo instanceof PDO
-            ? (new Salon($pdo))->getAccessibleZones(
-                $userId,
-                strtolower((string)($_SESSION['user_role'] ?? 'etudiant'))
-            )
-            : [];
+        $canModerateReports = $this->pdo instanceof PDO
+            && (RoleAccess::isAdministrator($this->pdo, $userId) || RoleAccess::isClassDelegate($this->pdo, $userId));
 
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);

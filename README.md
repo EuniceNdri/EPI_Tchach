@@ -258,9 +258,15 @@ mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_filieres
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_forum_features.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261105_add_salon_interactions.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261107_add_landing_management.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261108_add_publication_tags_mentions.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261108_add_attachment_media_metadata.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261109_align_school_roles.sql
+mysql -u nom_utilisateur -p nom_base < database/migrations/20261110_enforce_delegation_assignments.sql
 ```
 
-Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, puis les champs d'images et de slogans des filières ainsi que les réglages de la landing administrables. Les migrations vérifient les éléments déjà présents. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, les réglages administrables de la landing, les tags et mentions, la classification image/document et l'ordre des pièces jointes, puis alignent les rôles de compte et les responsabilités par zone. La migration des rôles convertit les anciens comptes `moderateur` et `delegue_general` en comptes étudiants. La migration `20261110_enforce_delegation_assignments.sql` applique ensuite les règles d’attribution : un seul Délégué Général, un seul Délégué de classe par filière, un Délégué de classe étudiant rattaché à sa propre filière et automatiquement membre de la zone Délégation. Si plusieurs Délégués Généraux existent lors de cette migration, le compte ayant l’identifiant le plus élevé est conservé. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+
+Les responsabilités ne sont modifiables que depuis l’administration. Les rôles de compte restent Étudiant, Professeur et Administrateur; Délégué Général et Délégué de classe sont des responsabilités d’élèves dans `appartenance_zones`. Le Délégué Général voit l’activité globale sans pouvoir modérer. Un Délégué de classe ne peut modérer que les signalements de sa filière.
 
 ---
 
@@ -286,12 +292,20 @@ documents Office, fichiers texte, archives ZIP et images courantes.
 
 Chaque fichier est contrôlé côté serveur (erreur d'upload, extension, type MIME réel
 et taille), renommé avec un identifiant aléatoire, puis enregistré dans
-`public/uploads/`. La table `pieces_jointes` conserve le nom original, le type,
-la taille et le lien vers la publication ou le commentaire concerné.
+`../epi-tchach-storage/attachments/`, hors du dépôt et du dossier public. Cette
+destination peut être remplacée avec la variable d'environnement
+`EPI_PRIVATE_STORAGE`. La table `pieces_jointes` conserve le nom original, le type,
+la taille, la classification image/document, l'ordre d'affichage et le lien vers
+la publication ou le commentaire concerné. Les photos de profil restent gérées
+par `utilisateurs.avatar_url` et sont recadrées/redimensionnées en 400 × 400 pixels.
+Le traitement des photos de profil nécessite l'extension PHP GD.
 
-Les fichiers ne sont pas servis directement : le téléchargement passe par la route
-contrôlée `attachment/download/{id}` et le dossier d'upload interdit l'exécution de
-scripts. Dans le Salon, la rubrique « Documents partagés » classe les pièces jointes
+Les nouvelles pièces jointes ne sont pas servies directement : le téléchargement
+passe par la route contrôlée `attachment/download/{id}`. Les anciennes pièces
+jointes encore présentes dans `public/uploads/` sont bloquées en accès direct sous
+Apache et restent téléchargeables après contrôle d'accès. Configurez le serveur de
+production pour que le dossier de stockage privé ne soit pas exposé comme racine web.
+Dans le Salon, la rubrique « Documents partagés » classe les pièces jointes
 selon leur salon/catégorie et permet d'ouvrir les PDF en aperçu ou de les télécharger.
 
 Les discussions ouvrent un panneau latéral pour lire et écrire des commentaires;

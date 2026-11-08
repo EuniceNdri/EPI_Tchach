@@ -109,8 +109,8 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
             </div>
             <div>
-              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Règles d'intervention des modérateurs</h3>
-              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">4 décisions disponibles : avertir l'auteur, bloquer la publication, supprimer le contenu (avec motif) ou rejeter le signalement.</p>
+              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Traitement des signalements</h3>
+              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">L’administration traite les signalements de toute l’école. Le délégué de classe ne voit et ne traite que ceux de sa zone.</p>
             </div>
           </div>
           <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte</a>
@@ -243,7 +243,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               <thead>
                 <tr>
                   <th>Date & Heure</th>
-                  <th>Modérateur</th>
+                  <th>Responsable</th>
                   <th>Action Réalisée</th>
                   <th>Cible</th>
                   <th>Motif</th>
@@ -280,7 +280,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
     </main>
   </div>
 
-  <!-- Modale Interactive de Prise de Décision Modérateur -->
+  <!-- Modale de décision sur un signalement -->
   <div id="moderationDecisionModal" class="admin-modal-overlay" style="display:none;">
     <div class="admin-modal-container" style="max-width:540px; padding:1.75rem;">
       <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.25rem;">

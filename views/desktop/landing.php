@@ -465,7 +465,7 @@ $filiereImages = [
               <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="faq-answer">
-              <p>Absolument. Des modérateurs, délégués et enseignants veillent au respect de la charte de bonne conduite pour garantir un espace bienveillant, constructif et sécurisé pour chacun.</p>
+              <p>Absolument. L’administration et les délégués de classe veillent au respect de la charte de bonne conduite pour garantir un espace bienveillant, constructif et sécurisé pour chacun.</p>
             </div>
           </div>
         </div>
