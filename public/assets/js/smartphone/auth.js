@@ -29,10 +29,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextButton = registerForm.querySelector("[data-register-next]");
     const backButton = registerForm.querySelector("[data-register-back]");
     const submitButton = registerForm.querySelector("[data-register-submit]");
+    const roleField = registerForm.querySelector("#role");
+    const modulesField = registerForm.querySelector("#modules_enseignes");
+    const professorFiliereFields = Array.from(
+      registerForm.querySelectorAll('input[name="prof_filieres[]"]')
+    );
+    const passwordField = registerForm.querySelector("#mot_de_passe");
+    const passwordConfirmationField = registerForm.querySelector("#confirmer_mot_de_passe");
 
     if (panels.length && nextButton && backButton && submitButton) {
       registerForm.classList.add("is-register-staged");
       registerForm.noValidate = true;
+
+      const updateProfileValidity = () => {
+        if (!modulesField) return;
+        const hasProfessorProfile = modulesField.value.trim() !== ""
+          || professorFiliereFields.some((field) => field.checked);
+        modulesField.setCustomValidity(
+          roleField?.value === "professeur" && !hasProfessorProfile
+            ? "Indiquez au moins un module ou choisissez une filière."
+            : ""
+        );
+      };
+
+      const updatePasswordValidity = () => {
+        if (!passwordField || !passwordConfirmationField) return;
+        passwordConfirmationField.setCustomValidity(
+          passwordConfirmationField.value !== passwordField.value
+            ? "Les deux mots de passe ne correspondent pas."
+            : ""
+        );
+      };
 
       const getInvalidField = (panel) => Array.from(
         panel.querySelectorAll("input, select, textarea")
@@ -88,6 +115,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const initialStep = Number(registerForm.dataset.initialStep);
       showStep(Number.isInteger(initialStep) && initialStep >= 1 && initialStep <= panels.length ? initialStep : 1);
+      updateProfileValidity();
+      updatePasswordValidity();
+      registerForm.addEventListener("input", () => {
+        updateProfileValidity();
+        updatePasswordValidity();
+      });
+      registerForm.addEventListener("change", updateProfileValidity);
     }
   }
 

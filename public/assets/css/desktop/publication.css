@@ -1,0 +1,447 @@
+body.publication-detail-page {
+  min-height: 100vh;
+}
+
+body.publication-detail-page .epi-topbar-inner {
+  box-sizing: border-box;
+}
+
+.publication-detail-avatar,
+.publication-comment-input-avatar,
+.publication-comment-avatar {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--community-raised);
+  color: var(--community-green);
+  font-weight: 800;
+}
+
+.publication-detail-avatar img,
+.publication-comment-input-avatar img,
+.publication-comment-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publication-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 780px) minmax(220px, 290px);
+  align-items: start;
+  justify-content: center;
+  gap: 1.25rem;
+  max-width: 1160px;
+  margin: 2rem auto;
+  padding: 0 1.25rem 3rem;
+}
+
+.publication-detail-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.publication-full-card {
+  cursor: auto;
+  transform: none !important;
+}
+
+.publication-detail-author {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.publication-detail-avatar {
+  width: 42px;
+  height: 42px;
+}
+
+.publication-detail-author > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.publication-detail-author strong {
+  font-size: 0.87rem;
+}
+
+.publication-detail-author span {
+  color: var(--community-muted);
+  font-size: 0.76rem;
+}
+
+.publication-detail-title {
+  font-size: clamp(1.35rem, 3vw, 1.8rem) !important;
+  line-height: 1.3 !important;
+}
+
+.publication-detail-body {
+  white-space: normal;
+  font-size: 1rem !important;
+  line-height: 1.75 !important;
+}
+
+.publication-detail-actions {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--community-line);
+}
+
+.publication-comment-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 0.75rem;
+  border-radius: var(--community-radius-pill);
+  background: var(--community-raised);
+  color: var(--community-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.publication-file-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 0.86rem;
+}
+
+.publication-file-details span {
+  color: var(--community-muted);
+  font-size: 0.75rem;
+}
+
+.publication-detail-poll {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.publication-detail-poll fieldset {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0;
+  border: 0;
+}
+
+.publication-comments-section,
+.publication-sidebar-card {
+  padding: 1.2rem;
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-lg);
+  background: var(--community-surface);
+}
+
+.publication-comments-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.publication-comments-heading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.publication-comments-heading h2 span {
+  margin-left: 0.25rem;
+  color: var(--community-green);
+}
+
+.publication-comments-heading > span {
+  color: var(--community-muted);
+  font-size: 0.78rem;
+}
+
+.publication-comment-form {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--community-line);
+}
+
+.publication-comment-input-avatar,
+.publication-comment-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.publication-comment-editor {
+  box-sizing: border-box;
+  min-width: 0;
+  flex: 1;
+}
+
+body.publication-detail-page .publication-comment-editor textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  height: 96px;
+  resize: vertical;
+}
+
+.publication-comment-editor > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+}
+
+.discussion-form-feedback {
+  color: #ef9b83;
+  font-size: 0.8rem;
+}
+
+.publication-comment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.publication-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--community-line);
+}
+
+.publication-comment:last-child {
+  border-bottom: 0;
+}
+
+.publication-comment.is-solution {
+  margin: 0 -0.5rem;
+  padding: 1rem 0.5rem;
+  border-radius: var(--community-radius-md);
+  background: rgba(142, 211, 170, 0.06);
+}
+
+.publication-comment.is-reply {
+  margin-left: 3rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--community-line);
+}
+
+.publication-comment-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.publication-comment-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+}
+
+.publication-comment-meta strong {
+  font-size: 0.85rem;
+}
+
+.publication-comment-meta time {
+  color: var(--community-muted);
+  font-size: 0.74rem;
+}
+
+.publication-comment-content > p {
+  margin: 0.45rem 0 0.65rem;
+  color: rgba(232, 239, 235, 0.92);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.publication-comment-actions .epi-pill-btn,
+.publication-comment-attachment-file {
+  min-height: 30px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.publication-reply-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.publication-reply-form[hidden] {
+  display: none;
+}
+
+.publication-reply-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+}
+
+.publication-reply-form > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.publication-reply-form .discussion-form-feedback {
+  margin-right: auto;
+  color: var(--community-muted);
+  font-size: 0.8rem;
+}
+
+.publication-comment-attachment-image img {
+  display: block;
+  max-width: min(100%, 440px);
+  max-height: 360px;
+  margin: 0.5rem 0;
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-md);
+  object-fit: contain;
+}
+
+.publication-no-comments {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.75rem 1rem;
+  text-align: center;
+}
+
+.publication-no-comments > span {
+  margin-bottom: 0.45rem;
+  font-size: 1.5rem;
+}
+
+.publication-no-comments strong {
+  font-size: 0.9rem;
+}
+
+.publication-no-comments p,
+.publication-comments-closed {
+  margin: 0.35rem 0 0;
+  color: var(--community-muted);
+  font-size: 0.82rem;
+}
+
+.publication-detail-sidebar {
+  position: sticky;
+  top: 82px;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.publication-sidebar-kicker {
+  color: var(--community-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.publication-sidebar-card h2 {
+  margin: 0.45rem 0;
+  font-size: 1.1rem;
+}
+
+.publication-sidebar-card p {
+  margin: 0 0 0.85rem;
+  color: var(--community-muted);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.publication-sidebar-guidelines strong {
+  font-size: 0.85rem;
+}
+
+.publication-sidebar-guidelines p {
+  margin: 0.4rem 0 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1100px) {
+  .publication-detail-layout {
+    grid-template-columns: minmax(0, 780px);
+    max-width: 820px;
+    margin-top: 1.25rem;
+  }
+
+  .publication-detail-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .publication-detail-layout {
+    padding: 0 0.65rem 2rem;
+  }
+
+  .publication-comment.is-reply {
+    margin-left: 1rem;
+    padding-left: 0.7rem;
+  }
+
+  body.publication-detail-page .epi-topbar-left .epi-community-pill,
+  body.publication-detail-page .epi-topbar-center,
+  body.publication-detail-page .epi-topbar-right > .epi-icon-action:first-child,
+  body.publication-detail-page .epi-profile-info,
+  body.publication-detail-page .epi-profile-pill > svg {
+    display: none;
+  }
+
+  body.publication-detail-page .epi-topbar-inner {
+    gap: 0.4rem;
+    padding: 0 0.65rem;
+  }
+
+  body.publication-detail-page .mobile-back-button {
+    display: inline-flex;
+  }
+
+  body.publication-detail-page .epi-topbar-right {
+    gap: 0.25rem;
+  }
+
+  body.publication-detail-page .epi-create-post-btn {
+    padding: 0.4rem 0.65rem;
+  }
+
+  .publication-comments-section,
+  .publication-full-card {
+    padding: 0.9rem;
+  }
+
+  .publication-detail-actions .publication-save-form {
+    display: inline-flex;
+  }
+
+  .publication-comments-heading > span {
+    display: none;
+  }
+}

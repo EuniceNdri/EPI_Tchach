@@ -14,10 +14,12 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Salon.php';
     require_once ROOT_PATH . '/models/User.php';
     require_once ROOT_PATH . '/models/Notification.php';
+    require_once ROOT_PATH . '/models/Social.php';
 } else {
     require_once dirname(__DIR__) . '/models/Salon.php';
     require_once dirname(__DIR__) . '/models/User.php';
     require_once dirname(__DIR__) . '/models/Notification.php';
+    require_once dirname(__DIR__) . '/models/Social.php';
 }
 
 class SalonController {
@@ -130,9 +132,8 @@ class SalonController {
                 $selectedZone === null ? null : (int)$selectedZone['id']
             )
             : [];
-        $popularPosts = $this->salonModel->getPopularPublications($userId, $userRole, 5);
-        $onlineUsers = $this->salonModel->getOnlineUsers();
         $unreadCount = (new Notification($this->pdo))->countUnread($userId);
+        $unreadMessagesCount = (new Social($this->pdo))->getUnreadMessageCount($userId);
         $flashSuccess = $_SESSION['flash_success'] ?? '';
         $flashError = $_SESSION['flash_error'] ?? '';
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
@@ -189,6 +190,13 @@ class SalonController {
                 : 'saved';
             header('Location: ' . url('profile') . '?tab=' . rawurlencode($tab));
             exit;
+        }
+        if ($returnPage === 'publication') {
+            $publicationId = max(0, (int)($_POST['return_publication_id'] ?? 0));
+            if ($publicationId > 0) {
+                header('Location: ' . url('publication/' . $publicationId));
+                exit;
+            }
         }
 
         $view = in_array($_POST['return_view'] ?? '', ['latest', 'popular', 'saved'], true)

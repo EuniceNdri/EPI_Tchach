@@ -191,6 +191,15 @@ if (preg_match('#^attachment/download/([1-9][0-9]*)$#', $fullRoute, $attachmentM
     require_once ROOT_PATH . '/controllers/AttachmentController.php';
     (new AttachmentController())->download((int)$attachmentMatch[1]);
 }
+if (preg_match('#^messages/attachment/([1-9][0-9]*)$#', $fullRoute, $messageAttachmentMatch)) {
+    require_once ROOT_PATH . '/controllers/SocialController.php';
+    (new SocialController())->messageAttachment((int)$messageAttachmentMatch[1]);
+}
+if (preg_match('#^publication/([1-9][0-9]*)$#', $fullRoute, $publicationMatch)) {
+    require_once ROOT_PATH . '/controllers/PublicationController.php';
+    (new PublicationController())->show((int)$publicationMatch[1]);
+    exit;
+}
 
 switch ($fullRoute) {
 
@@ -277,6 +286,11 @@ switch ($fullRoute) {
     case 'publication/discussion':
         require_once ROOT_PATH . '/controllers/PublicationController.php';
         (new PublicationController())->discussion();
+        break;
+
+    case 'publication/live-stats':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->liveStats();
         break;
 
     case 'publication/vote':
@@ -369,6 +383,30 @@ switch ($fullRoute) {
         // La modification s'effectue directement en popup modale sur la page profil
         require_once ROOT_PATH . '/controllers/ProfileController.php';
         (new ProfileController())->index();
+        break;
+
+    // ---------------------------------------------------------
+    // AMIS & MESSAGERIE PRIVÉE
+    // ---------------------------------------------------------
+    case 'messages':
+    case 'messagerie':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->messages();
+        break;
+
+    case 'friends/action':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->friendAction();
+        break;
+
+    case 'messages/send':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->sendMessage();
+        break;
+
+    case 'messages/delete':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->deleteMessage();
         break;
 
     // ---------------------------------------------------------

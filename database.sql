@@ -125,6 +125,7 @@ CREATE TABLE commentaires (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     publication_id      INT UNSIGNED NOT NULL,
     utilisateur_id      INT UNSIGNED NOT NULL,
+    parent_comment_id   INT UNSIGNED DEFAULT NULL,
     contenu             TEXT NOT NULL,
     est_solution        BOOLEAN NOT NULL DEFAULT FALSE,
     est_epingle         BOOLEAN NOT NULL DEFAULT FALSE,
@@ -132,8 +133,10 @@ CREATE TABLE commentaires (
     nb_likes            INT UNSIGNED NOT NULL DEFAULT 0,
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification   DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_commentaires_parent (parent_comment_id),
     FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
-    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_comment_id) REFERENCES commentaires(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -254,6 +257,62 @@ CREATE TABLE notifications (
     lu                  BOOLEAN NOT NULL DEFAULT FALSE,
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 14.5 AMIS & MESSAGES PRIVÉS
+-- ============================================================
+CREATE TABLE friendships (
+    user_one_id INT UNSIGNED NOT NULL,
+    user_two_id INT UNSIGNED NOT NULL,
+    requested_by INT UNSIGNED NOT NULL,
+    status ENUM('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_one_id, user_two_id),
+    INDEX idx_friendships_requested_by_status (requested_by, status),
+    CONSTRAINT chk_friendships_user_order CHECK (user_one_id < user_two_id),
+    CONSTRAINT chk_friendships_requester_in_pair CHECK (requested_by IN (user_one_id, user_two_id)),
+    FOREIGN KEY (user_one_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_two_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE private_messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT UNSIGNED NOT NULL,
+    recipient_id INT UNSIGNED NOT NULL,
+    contenu TEXT NOT NULL,
+    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME DEFAULT NULL,
+    deleted_for_everyone_at DATETIME DEFAULT NULL,
+    INDEX idx_private_messages_thread (sender_id, recipient_id, date_creation, id),
+    INDEX idx_private_messages_unread (recipient_id, sender_id, read_at),
+    FOREIGN KEY (sender_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    CHECK (sender_id <> recipient_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE private_message_deletions (
+    message_id BIGINT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
+    deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (message_id, user_id),
+    INDEX idx_private_message_deletions_user (user_id, message_id),
+    FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE private_message_attachments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    message_id BIGINT UNSIGNED NOT NULL,
+    nom_fichier VARCHAR(255) NOT NULL,
+    chemin_fichier VARCHAR(255) NOT NULL,
+    type_mime VARCHAR(127) NOT NULL,
+    taille BIGINT UNSIGNED NOT NULL,
+    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_private_message_attachments_message (message_id),
+    FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================

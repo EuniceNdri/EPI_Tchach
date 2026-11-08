@@ -21,20 +21,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Mettre à jour l'état actif sur tous les déclencheurs
       tabButtons.forEach((b) => {
-        if (b.getAttribute("data-tab") === targetId) {
-          b.classList.add("active");
-        } else {
-          b.classList.remove("active");
-        }
+        const isActive = b.getAttribute("data-tab") === targetId;
+        b.classList.toggle("active", isActive);
+        b.classList.toggle("is-active", isActive);
       });
 
       // Basculer l'affichage du contenu sans rechargement
       tabContents.forEach((c) => {
-        if (c.id === targetId) {
-          c.classList.add("active");
+        const isActive = c.id === targetId;
+        c.classList.toggle("active", isActive);
+        c.classList.toggle("is-active", isActive);
+        if (isActive) {
           c.style.animation = "fadeInTab 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
-        } else {
-          c.classList.remove("active");
         }
       });
 
@@ -81,6 +79,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (typeof e.stopPropagation === "function") e.stopPropagation();
     }
     if (!editModal) return;
+    editModal.hidden = false;
+    editModal.removeAttribute("hidden");
     editModal.classList.add("show");
     editModal.style.display = "flex";
     editModal.setAttribute("aria-hidden", "false");
@@ -94,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     editModal.classList.remove("show");
     editModal.style.display = "none";
+    editModal.hidden = true;
     editModal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   };
@@ -135,14 +136,148 @@ document.addEventListener("DOMContentLoaded", () => {
   if (profileEditForm) {
     const avatarInput = profileEditForm.querySelector("[data-profile-avatar-input]");
     const avatarPreview = document.getElementById("editAvatarPreview");
+    const cropModal = document.getElementById("avatarCropModal");
+    const cropViewport = document.getElementById("avatarCropViewport");
+    const cropImage = document.getElementById("avatarCropImage");
+    const cropZoom = document.getElementById("avatarCropZoom");
+    const applyCropButton = document.getElementById("applyAvatarCropBtn");
+    let cropImageUrl = null;
     let avatarPreviewUrl = null;
+    let acceptedAvatarFile = null;
+    let cropDimensions = null;
+    let cropOffset = { x: 0, y: 0 };
+    let dragPosition = null;
+
+    const setCropImagePosition = () => {
+      if (!cropDimensions || !cropImage || !cropViewport) return;
+      const { width, height, baseScale } = cropDimensions;
+      const scale = baseScale * Number(cropZoom?.value || 1);
+      const imageWidth = width * scale;
+      const imageHeight = height * scale;
+      const viewportSize = cropViewport.clientWidth;
+      cropOffset.x = Math.min(0, Math.max(viewportSize - imageWidth, cropOffset.x));
+      cropOffset.y = Math.min(0, Math.max(viewportSize - imageHeight, cropOffset.y));
+      cropImage.style.width = `${imageWidth}px`;
+      cropImage.style.height = `${imageHeight}px`;
+      cropImage.style.left = `${cropOffset.x}px`;
+      cropImage.style.top = `${cropOffset.y}px`;
+    };
+
+    const closeCropModal = (restorePreviousFile) => {
+      if (!cropModal) return;
+      cropModal.classList.remove("show");
+      cropModal.hidden = true;
+      cropModal.setAttribute("aria-hidden", "true");
+      if (restorePreviousFile && avatarInput) {
+        const transfer = new DataTransfer();
+        if (acceptedAvatarFile) transfer.items.add(acceptedAvatarFile);
+        avatarInput.files = transfer.files;
+      }
+      if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+      cropImageUrl = null;
+      cropImage?.removeAttribute("src");
+    };
+
     avatarInput?.addEventListener("change", () => {
-      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
       const file = avatarInput.files?.[0];
-      if (!file || !avatarPreview) return;
-      avatarPreviewUrl = URL.createObjectURL(file);
-      avatarPreview.src = avatarPreviewUrl;
-      avatarPreview.hidden = false;
+      if (!file || !cropModal || !cropImage || !cropViewport) return;
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        window.showToast("Choisissez une image JPG, PNG ou WEBP.", "error");
+        closeCropModal(true);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        window.showToast("La photo de profil doit peser au maximum 5 Mo.", "error");
+        closeCropModal(true);
+        return;
+      }
+
+      if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+      cropImageUrl = URL.createObjectURL(file);
+      cropModal.hidden = false;
+      cropModal.classList.add("show");
+      cropModal.setAttribute("aria-hidden", "false");
+      cropImage.onload = () => {
+        const viewportSize = cropViewport.clientWidth;
+        const baseScale = Math.max(viewportSize / cropImage.naturalWidth, viewportSize / cropImage.naturalHeight);
+        cropDimensions = { width: cropImage.naturalWidth, height: cropImage.naturalHeight, baseScale };
+        cropOffset = {
+          x: (viewportSize - cropImage.naturalWidth * baseScale) / 2,
+          y: (viewportSize - cropImage.naturalHeight * baseScale) / 2,
+        };
+        if (cropZoom) cropZoom.value = "1";
+        setCropImagePosition();
+        document.getElementById("cancelAvatarCropBtn")?.focus();
+      };
+      cropImage.onerror = () => {
+        closeCropModal(true);
+        window.showToast("Cette image ne peut pas être ouverte. Essayez un autre fichier.", "error");
+      };
+      cropImage.src = cropImageUrl;
+    });
+
+    cropZoom?.addEventListener("input", setCropImagePosition);
+    cropViewport?.addEventListener("pointerdown", (event) => {
+      if (!cropDimensions) return;
+      dragPosition = { x: event.clientX - cropOffset.x, y: event.clientY - cropOffset.y };
+      cropViewport.classList.add("is-dragging");
+      cropViewport.setPointerCapture(event.pointerId);
+    });
+    cropViewport?.addEventListener("pointermove", (event) => {
+      if (!dragPosition) return;
+      cropOffset = { x: event.clientX - dragPosition.x, y: event.clientY - dragPosition.y };
+      setCropImagePosition();
+    });
+    const stopCropDrag = () => {
+      dragPosition = null;
+      cropViewport?.classList.remove("is-dragging");
+    };
+    cropViewport?.addEventListener("pointerup", stopCropDrag);
+    cropViewport?.addEventListener("pointercancel", stopCropDrag);
+    document.getElementById("cancelAvatarCropBtn")?.addEventListener("click", () => closeCropModal(true));
+    document.getElementById("closeAvatarCropBtn")?.addEventListener("click", () => closeCropModal(true));
+    cropModal?.addEventListener("click", (event) => {
+      if (event.target === cropModal) closeCropModal(true);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && cropModal?.classList.contains("show")) {
+        closeCropModal(true);
+      }
+    });
+
+    applyCropButton?.addEventListener("click", () => {
+      if (!cropDimensions || !cropImage || !avatarInput || !avatarPreview || !cropViewport) return;
+      const outputSize = 512;
+      const scale = cropDimensions.baseScale * Number(cropZoom?.value || 1);
+      const cropSize = cropViewport.clientWidth / scale;
+      const sourceX = -cropOffset.x / scale;
+      const sourceY = -cropOffset.y / scale;
+      const canvas = document.createElement("canvas");
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        window.showToast("Le recadrage de cette photo est impossible sur cet appareil.", "error");
+        return;
+      }
+      context.drawImage(cropImage, sourceX, sourceY, cropSize, cropSize, 0, 0, outputSize, outputSize);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          window.showToast("La photo recadrée n’a pas pu être préparée.", "error");
+          return;
+        }
+        acceptedAvatarFile = new File([blob], "avatar.jpg", { type: "image/jpeg", lastModified: Date.now() });
+        const transfer = new DataTransfer();
+        transfer.items.add(acceptedAvatarFile);
+        avatarInput.files = transfer.files;
+        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+        avatarPreviewUrl = URL.createObjectURL(acceptedAvatarFile);
+        avatarPreview.src = avatarPreviewUrl;
+        avatarPreview.hidden = false;
+        const initials = avatarPreview.parentElement?.querySelector(".profile-dynamic-initials");
+        if (initials) initials.hidden = true;
+        closeCropModal(false);
+      }, "image/jpeg", 0.92);
     });
 
     profileEditForm.addEventListener("submit", async (e) => {
@@ -192,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
             el.textContent = newInitials;
           });
 
-          document.querySelectorAll(".profile-avatar-image").forEach((image) => {
+          document.querySelectorAll(".profile-avatar-image, .epi-avatar-image").forEach((image) => {
             if (data.user.avatar_url) {
               image.src = data.user.avatar_url;
               image.hidden = false;
@@ -200,6 +335,8 @@ document.addEventListener("DOMContentLoaded", () => {
               image.removeAttribute("src");
               image.hidden = true;
             }
+            const fallback = image.parentElement?.querySelector(".profile-dynamic-initials, .epi-avatar-fallback");
+            if (fallback) fallback.hidden = Boolean(data.user.avatar_url);
           });
 
           // Mettre à jour la biographie

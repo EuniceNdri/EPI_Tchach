@@ -13,10 +13,13 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  
+
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">

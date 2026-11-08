@@ -12,11 +12,15 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/ModerationService.php';
     require_once ROOT_PATH . '/models/Attachment.php';
     require_once ROOT_PATH . '/models/Salon.php';
+    require_once ROOT_PATH . '/models/Social.php';
+    require_once ROOT_PATH . '/models/Notification.php';
     require_once ROOT_PATH . '/config/database.php';
 } else {
     require_once dirname(__DIR__) . '/models/ModerationService.php';
     require_once dirname(__DIR__) . '/models/Attachment.php';
     require_once dirname(__DIR__) . '/models/Salon.php';
+    require_once dirname(__DIR__) . '/models/Social.php';
+    require_once dirname(__DIR__) . '/models/Notification.php';
     require_once dirname(__DIR__) . '/config/database.php';
 }
 
@@ -228,6 +232,7 @@ class PublicationController {
         $userId = (int)$_SESSION['user_id'];
         $publicationId = (int)($_POST['publication_id'] ?? 0);
         $contenu = trim($_POST['contenu'] ?? '');
+        $parentCommentId = filter_var($_POST['parent_comment_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         if (!$this->pdo || $publicationId <= 0) {
             $this->respondError('Publication introuvable.');
             return;
@@ -247,11 +252,34 @@ class PublicationController {
             return;
         }
         $userRole = strtolower(trim($storedRole));
-        if ($publication['type_publication'] !== 'discussion'
-            || (bool)$publication['commentaires_fermes']
+        if ((bool)$publication['commentaires_fermes']
             || (bool)$publication['est_signale']
             || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
             $this->respondError('Les commentaires ne sont pas disponibles pour cette publication.');
+            return;
+        }
+
+        if ($parentCommentId !== false && $parentCommentId !== null) {
+            $parentStatement = $this->pdo->prepare(
+                'SELECT id, parent_comment_id
+                 FROM commentaires
+                 WHERE id = :comment_id AND publication_id = :publication_id AND est_signale = 0
+                 LIMIT 1'
+            );
+            $parentStatement->execute([
+                'comment_id' => $parentCommentId,
+                'publication_id' => $publicationId,
+            ]);
+            $parent = $parentStatement->fetch(PDO::FETCH_ASSOC);
+            if (!$parent) {
+                $this->respondError('Le commentaire auquel vous répondez est introuvable.');
+                return;
+            }
+            $parentCommentId = $parent['parent_comment_id'] !== null
+                ? (int)$parent['parent_comment_id']
+                : (int)$parent['id'];
+        } elseif (array_key_exists('parent_comment_id', $_POST) && $_POST['parent_comment_id'] !== '') {
+            $this->respondError('Le commentaire auquel vous répondez est invalide.');
             return;
         }
 
@@ -288,13 +316,14 @@ class PublicationController {
         try {
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("
-            INSERT INTO commentaires (publication_id, utilisateur_id, contenu, est_signale, date_creation)
-            VALUES (:pub_id, :user_id, :contenu, :est_signale, NOW())
+            INSERT INTO commentaires (publication_id, utilisateur_id, parent_comment_id, contenu, est_signale, date_creation)
+            VALUES (:pub_id, :user_id, :parent_comment_id, :contenu, :est_signale, NOW())
             ");
 
             $stmt->execute([
             'pub_id'      => $publicationId,
             'user_id'     => $userId,
+            'parent_comment_id' => $parentCommentId ?: null,
             'contenu'     => $contenuFinal,
             'est_signale' => $estSignale
             ]);
@@ -318,6 +347,147 @@ class PublicationController {
             }
             $this->respondError("Le commentaire n'a pas pu être enregistré.");
         }
+    }
+
+    public function liveStats(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store, private');
+
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Connexion requise.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (!$this->pdo) {
+            http_response_code(503);
+            echo json_encode(['success' => false, 'message' => 'Base de données indisponible.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $publicationIds = $this->parseLiveIds($_GET['ids'] ?? '');
+        $commentIds = $this->parseLiveIds($_GET['comment_ids'] ?? '');
+        if ($publicationIds === [] || count($publicationIds) > 50 || count($commentIds) > 200) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Liste de publications invalide.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $roleStatement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = ? LIMIT 1');
+        $roleStatement->execute([$userId]);
+        $storedRole = $roleStatement->fetchColumn();
+        if (!is_string($storedRole) || $storedRole === '') {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Compte utilisateur introuvable.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        $userRole = strtolower(trim($storedRole));
+        $placeholders = implode(',', array_fill(0, count($publicationIds), '?'));
+        $publicationStatement = $this->pdo->prepare(
+            "SELECT id, categorie_id, type_publication, est_signale
+             FROM publications WHERE id IN ({$placeholders})"
+        );
+        $publicationStatement->execute($publicationIds);
+        $visiblePublicationIds = [];
+        foreach ($publicationStatement->fetchAll(PDO::FETCH_ASSOC) as $publication) {
+            if (!(bool)$publication['est_signale']
+                && $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+                $visiblePublicationIds[] = (int)$publication['id'];
+            }
+        }
+        if ($visiblePublicationIds === []) {
+            echo json_encode(['success' => true, 'publications' => [], 'comments' => []], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $visiblePlaceholders = implode(',', array_fill(0, count($visiblePublicationIds), '?'));
+        $statsStatement = $this->pdo->prepare(
+            "SELECT publication.id,
+                    (SELECT COUNT(*) FROM reactions reaction
+                     WHERE reaction.type_cible = 'publication'
+                       AND reaction.cible_id = publication.id
+                       AND reaction.type_reaction = 'like') AS likes_count,
+                    EXISTS (
+                        SELECT 1 FROM reactions user_reaction
+                        WHERE user_reaction.type_cible = 'publication'
+                          AND user_reaction.cible_id = publication.id
+                          AND user_reaction.type_reaction = 'like'
+                          AND user_reaction.utilisateur_id = ?
+                    ) AS user_liked,
+                    (SELECT COUNT(*) FROM commentaires comment
+                     WHERE comment.publication_id = publication.id AND comment.est_signale = 0) AS comments_count
+             FROM publications publication
+             WHERE publication.id IN ({$visiblePlaceholders})"
+        );
+        $statsStatement->execute(array_merge([$userId], $visiblePublicationIds));
+        $publicationStats = [];
+        foreach ($statsStatement->fetchAll(PDO::FETCH_ASSOC) as $stats) {
+            $publicationStats[(int)$stats['id']] = [
+                'likes_count' => (int)$stats['likes_count'],
+                'user_liked' => (bool)$stats['user_liked'],
+                'comments_count' => (int)$stats['comments_count'],
+            ];
+        }
+
+        $commentStats = [];
+        if ($commentIds !== []) {
+            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
+            $commentStatement = $this->pdo->prepare(
+                "SELECT comment.id,
+                        COUNT(reaction.id) AS likes_count,
+                        MAX(reaction.utilisateur_id = ?) AS user_liked
+                 FROM commentaires comment
+                 JOIN publications publication ON publication.id = comment.publication_id
+                 LEFT JOIN reactions reaction
+                   ON reaction.type_cible = 'commentaire'
+                  AND reaction.cible_id = comment.id
+                  AND reaction.type_reaction = 'like'
+                 WHERE comment.id IN ({$commentPlaceholders})
+                   AND publication.id IN ({$visiblePlaceholders})
+                   AND comment.est_signale = 0
+                 GROUP BY comment.id"
+            );
+            $commentStatement->execute(array_merge([$userId], $commentIds, $visiblePublicationIds));
+            foreach ($commentStatement->fetchAll(PDO::FETCH_ASSOC) as $stats) {
+                $commentStats[(int)$stats['id']] = [
+                    'likes_count' => (int)$stats['likes_count'],
+                    'user_liked' => (bool)$stats['user_liked'],
+                ];
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'publications' => $publicationStats,
+            'comments' => $commentStats,
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @return int[]
+     */
+    private function parseLiveIds(mixed $value): array
+    {
+        if (is_array($value)) {
+            $values = $value;
+        } elseif (is_string($value) && $value !== '') {
+            $values = explode(',', $value);
+        } else {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($values as $candidate) {
+            $id = filter_var($candidate, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id !== false) {
+                $ids[] = (int)$id;
+            }
+        }
+        return array_values(array_unique($ids));
     }
 
     public function discussion(): void {
@@ -370,7 +540,7 @@ class PublicationController {
         }
 
         $comments = $this->pdo->prepare("
-            SELECT comment.id, comment.contenu, comment.date_creation, comment.est_solution,
+            SELECT comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
                    author.prenom, author.nom,
                    COUNT(reaction.id) AS likes_count,
                    MAX(reaction.utilisateur_id = :user_id) AS user_liked
@@ -382,9 +552,14 @@ class PublicationController {
              AND reaction.type_reaction = 'like'
             WHERE comment.publication_id = :publication_id
               AND comment.est_signale = 0
-            GROUP BY comment.id, comment.contenu, comment.date_creation, comment.est_solution,
+            GROUP BY comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
                      author.prenom, author.nom
-            ORDER BY comment.est_solution DESC, likes_count DESC, comment.date_creation ASC
+            ORDER BY (SELECT root_comment.est_solution
+                      FROM commentaires root_comment
+                      WHERE root_comment.id = COALESCE(comment.parent_comment_id, comment.id)) DESC,
+                     COALESCE(comment.parent_comment_id, comment.id),
+                     comment.parent_comment_id IS NOT NULL,
+                     likes_count DESC, comment.date_creation ASC
         ");
         $comments->execute(['publication_id' => $publicationId, 'user_id' => $userId]);
 
@@ -393,6 +568,155 @@ class PublicationController {
             'publication' => $publication,
             'comments' => $comments->fetchAll(PDO::FETCH_ASSOC),
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function show(int $publicationId): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+        require_once ROOT_PATH . '/models/Notification.php';
+        if (empty($_SESSION['user_id'])) {
+            $_SESSION['flash_error'] = 'Connectez-vous pour consulter cette publication.';
+            header('Location: ' . url('login'));
+            exit;
+        }
+        if (!$this->pdo) {
+            http_response_code(503);
+            exit('La publication est temporairement indisponible.');
+        }
+        if ($publicationId <= 0) {
+            http_response_code(404);
+            exit('Publication introuvable.');
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $roleStatement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = :user_id LIMIT 1');
+        $roleStatement->execute(['user_id' => $userId]);
+        $storedRole = $roleStatement->fetchColumn();
+        if (!is_string($storedRole) || $storedRole === '') {
+            http_response_code(401);
+            exit('Votre compte n’est plus disponible. Veuillez vous reconnecter.');
+        }
+        $userRole = strtolower(trim($storedRole));
+        $_SESSION['user_role'] = $userRole;
+
+        $statement = $this->pdo->prepare("
+            SELECT publication.id, publication.titre, publication.contenu, publication.type_publication,
+                   publication.statut, publication.date_creation, publication.categorie_id,
+                   publication.est_signale, publication.commentaires_fermes,
+                   author.id AS author_id, author.prenom, author.nom, author.role AS author_role, author.avatar_url,
+                   category.nom AS category_name, zone.nom AS zone_name,
+                   (SELECT COUNT(*) FROM reactions reaction
+                    WHERE reaction.type_cible = 'publication'
+                      AND reaction.cible_id = publication.id
+                      AND reaction.type_reaction = 'like') AS likes_count,
+                   EXISTS (
+                       SELECT 1 FROM reactions user_reaction
+                       WHERE user_reaction.type_cible = 'publication'
+                         AND user_reaction.cible_id = publication.id
+                         AND user_reaction.type_reaction = 'like'
+                         AND user_reaction.utilisateur_id = :reaction_user
+                   ) AS user_liked,
+                   (SELECT saved.id FROM publications_sauvegardees saved
+                    WHERE saved.publication_id = publication.id
+                      AND saved.utilisateur_id = :saved_user
+                    LIMIT 1) AS saved_id
+            FROM publications publication
+            JOIN utilisateurs author ON author.id = publication.utilisateur_id
+            JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
+            JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+            WHERE publication.id = :publication_id
+            LIMIT 1
+        ");
+        $statement->execute([
+            'publication_id' => $publicationId,
+            'reaction_user' => $userId,
+            'saved_user' => $userId,
+        ]);
+        $publication = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!$publication || (bool)$publication['est_signale']
+            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+            http_response_code(404);
+            exit('Publication introuvable.');
+        }
+
+        $commentsStatement = $this->pdo->prepare("
+            SELECT comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
+                   author.id AS author_id, author.prenom, author.nom, author.avatar_url,
+                   COUNT(reaction.id) AS likes_count,
+                   MAX(reaction.utilisateur_id = :user_id) AS user_liked
+            FROM commentaires comment
+            JOIN utilisateurs author ON author.id = comment.utilisateur_id
+            LEFT JOIN reactions reaction
+              ON reaction.type_cible = 'commentaire'
+             AND reaction.cible_id = comment.id
+             AND reaction.type_reaction = 'like'
+            WHERE comment.publication_id = :publication_id
+              AND comment.est_signale = 0
+            GROUP BY comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
+                     author.id, author.prenom, author.nom, author.avatar_url
+            ORDER BY (SELECT root_comment.est_solution
+                      FROM commentaires root_comment
+                      WHERE root_comment.id = COALESCE(comment.parent_comment_id, comment.id)) DESC,
+                     COALESCE(comment.parent_comment_id, comment.id),
+                     comment.parent_comment_id IS NOT NULL,
+                     comment.date_creation ASC
+        ");
+        $commentsStatement->execute(['publication_id' => $publicationId, 'user_id' => $userId]);
+        $comments = $commentsStatement->fetchAll(PDO::FETCH_ASSOC);
+
+        $attachments = $this->pdo->prepare("
+            SELECT id, nom_fichier, type_mime, taille
+            FROM pieces_jointes
+            WHERE type_cible = 'publication' AND cible_id = :publication_id
+            ORDER BY date_upload, id
+        ");
+        $attachments->execute(['publication_id' => $publicationId]);
+        $publicationAttachments = $attachments->fetchAll(PDO::FETCH_ASSOC);
+
+        $commentAttachments = [];
+        if ($comments) {
+            $commentIds = array_map(static fn (array $comment): int => (int)$comment['id'], $comments);
+            $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
+            $commentAttachmentStatement = $this->pdo->prepare("
+                SELECT id, cible_id, nom_fichier, type_mime, taille
+                FROM pieces_jointes
+                WHERE type_cible = 'commentaire' AND cible_id IN ($placeholders)
+                ORDER BY date_upload, id
+            ");
+            $commentAttachmentStatement->execute($commentIds);
+            foreach ($commentAttachmentStatement->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
+                $commentAttachments[(int)$attachment['cible_id']][] = $attachment;
+            }
+        }
+
+        $pollOptions = [];
+        if ($publication['type_publication'] === 'question') {
+            $pollStatement = $this->pdo->prepare("
+                SELECT option_row.id, option_row.texte,
+                       COUNT(vote.utilisateur_id) AS votes,
+                       MAX(vote.utilisateur_id = :user_id) AS user_voted
+                FROM sondage_options option_row
+                LEFT JOIN sondage_votes vote ON vote.option_id = option_row.id
+                WHERE option_row.publication_id = :publication_id
+                GROUP BY option_row.id, option_row.texte, option_row.ordre
+                ORDER BY option_row.ordre, option_row.id
+            ");
+            $pollStatement->execute(['publication_id' => $publicationId, 'user_id' => $userId]);
+            $pollOptions = $pollStatement->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $pageBase = $GLOBALS['baseUrl'] ?? '';
+        $pageAsset = $GLOBALS['assetBase'] ?? url('public/assets');
+        $unreadCount = 0;
+        if (class_exists('Notification')) {
+            $unreadCount = (new Notification($this->pdo))->countUnread($userId);
+        }
+        $unreadMessagesCount = $this->pdo instanceof PDO
+            ? (new Social($this->pdo))->getUnreadMessageCount($userId)
+            : 0;
+        require ROOT_PATH . '/views/desktop/publication/show.php';
     }
 
     public function vote(): void {

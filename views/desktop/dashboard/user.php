@@ -9,8 +9,10 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= htmlspecialchars($title ?? 'Mon dashboard') ?> · EPI Tchach</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
 

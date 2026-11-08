@@ -12,10 +12,14 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/User.php';
     require_once ROOT_PATH . '/models/Notification.php';
     require_once ROOT_PATH . '/models/Avatar.php';
+    require_once ROOT_PATH . '/models/Salon.php';
+    require_once ROOT_PATH . '/models/Social.php';
 } else {
     require_once dirname(__DIR__) . '/models/User.php';
     require_once dirname(__DIR__) . '/models/Notification.php';
     require_once dirname(__DIR__) . '/models/Avatar.php';
+    require_once dirname(__DIR__) . '/models/Salon.php';
+    require_once dirname(__DIR__) . '/models/Social.php';
 }
 
 class ProfileController {
@@ -39,6 +43,9 @@ class ProfileController {
         if ($targetUserId) {
             $user = $this->userModel->findById((int) $targetUserId);
         }
+        $loggedInUser = $currentUserId
+            ? $this->userModel->findById((int)$currentUserId)
+            : false;
 
         // Si l'utilisateur consulte son propre profil, on synchronise la session
         if ($user && $currentUserId && $targetUserId == $currentUserId) {
@@ -54,6 +61,23 @@ class ProfileController {
 
         $isOwnProfile = ($currentUserId && $targetUserId == $currentUserId);
         global $pdo;
+        $friendshipStatus = null;
+        if ($pdo instanceof PDO && !$isOwnProfile) {
+            $friendshipStatus = (new Social($pdo))->getFriendship((int)$currentUserId, (int)$targetUserId);
+        }
+        if (empty($_SESSION['social_csrf'])) {
+            $_SESSION['social_csrf'] = bin2hex(random_bytes(32));
+        }
+        $socialCsrfToken = $_SESSION['social_csrf'];
+        $unreadMessagesCount = $pdo instanceof PDO
+            ? (new Social($pdo))->getUnreadMessageCount((int)$currentUserId)
+            : 0;
+        $composerZones = $pdo instanceof PDO
+            ? (new Salon($pdo))->getAccessibleZones(
+                (int)$currentUserId,
+                strtolower((string)($loggedInUser['role'] ?? $_SESSION['user_role'] ?? 'etudiant'))
+            )
+            : [];
         $unreadCount = (new Notification($pdo))->countUnread((int)$currentUserId);
 
         if (!$user) {
@@ -410,7 +434,9 @@ class ProfileController {
                     'fullname' => $prenom . ' ' . $nom,
                     'biographie' => $biographie,
                     'initials' => $initials,
-                    'avatar_url' => !empty($_SESSION['user_avatar']) ? url($_SESSION['user_avatar']) : null
+                    'avatar_url' => !empty($_SESSION['user_avatar'])
+                        ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))
+                        : null
                 ]
             ]);
             exit;

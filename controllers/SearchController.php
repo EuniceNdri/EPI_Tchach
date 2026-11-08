@@ -72,6 +72,30 @@ class SearchController
         $offset = ($page - 1) * $perPage;
         $like = '%' . $term . '%';
 
+        $profiles = [];
+        if ($term !== '') {
+            $profileStatement = $pdo->prepare(
+                "SELECT id, nom, prenom, role, filiere, avatar_url
+                 FROM utilisateurs
+                 WHERE est_actif = 1
+                   AND id <> ?
+                   AND (prenom LIKE ? OR nom LIKE ? OR CONCAT(prenom, ' ', nom) LIKE ?)
+                 ORDER BY prenom ASC, nom ASC
+                 LIMIT 8"
+            );
+            $profileStatement->execute([$userId, $like, $like, $like]);
+            $profiles = array_map(
+                static fn (array $profile): array => [
+                    'id' => (int)$profile['id'],
+                    'name' => trim($profile['prenom'] . ' ' . $profile['nom']),
+                    'role' => $profile['role'],
+                    'filiere' => $profile['filiere'],
+                    'avatar_url' => $profile['avatar_url'],
+                ],
+                $profileStatement->fetchAll(PDO::FETCH_ASSOC)
+            );
+        }
+
         $conditions = ['p.est_signale = 0', 'c.est_active = 1', 'z.est_active = 1'];
         $parameters = [];
         if ($accessibleZoneIds) {
@@ -148,6 +172,7 @@ class SearchController
         $this->respond([
             'success' => true,
             'query' => $term,
+            'profiles' => $profiles,
             'results' => $results,
             'pagination' => [
                 'page' => $page,

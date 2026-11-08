@@ -79,8 +79,10 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       box-shadow: 0 2px 5px rgba(100, 116, 139, 0.12);
     }
   </style>
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>

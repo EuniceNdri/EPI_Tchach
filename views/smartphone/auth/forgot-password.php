@@ -16,8 +16,10 @@ $logoPath = $asset . '/images/logo.jpeg';
 
   <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth-base.css" />
   <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">

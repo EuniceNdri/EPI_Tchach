@@ -51,8 +51,10 @@ $imageUrl = static function (?string $path) use ($asset): string {
       .landing-editor-fields, .landing-stats-grid { grid-template-columns:1fr; }
     }
   </style>
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <?php include ROOT_PATH . '/views/partials/feedback-toast.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>

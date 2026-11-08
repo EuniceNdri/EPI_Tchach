@@ -1996,3 +1996,464 @@ body.page-transitioning {
   transform: none;
   box-shadow: none;
 }
+
+@media (min-width: 561px) and (max-width: 900px) {
+  .container-fluid {
+    padding-inline: 1.5rem;
+  }
+
+  .hero-section {
+    min-height: auto;
+    padding-block: 4rem;
+  }
+
+  .hero-text h1 {
+    font-size: clamp(2.75rem, 7vw, 4rem);
+  }
+
+  .forum-feed {
+    padding: 1.25rem;
+  }
+
+  .feed-post {
+    padding: 1.15rem;
+  }
+
+  .post-footer {
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
+  }
+
+  .section-intro {
+    margin-bottom: 2.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  html,
+  body {
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+
+  .container-fluid {
+    padding-inline: 1rem;
+  }
+
+  .nav {
+    padding-block: 0.45rem 0;
+  }
+
+  .nav-main {
+    min-height: 46px;
+    gap: 0.45rem;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 0.45rem;
+  }
+
+  .brand-logo-wrapper {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.55rem;
+  }
+
+  .nav-actions {
+    gap: 0.35rem;
+  }
+
+  .nav-actions a[href$="/register"] {
+    min-height: 36px;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.72rem;
+  }
+
+  .nav-toggle {
+    width: 38px;
+    height: 38px;
+  }
+
+  .nav-links {
+    left: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .hero-section {
+    min-height: auto;
+    padding-block: 2.5rem 2rem;
+  }
+
+  .hero-grid {
+    gap: 1.5rem;
+    min-width: 0;
+  }
+
+  .hero-text,
+  .hero-text h1,
+  .hero-text .lead {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .badge-wrapper {
+    gap: 0.45rem;
+  }
+
+  .badge {
+    max-width: 100%;
+    padding: 0.38rem 0.7rem;
+    font-size: 0.64rem;
+    letter-spacing: 0.045em;
+  }
+
+  .hero-text h1 {
+    margin-top: 1rem;
+    font-size: clamp(2rem, 9vw, 2.8rem);
+    line-height: 1.12;
+  }
+
+  .lead {
+    margin-top: 1rem;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .hero-actions {
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+  .hero-actions .btn {
+    min-height: 44px;
+    flex: 1 1 calc(50% - 0.6rem);
+    justify-content: center;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  .hero-actions .open-policy-modal {
+    flex-basis: 100%;
+  }
+
+  .hero-photo-carousel {
+    width: 100%;
+    max-width: 28rem;
+    padding-top: 0.5rem;
+  }
+
+  .hero-photo-note {
+    right: 0;
+    width: min(12rem, 64%);
+  }
+
+  .hero-carousel-controls {
+    gap: 0.55rem;
+  }
+
+  .stats-banner {
+    padding-block: 2rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 0.65rem 0.35rem;
+  }
+
+  .stat-number {
+    font-size: clamp(1.8rem, 8vw, 2.5rem);
+  }
+
+  .stat-label {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+  }
+
+  .stat-desc {
+    font-size: 0.72rem;
+    line-height: 1.4;
+  }
+
+  .preview-section,
+  .features,
+  .how-it-works,
+  .testimonials-section,
+  .faq-section,
+  .cta-section {
+    padding-block: 3.25rem;
+  }
+
+  .section-intro {
+    margin-bottom: 1.75rem;
+  }
+
+  .section-badge {
+    font-size: 0.68rem;
+  }
+
+  .section-intro h2 {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+    overflow-wrap: anywhere;
+  }
+
+  .section-intro p {
+    margin-top: 0.7rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .forum-window {
+    border-radius: 1rem;
+  }
+
+  .window-bar {
+    gap: 0.6rem;
+    padding: 0.65rem;
+  }
+
+  .window-dots {
+    flex: 0 0 auto;
+    gap: 0.25rem;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+  }
+
+  .window-search {
+    min-width: 0;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.68rem;
+  }
+
+  .window-search span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .forum-body {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .forum-feed {
+    width: 100%;
+    min-width: 0;
+    padding: 0.65rem;
+    gap: 0.75rem;
+  }
+
+  .feed-post {
+    width: 100%;
+    min-width: 0;
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+  }
+
+  .post-header,
+  .post-author {
+    min-width: 0;
+    gap: 0.45rem;
+  }
+
+  .post-header {
+    align-items: flex-start;
+  }
+
+  .author-avatar {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .author-meta {
+    min-width: 0;
+  }
+
+  .author-name,
+  .author-role {
+    overflow-wrap: anywhere;
+  }
+
+  .post-tag-badge {
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+  }
+
+  .post-title {
+    font-size: 1rem;
+  }
+
+  .post-snippet {
+    font-size: 0.85rem;
+  }
+
+  .post-footer {
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    font-size: 0.72rem;
+  }
+
+  .filiere-carousel.is-ready .filiere-track {
+    height: 23rem;
+    padding-inline: 0.25rem;
+  }
+
+  .filiere-carousel.is-ready .filiere-card,
+  .filiere-carousel.is-ready .filiere-card.is-active {
+    flex-basis: min(84vw, 23rem);
+  }
+
+  .step-card,
+  .testimonial-card {
+    padding: 1.35rem;
+  }
+
+  .steps-grid,
+  .testimonials-grid {
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .faq-list {
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .faq-question {
+    gap: 0.75rem;
+    padding: 1rem;
+    font-size: 0.92rem;
+  }
+
+  .faq-answer {
+    padding-inline: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .faq-item.active .faq-answer {
+    padding-bottom: 1rem;
+  }
+
+  .cta-box {
+    padding: 2rem 1.1rem;
+    border-radius: 1.25rem;
+  }
+
+  .cta-box h2 {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+
+  .cta-box p {
+    margin-top: 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .cta-actions {
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+  .cta-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .footer {
+    padding-block: 2.75rem 1.5rem;
+  }
+
+  .footer-top {
+    gap: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding-top: 1.25rem;
+    font-size: 0.78rem;
+  }
+
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0.5rem;
+  }
+
+  .modal-dialog {
+    max-height: 94dvh;
+  }
+
+  .modal-content {
+    border-radius: 1.25rem;
+  }
+
+  .modal-header {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .modal-title-group h3 {
+    font-size: 1.15rem;
+  }
+
+  .modal-body {
+    max-height: 55dvh;
+    padding: 1rem;
+    gap: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-footer {
+    padding: 1rem;
+  }
+
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .container-fluid {
+    padding-inline: 0.8rem;
+  }
+
+  .nav-actions a[href$="/register"] {
+    padding-inline: 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .brand-title {
+    font-size: 0.92rem;
+  }
+
+  .hero-actions .btn {
+    flex-basis: 100%;
+  }
+
+  .window-dots {
+    display: none;
+  }
+}
