@@ -15,6 +15,17 @@ if (session_status() === PHP_SESSION_NONE) {
     @session_start();
 }
 
+if (PHP_SAPI === 'cli-server') {
+    error_log(sprintf(
+        '[SESSION] %s %s cookie=%s active=%s user_id=%s',
+        $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/',
+        isset($_COOKIE[session_name()]) ? 'present' : 'absent',
+        session_status() === PHP_SESSION_ACTIVE ? 'yes' : 'no',
+        !empty($_SESSION['user_id']) ? 'set' : 'empty'
+    ));
+}
+
 // 2. Définition de la racine absolue du projet
 define('ROOT_PATH', __DIR__);
 

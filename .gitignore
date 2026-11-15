@@ -22,6 +22,7 @@ node_modules/
 
 # Logs
 *.log
+/.dev-sessions/
 
 # Fichiers uploadés par les utilisateurs
 /public/uploads/
