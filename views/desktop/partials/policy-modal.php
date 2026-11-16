@@ -30,8 +30,8 @@
         </section>
 
         <section class="policy-section">
-          <h4>2. Utilisation de l'Email Institutionnel</h4>
-          <p>L'inscription est réservée aux titulaires d'une adresse officielle de l'école (<code>@epi-yakro.ci</code>). Chaque compte est strictement personnel : vous êtes responsable de toute publication ou commentaire émis depuis votre profil.</p>
+          <h4>2. Utilisation de l'adresse email</h4>
+          <p>Utilisez une adresse email valide et accessible, personnelle ou institutionnelle (par exemple une adresse Gmail). Chaque compte est strictement personnel : vous êtes responsable de toute publication ou commentaire émis depuis votre profil.</p>
         </section>
 
         <section class="policy-section">
@@ -46,7 +46,7 @@
 
         <section class="policy-section">
           <h4>5. Modération & Système de Signalement</h4>
-          <p>L'équipe des modérateurs, délégués et enseignants vérifie régulièrement les échanges. Tout utilisateur a la possibilité de signaler un message inapproprié via le bouton de signalement pour traitement immédiat.</p>
+          <p>L’administration et les délégués de classe vérifient les signalements relevant de leur périmètre. Tout utilisateur peut signaler un message inapproprié via le bouton de signalement.</p>
         </section>
       </div>
 
@@ -69,4 +69,3 @@
     </div>
   </div>
 </div>
-

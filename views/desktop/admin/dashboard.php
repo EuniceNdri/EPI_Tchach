@@ -16,10 +16,10 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
-  <div class="admin-tricolor"></div>
-
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
@@ -445,4 +445,3 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <script src="<?= $asset ?>/js/desktop/admin.js"></script>
 </body>
 </html>
-

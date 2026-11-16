@@ -14,7 +14,7 @@ $logoFile = $asset . '/images/logo.jpeg';
 
 $notifications = $notifications ?? [];
 $unreadCount = $unreadCount ?? 0;
-$userRole = strtolower($_SESSION['user_role'] ?? 'etudiant');
+$canModerateReports = $canModerateReports ?? false;
 
 // Fonction helper pour afficher une date relative conviviale
 if (!function_exists('formatDateNotif')) {
@@ -52,7 +52,7 @@ if (!function_exists('formatDateNotif')) {
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/notifications.css" />
 </head>
-<body class="notifications-body">
+<body class="notifications-body" data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <!-- Bande tricolore décorative officielle -->
   <div class="notif-tricolor-bar"></div>
 
@@ -76,8 +76,8 @@ if (!function_exists('formatDateNotif')) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Mon Profil</span>
         </a>
-        <?php if ($userRole === 'administrateur' || $userRole === 'moderateur'): ?>
-          <a href="<?= $base ?>/admin/moderation" class="notif-btn-nav" style="color:var(--notif-accent); border-color:rgba(234,88,12,0.3);">
+        <?php if ($canModerateReports): ?>
+          <a href="<?= $base ?>/moderation" class="notif-btn-nav" style="color:var(--notif-accent); border-color:rgba(234,88,12,0.3);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Modération</span>
           </a>
@@ -94,7 +94,7 @@ if (!function_exists('formatDateNotif')) {
       <div class="notif-title-area">
         <h1>
           <span>Mes Notifications</span>
-          <span class="notif-unread-badge" id="badgeTotalUnread" style="<?= $unreadCount > 0 ? '' : 'display:none;' ?>">
+          <span class="notif-unread-badge" id="badgeTotalUnread" data-notification-count style="<?= $unreadCount > 0 ? '' : 'display:none;' ?>">
             <?= (int)$unreadCount ?>
           </span>
         </h1>
@@ -122,6 +122,9 @@ if (!function_exists('formatDateNotif')) {
         </button>
         <button type="button" class="notif-tab" data-filter="reaction">
           <span>Réactions</span>
+        </button>
+        <button type="button" class="notif-tab" data-filter="activity">
+          <span>Publications, commentaires & mentions</span>
         </button>
         <button type="button" class="notif-tab" data-filter="moderation">
           <span>Modération & Alertes</span>
@@ -153,12 +156,13 @@ if (!function_exists('formatDateNotif')) {
           // Configuration iconographique selon le type
           $iconMap = [
             'reaction'      => '❤️',
+            'publication'   => '📝',
+            'mention'       => '@',
             'avertissement' => '⚠️',
             'moderation'    => '🛑',
             'reponse'       => '💬',
             'solution'      => '✅',
             'systeme'       => 'ℹ️',
-            'mention'       => '@'
           ];
           $iconChar = $iconMap[$type] ?? '🔔';
 
@@ -166,9 +170,13 @@ if (!function_exists('formatDateNotif')) {
           $categoryFilter = 'systeme';
           if ($type === 'reaction') {
               $categoryFilter = 'reaction';
+          } elseif (in_array($type, ['publication', 'reponse', 'mention'], true)) {
+              $categoryFilter = 'activity';
           } elseif (in_array($type, ['moderation', 'avertissement', 'blocage'], true)) {
               $categoryFilter = 'moderation';
           }
+          $typeLabels = ['publication' => 'Publication', 'reponse' => 'Commentaire', 'mention' => 'Mention'];
+          $typeLabel = $typeLabels[$type] ?? ucfirst($type);
         ?>
           <div class="notif-card <?= $isUnread ? 'unread' : 'read' ?>" 
                data-notif-id="<?= $notifId ?>" 
@@ -182,7 +190,7 @@ if (!function_exists('formatDateNotif')) {
 
             <div class="notif-content-area">
               <div class="notif-card-header">
-                <span class="notif-type-badge <?= $type ?>"><?= ucfirst($type) ?></span>
+                <span class="notif-type-badge <?= $type ?>"><?= htmlspecialchars($typeLabel) ?></span>
                 <span class="notif-time"><?= formatDateNotif($n['date_creation'] ?? 'now') ?></span>
               </div>
 
@@ -298,6 +306,7 @@ if (!function_exists('formatDateNotif')) {
       // 2. Tout marquer comme lu
       const btnAll = document.getElementById("btnMarkAllRead");
       if (btnAll) {
+
         btnAll.addEventListener("click", async function() {
           try {
             const res = await fetch(`${baseUrl}/notifications/mark-all-read`, {
@@ -382,6 +391,8 @@ if (!function_exists('formatDateNotif')) {
               visible = isUnread;
             } else if (filter === "reaction") {
               visible = (type === "reaction");
+            } else if (filter === "activity") {
+              visible = (group === "activity");
             } else if (filter === "moderation") {
               visible = (group === "moderation");
             }
@@ -392,5 +403,6 @@ if (!function_exists('formatDateNotif')) {
       });
     });
   </script>
+  <script src="<?= $asset ?>/js/desktop/notification-badge.js"></script>
 </body>
 </html>

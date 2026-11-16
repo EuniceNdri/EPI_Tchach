@@ -48,15 +48,27 @@ class NotificationController {
         }
     }
 
+    private function requirePost(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            header('Content-Type: application/json; charset=UTF-8', true, 405);
+            echo json_encode(['success' => false, 'message' => 'Méthode non autorisée.']);
+            exit;
+        }
+    }
+
     /**
      * Affiche la liste des notifications ou renvoie le JSON
      */
     public function index(): void {
         global $baseUrl, $base, $assetBase, $asset;
+        require_once ROOT_PATH . '/models/RoleAccess.php';
 
         $userId = (int)$_SESSION['user_id'];
         $notifications = $this->notificationModel->getUserNotifications($userId, 50);
         $unreadCount = $this->notificationModel->countUnread($userId);
+        $canModerateReports = $this->pdo instanceof PDO
+            && (RoleAccess::isAdministrator($this->pdo, $userId) || RoleAccess::isClassDelegate($this->pdo, $userId));
 
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
@@ -90,6 +102,7 @@ class NotificationController {
      * Marque une notification spécifique comme lue
      */
     public function markAsRead(): void {
+        $this->requirePost();
         $userId = (int)$_SESSION['user_id'];
         $input = $_POST;
         if (empty($input)) {
@@ -120,19 +133,23 @@ class NotificationController {
      * Marque toutes les notifications comme lues
      */
     public function markAllRead(): void {
+        $this->requirePost();
         $userId = (int)$_SESSION['user_id'];
         $success = $this->notificationModel->markAllAsRead($userId);
+        $remainingUnread = $this->notificationModel->countUnread($userId);
 
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
 
         if ($isAjax) {
             header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(['success' => $success, 'unread_count' => 0]);
+            echo json_encode(['success' => $success, 'unread_count' => $remainingUnread]);
             exit;
         }
 
-        $_SESSION['flash_success'] = "Toutes les notifications ont été marquées comme lues.";
+        $_SESSION[$success ? 'flash_success' : 'flash_error'] = $success
+            ? "Toutes les notifications ont été marquées comme lues."
+            : "Impossible de mettre à jour les notifications.";
         header('Location: ' . url('notifications'));
         exit;
     }
@@ -141,6 +158,7 @@ class NotificationController {
      * Supprime une notification
      */
     public function delete(): void {
+        $this->requirePost();
         $userId = (int)$_SESSION['user_id'];
         $input = $_POST;
         if (empty($input)) {

@@ -5,7 +5,7 @@
  * =============================================================
  * Gère :
  * 1. La détection et le traitement automatique des mots interdits
- * 2. Les décisions prises par les administrateurs et modérateurs :
+ * 2. Les décisions prises par les administrateurs et délégués de classe :
  *    - Avertir l'auteur d'un contenu signalé (avec notification)
  *    - Supprimer la publication / commentaire (avec notification)
  *    - Bloquer / verrouiller une publication
@@ -15,10 +15,14 @@
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/config/database.php';
+    require_once ROOT_PATH . '/models/Attachment.php';
     require_once ROOT_PATH . '/models/Notification.php';
+    require_once ROOT_PATH . '/models/RoleAccess.php';
 } else {
     require_once dirname(__DIR__) . '/config/database.php';
+    require_once dirname(__DIR__) . '/models/Attachment.php';
     require_once dirname(__DIR__) . '/models/Notification.php';
+    require_once dirname(__DIR__) . '/models/RoleAccess.php';
 }
 
 if (!function_exists('url')) {
@@ -92,8 +96,8 @@ class ModerationService {
             return false;
         }
 
-        // Récupérer un compte admin ou modérateur valide
-        $adminStmt = $this->pdo->query("SELECT id FROM utilisateurs WHERE role IN ('administrateur', 'moderateur') LIMIT 1");
+        // Récupérer un compte administrateur ou un délégué de classe valide
+        $adminStmt = $this->pdo->query("SELECT id FROM utilisateurs WHERE role = 'administrateur' LIMIT 1");
         $adminId = $adminStmt ? (int)$adminStmt->fetchColumn() : 0;
 
         $stmt = $this->pdo->prepare("
@@ -122,7 +126,7 @@ class ModerationService {
         }
 
         $report = $this->getReportDetails($reportId);
-        if (!$report || empty($report['cible_auteur_id'])) {
+        if (!$report || empty($report['cible_auteur_id']) || !$this->canActOnReport($reportId, $adminId)) {
             return false;
         }
 
@@ -159,7 +163,7 @@ class ModerationService {
         }
 
         $report = $this->getReportDetails($reportId);
-        if (!$report) {
+        if (!$report || !$this->canActOnReport($reportId, $adminId)) {
             return false;
         }
 
@@ -174,6 +178,7 @@ class ModerationService {
         }
 
         // 2. Supprimer physiquement la cible
+        $attachments = Attachment::findForTarget($this->pdo, $typeCible, $cibleId);
         if ($typeCible === 'publication') {
             $del = $this->pdo->prepare("DELETE FROM publications WHERE id = :id");
             $del->execute(['id' => $cibleId]);
@@ -181,6 +186,7 @@ class ModerationService {
             $del = $this->pdo->prepare("DELETE FROM commentaires WHERE id = :id");
             $del->execute(['id' => $cibleId]);
         }
+        Attachment::removeStoredFiles($this->pdo, $attachments);
 
         // 3. Clôturer tous les signalements associés à cette même cible
         $closeAll = $this->pdo->prepare("
@@ -205,7 +211,7 @@ class ModerationService {
         }
 
         $report = $this->getReportDetails($reportId);
-        if (!$report || $report['type_cible'] !== 'publication') {
+        if (!$report || $report['type_cible'] !== 'publication' || !$this->canActOnReport($reportId, $adminId)) {
             return false;
         }
 
@@ -251,7 +257,7 @@ class ModerationService {
         }
 
         $report = $this->getReportDetails($reportId);
-        if (!$report) {
+        if (!$report || !$this->canActOnReport($reportId, $adminId)) {
             return false;
         }
 
@@ -320,5 +326,11 @@ class ModerationService {
         $res = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $res ?: null;
+    }
+
+    private function canActOnReport(int $reportId, int $actorId): bool
+    {
+        return $this->pdo instanceof PDO
+            && RoleAccess::canModerateReport($this->pdo, $actorId, $reportId);
     }
 }

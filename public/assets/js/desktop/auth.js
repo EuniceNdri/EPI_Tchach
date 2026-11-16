@@ -6,6 +6,125 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  const avatarInput = document.querySelector("[data-avatar-input]");
+  const avatarPreview = document.querySelector("[data-avatar-preview]");
+  const avatarPreviewImage = document.querySelector("[data-avatar-preview-image]");
+  let avatarPreviewUrl = null;
+  avatarInput?.addEventListener("change", () => {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    const file = avatarInput.files?.[0];
+    if (!file || !avatarPreview || !avatarPreviewImage) {
+      if (avatarPreview) avatarPreview.hidden = true;
+      return;
+    }
+    avatarPreviewUrl = URL.createObjectURL(file);
+    avatarPreviewImage.src = avatarPreviewUrl;
+    avatarPreview.hidden = false;
+  });
+
+  const registerForm = document.querySelector("[data-register-form]");
+  if (registerForm) {
+    const panels = Array.from(registerForm.querySelectorAll("[data-register-step]"));
+    const progressSteps = Array.from(registerForm.querySelectorAll("[data-register-progress]"));
+    const nextButton = registerForm.querySelector("[data-register-next]");
+    const backButton = registerForm.querySelector("[data-register-back]");
+    const submitButton = registerForm.querySelector("[data-register-submit]");
+    const roleField = registerForm.querySelector("#role");
+    const modulesField = registerForm.querySelector("#modules_enseignes");
+    const professorFiliereFields = Array.from(
+      registerForm.querySelectorAll('input[name="prof_filieres[]"]')
+    );
+    const passwordField = registerForm.querySelector("#mot_de_passe");
+    const passwordConfirmationField = registerForm.querySelector("#confirmer_mot_de_passe");
+
+    if (panels.length && nextButton && backButton && submitButton) {
+      registerForm.classList.add("is-register-staged");
+      registerForm.noValidate = true;
+
+      const updateProfileValidity = () => {
+        if (!modulesField) return;
+        const hasProfessorProfile = modulesField.value.trim() !== ""
+          || professorFiliereFields.some((field) => field.checked);
+        modulesField.setCustomValidity(
+          roleField?.value === "professeur" && !hasProfessorProfile
+            ? "Indiquez au moins un module ou choisissez une filière."
+            : ""
+        );
+      };
+
+      const updatePasswordValidity = () => {
+        if (!passwordField || !passwordConfirmationField) return;
+        passwordConfirmationField.setCustomValidity(
+          passwordConfirmationField.value !== passwordField.value
+            ? "Les deux mots de passe ne correspondent pas."
+            : ""
+        );
+      };
+
+      const getInvalidField = (panel) => Array.from(
+        panel.querySelectorAll("input, select, textarea")
+      ).find((field) => !field.disabled && field.willValidate && !field.validity.valid);
+
+      const showStep = (step, shouldFocus = false) => {
+        registerForm.dataset.currentStep = String(step);
+        panels.forEach((panel) => {
+          panel.hidden = Number(panel.dataset.registerStep) !== step;
+        });
+        progressSteps.forEach((progressStep) => {
+          const current = Number(progressStep.dataset.registerProgress) === step;
+          progressStep.classList.toggle("is-current", current);
+          progressStep.classList.toggle("is-complete", Number(progressStep.dataset.registerProgress) < step);
+          if (current) progressStep.setAttribute("aria-current", "step");
+          else progressStep.removeAttribute("aria-current");
+        });
+        backButton.hidden = step === 1;
+        nextButton.hidden = step === panels.length;
+        submitButton.hidden = step !== panels.length;
+
+        if (shouldFocus) {
+          const firstField = panels[step - 1].querySelector("input, select, textarea");
+          if (firstField) firstField.focus();
+        }
+      };
+
+      nextButton.addEventListener("click", () => {
+        const step = Number(registerForm.dataset.currentStep);
+        const invalidField = getInvalidField(panels[step - 1]);
+        if (invalidField) {
+          invalidField.reportValidity();
+          return;
+        }
+        showStep(step + 1, true);
+      });
+
+      backButton.addEventListener("click", () => {
+        showStep(Number(registerForm.dataset.currentStep) - 1, true);
+      });
+
+      registerForm.addEventListener("submit", (event) => {
+        for (let index = 0; index < panels.length; index += 1) {
+          const invalidField = getInvalidField(panels[index]);
+          if (invalidField) {
+            event.preventDefault();
+            showStep(index + 1, true);
+            invalidField.reportValidity();
+            return;
+          }
+        }
+      });
+
+      const initialStep = Number(registerForm.dataset.initialStep);
+      showStep(Number.isInteger(initialStep) && initialStep >= 1 && initialStep <= panels.length ? initialStep : 1);
+      updateProfileValidity();
+      updatePasswordValidity();
+      registerForm.addEventListener("input", () => {
+        updateProfileValidity();
+        updatePasswordValidity();
+      });
+      registerForm.addEventListener("change", updateProfileValidity);
+    }
+  }
+
   // 1. Bascule afficher / masquer le mot de passe
   document.querySelectorAll(".toggle-password").forEach((button) => {
     button.addEventListener("click", () => {

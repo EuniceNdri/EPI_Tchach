@@ -19,10 +19,10 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/profile.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
-  <div class="tricolor-bar"></div>
-
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <!-- Barre de navigation -->
   <header class="profile-header">
     <div class="profile-nav">
@@ -84,13 +84,13 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="email">Adresse Email Institutionnelle</label>
+          <label class="form-label" for="email">Adresse email</label>
           <input type="email" id="email" class="form-control" value="<?= htmlspecialchars($sessionEmail) ?>" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="email">Email Institutionnel</label>
-          <input type="email" id="email" class="form-control" value="momo.kouassi@epi-yakro.ci" readonly style="background:#f8fafc; cursor:not-allowed;" title="L'adresse institutionnelle ne peut être modifiée que par l'administration" />
+          <label class="form-label" for="email">Adresse email enregistrée</label>
+          <input type="email" id="email" class="form-control" value="<?= htmlspecialchars($sessionEmail) ?>" readonly style="background:#f8fafc; cursor:not-allowed;" title="L'adresse email ne peut être modifiée que par l'administration" />
         </div>
 
         <div class="form-group">
@@ -196,4 +196,3 @@ $initials = strtoupper(substr($sessionPrenom, 0, 1) . substr($sessionNom, 0, 1))
   <script src="<?= $asset ?>/js/desktop/profile.js"></script>
 </body>
 </html>
-

@@ -19,6 +19,7 @@ if (defined('ROOT_PATH')) {
 class User {
     protected ?PDO $pdo;
     protected ?string $role = null;
+    private string $lastLoginFailure = '';
 
     public function __construct(?PDO $pdo = null) {
         if ($pdo !== null) {
@@ -27,6 +28,10 @@ class User {
             global $pdo;
             $this->pdo = $pdo;
         }
+    }
+
+    public function getPdo(): ?PDO {
+        return $this->pdo;
     }
 
     /**
@@ -61,7 +66,9 @@ class User {
         return $this->role;
     }
 
-    
+    public function getLastLoginFailure(): string {
+        return $this->lastLoginFailure;
+    }
 
     /**
      * Authentification d'un utilisateur par email et mot de passe
@@ -72,9 +79,11 @@ class User {
      */
     public function login(string $email, string $mot_de_passe) {
         if (!$this->pdo) {
+            $this->lastLoginFailure = 'database';
             return false;
         }
 
+        $this->lastLoginFailure = '';
         $email = strtolower(trim($email));
         $mot_de_passe = (string) $mot_de_passe;
 
@@ -84,6 +93,12 @@ class User {
         $user = $stmt->fetch();
 
         if (!$user) {
+            $this->lastLoginFailure = 'invalid_credentials';
+            return false;
+        }
+
+        if (isset($user['est_actif']) && !(bool) $user['est_actif']) {
+            $this->lastLoginFailure = 'inactive';
             return false;
         }
 
@@ -131,6 +146,7 @@ class User {
             return $user;
         }
 
+        $this->lastLoginFailure = 'invalid_password';
         return false;
     }
 
@@ -141,7 +157,7 @@ class User {
      * @param string $mot_de_passe
      * @param string $nom
      * @param string $prenom
-     * @param string $role ('etudiant', 'professeur', 'moderateur', 'administrateur')
+     * @param string $role ('etudiant', 'professeur', 'administrateur')
      * @param string|null $filiere Nom de la filière choisie (pour étudiant ou professeur)
      * @param string|null $modules_enseignes Modules enseignés (pour professeur)
      * @param array $profFilieres Liste des filières choisies par le professeur
@@ -155,7 +171,8 @@ class User {
         string $role = 'etudiant',
         ?string $filiere = null,
         ?string $modules_enseignes = null,
-        array $profFilieres = []
+        array $profFilieres = [],
+        ?string $avatar_url = null
     ) {
         if (!$this->pdo) {
             return false;
@@ -167,13 +184,17 @@ class User {
         $filiere = !empty($filiere) ? trim($filiere) : null;
         $modules_enseignes = !empty($modules_enseignes) ? trim($modules_enseignes) : null;
 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
         // 1. Vérifier si l'adresse email existe déjà
         if ($this->emailExists($email)) {
             return false; // Email déjà utilisé
         }
 
         // 2. Valider le rôle selon l'ENUM défini dans database.sql
-        $rolesAutorises = ['etudiant', 'professeur', 'moderateur', 'administrateur'];
+        $rolesAutorises = ['etudiant', 'professeur', 'administrateur'];
         if (!in_array($role, $rolesAutorises, true)) {
             $role = 'etudiant';
         }
@@ -190,8 +211,8 @@ class User {
         $hashedPassword = password_hash($mot_de_passe, PASSWORD_DEFAULT);
 
         // 4. Insertion dans la table `utilisateurs`
-        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes) 
-                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes)";
+        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, avatar_url)
+                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes, :avatar_url)";
         
         $stmt = $this->pdo->prepare($sql);
         $success = $stmt->execute([
@@ -201,7 +222,8 @@ class User {
             'mot_de_passe'      => $hashedPassword,
             'role'              => $role,
             'filiere'           => $filiere,
-            'modules_enseignes' => $modules_enseignes
+            'modules_enseignes' => $modules_enseignes,
+            'avatar_url'        => $avatar_url
         ]);
 
         if (!$success) {
@@ -429,7 +451,7 @@ class User {
     /**
      * Mise à jour des informations de profil
      */
-    public function updateProfile(int $id, string $nom, string $prenom, ?string $biographie = null, ?string $avatar_url = null, ?string $filiere = null, ?string $modules_enseignes = null): bool {
+    public function updateProfile(int $id, string $nom, string $prenom, ?string $biographie = null, ?string $avatar_url = null, ?string $filiere = null, ?string $modules_enseignes = null, bool $removeAvatar = false): bool {
         if (!$this->pdo) {
             return false;
         }
@@ -446,7 +468,7 @@ class User {
             'biographie' => $biographie
         ];
 
-        if ($avatar_url !== null) {
+        if ($avatar_url !== null || $removeAvatar) {
             $sql .= ", avatar_url = :avatar_url";
             $params['avatar_url'] = $avatar_url;
         }

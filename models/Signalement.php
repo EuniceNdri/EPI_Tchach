@@ -67,7 +67,7 @@ class Signalement {
         if ($this->hasUserReported($auteurId, $typeCible, $cibleId)) {
             return [
                 'success' => false, 
-                'message' => "Vous avez déjà signalé cet élément. Nos modérateurs l'examinent actuellement."
+                'message' => "Vous avez déjà signalé cet élément. Les responsables l'examinent actuellement."
             ];
         }
 
@@ -107,7 +107,7 @@ class Signalement {
             $autoBlocked = $this->bloquerPublicationAutomatiquement($cibleId, $totalReports);
         }
 
-        // 6. Notifier les modérateurs et administrateurs
+        // 6. Notifier les administrateurs et responsables de zone
         $notifMsg = $autoBlocked
             ? "🚨 Publication #{$cibleId} AUTOMATIQUEMENT BLOQUÉE ({$totalReports} signalements reçus)."
             : "⚠️ Nouveau signalement reçu sur {$typeCible} #{$cibleId} (Total: {$totalReports}).";
@@ -116,6 +116,16 @@ class Signalement {
             'moderation',
             $notifMsg,
             url('admin/moderation')
+        );
+        $this->notificationModel->notifyClassDelegatesForReport(
+            $signalementId,
+            $notifMsg,
+            url('moderation')
+        );
+        $this->notificationModel->notifyGlobalDelegates(
+            $signalementId,
+            $notifMsg,
+            url('dashboard')
         );
 
         return [
@@ -212,8 +222,16 @@ class Signalement {
     /**
      * Récupère la liste complète des signalements avec informations enrichies
      */
-    public function getAllReports(?string $statut = null): array {
+    public function getAllReports(?string $statut = null, ?array $zoneIds = null): array {
         if (!$this->pdo) {
+            return [];
+        }
+
+        $zoneIds = $zoneIds === null ? null : array_values(array_unique(array_filter(
+            array_map('intval', $zoneIds),
+            static fn (int $zoneId): bool => $zoneId > 0
+        )));
+        if ($zoneIds !== null && $zoneIds === []) {
             return [];
         }
 
@@ -255,20 +273,40 @@ class Signalement {
                 (SELECT COUNT(*) FROM signalements sub WHERE sub.type_cible = s.type_cible AND sub.cible_id = s.cible_id AND sub.statut = 'en_attente') AS total_signalements_cible
             FROM signalements s
             JOIN utilisateurs u_rep ON s.auteur_id = u_rep.id
+            LEFT JOIN publications target_publication
+              ON s.type_cible = 'publication' AND target_publication.id = s.cible_id
+            LEFT JOIN commentaires target_comment
+              ON s.type_cible = 'commentaire' AND target_comment.id = s.cible_id
+            LEFT JOIN publications comment_publication
+              ON comment_publication.id = target_comment.publication_id
+            LEFT JOIN categories target_category
+              ON target_category.id = COALESCE(target_publication.categorie_id, comment_publication.categorie_id)
+            LEFT JOIN zones target_zone ON target_zone.id = target_category.zone_id
         ";
 
+        $conditions = [];
+        $parameters = [];
         if ($statut !== null) {
-            $sql .= " WHERE s.statut = :statut";
+            $conditions[] = 's.statut = :statut';
+            $parameters['statut'] = $statut;
+        }
+        if ($zoneIds !== null) {
+            $placeholders = [];
+            foreach ($zoneIds as $index => $zoneId) {
+                $placeholder = 'zone_' . $index;
+                $placeholders[] = ':' . $placeholder;
+                $parameters[$placeholder] = $zoneId;
+            }
+            $conditions[] = 'target_zone.id IN (' . implode(', ', $placeholders) . ')';
+        }
+        if ($conditions) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
         $sql .= " ORDER BY s.date_signalement DESC";
 
         $stmt = $this->pdo->prepare($sql);
-        if ($statut !== null) {
-            $stmt->execute(['statut' => $statut]);
-        } else {
-            $stmt->execute();
-        }
+        $stmt->execute($parameters);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

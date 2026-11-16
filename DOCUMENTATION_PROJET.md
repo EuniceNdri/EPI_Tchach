@@ -17,16 +17,34 @@ Le projet est construit selon une architecture MVC simple en PHP, avec des vues 
 
 ## 2. Vision fonctionnelle globale
 
-### 2.1 Rôles disponibles
+### 2.1 Rôles et responsabilités
 
-Le système est pensé autour de plusieurs profils :
+Les rôles de compte sont `etudiant`, `professeur` et `administrateur`.
+Les responsabilités scolaires sont enregistrées séparément dans
+`appartenance_zones.role_dans_zone` :
 
-- Administrateur : accès total, gestion des utilisateurs, des filières, des signalements, du dashboard global.
-- Professeur : espace de gestion de cours / modules, participation aux salons et suivi de publications.
-- Étudiant : accès au forum, publication, réactions, consultation des salons.
-- Délégué : vue centrée sur sa filière.
-- Chef de classe : vue centrée sur sa classe / groupe.
-- Modérateur : gestion modération et signalements.
+- **Administrateur** : gestion de toute la plateforme, des utilisateurs, des zones,
+  des tags et des signalements; peut publier des annonces dans toutes les zones.
+- **Délégué général** : responsabilité dans une zone de type `delegation`; consulte
+  les indicateurs et signalements de toute l’école, en lecture seule, et peut
+  publier une annonce dans la zone générale.
+- **Délégué de classe** : responsabilité `delegue_de_classe` dans sa zone de type
+  `filiere`; seul un étudiant de cette filière peut être nommé. Il consulte les
+  membres, traite les signalements de sa filière, peut y publier des annonces et
+  devient automatiquement membre de la zone Délégation.
+- **Professeur** : participe aux salons accessibles et peut signaler du contenu;
+  il ne dispose pas de pouvoir de modération par défaut.
+- **Étudiant** : participe aux salons accessibles, publie, commente, réagit,
+  signale du contenu et gère son profil.
+
+Il n’existe pas de compte séparé « Modérateur ». Le rôle « Chef de classe » est
+désormais nommé « Délégué de classe » dans l’interface et correspond à la même
+responsabilité de zone.
+
+Seul l’administrateur peut attribuer ou retirer ces responsabilités. Il ne peut
+y avoir qu’un Délégué Général et un Délégué de classe par filière. La base
+garantit ces limites avec des index uniques; la responsabilité de Délégué Général
+peut être cumulée avec celle de Délégué de classe.
 
 ### 2.2 Modules principaux
 
@@ -159,6 +177,8 @@ Le processus est dans `AuthController::login()` et `User::login()`.
 
 Le processus est centralisé dans `AuthController::register()` et `User::register()`.
 
+Toute adresse au format email standard est acceptée, quel que soit son domaine.
+
 Il prend en charge :
 
 - les rôles,
@@ -179,7 +199,12 @@ Les données de session démonstratives sont stockées dans `$_SESSION` :
 - `user_filiere`
 - `user_modules`
 
-La sécurité de l’accès est effectuée dans les contrôleurs via des garde-fous (`checkAdmin()`, `checkAccess()`, etc.).
+La sécurité de l’accès est effectuée dans les contrôleurs via des garde-fous
+(`checkAdmin()`, `checkAccess()`, etc.). Lorsque la base est disponible, les
+accès administrateur et modération revalident le rôle enregistré en base ; les
+dashboards délégué et chef de classe vérifient leurs appartenances de zone.
+Les écrans d'administration, de modération et les dashboards de responsables
+renvoient une erreur de service indisponible si la base ne peut pas être vérifiée.
 
 ---
 
@@ -199,26 +224,32 @@ Il affiche :
 - signalements récents
 - vue d’administration transversale
 
-### 6.2 Dashboard délégué
+### 6.2 Dashboard délégué général
 
-Le dashboard délégué est filtré sur la filière de l’utilisateur.
+L'accès est accordé à partir de la responsabilité `delegue_general` dans une zone
+de type `delegation`. Le délégué général voit les indicateurs, l’activité par
+zone et les derniers signalements à l’échelle de l’école. Cette vue est en
+lecture seule : elle ne contient aucune action de modération.
 
-Il affiche :
-
-- étudiants de la filière,
-- signalements liés à cette filière,
-- indicateurs spécifiques.
+Il affiche les statistiques globales des comptes, publications et signalements,
+l’activité des zones de l’établissement et les derniers signalements à transmettre
+à l’administration.
 
 ### 6.3 Dashboard chef de classe
 
-Le dashboard chef de classe filtre selon :
+L'accès est accordé à partir de la responsabilité `delegue_de_classe` dans une zone
+de type `filiere`. L’interface l’appelle « Délégué de classe ». Les membres et
+signalements affichés ainsi que les actions de modération sont limités à cette
+zone.
 
-- la filière,
-- la classe / groupe de l’utilisateur.
+Le schéma actuel ne définit pas de table de classes ou de groupes : le tableau
+de bord ne peut donc pas encore distinguer plusieurs classes au sein d'une
+même filière.
 
 ### 6.4 Dashboard utilisateur standard
 
-Un utilisateur simple a une vue personnelle avec ses informations et un état global simplifié.
+Un utilisateur standard voit ses informations personnelles. Les indicateurs
+globaux ne sont pas affichés sur ce tableau de bord.
 
 ---
 
@@ -275,18 +306,35 @@ Les filières et les salons sont gérés via le modèle `Salon` et la vue `admin
 - un salon est ajouté dans cette zone,
 - les publications et discussions s’y déroulent.
 
+### 8.4 Contenu de la page d’accueil
+
+Depuis `admin/settings`, les administrateurs peuvent modifier les visuels, slogans et descriptions des filières actives, les photos et légendes du carrousel principal, ainsi que les quatre statistiques affichées sur ordinateur et téléphone. Les images téléversées acceptent JPG, PNG ou WebP, jusqu’à 5 Mo chacune.
+
+Les réglages du carrousel et des statistiques sont conservés dans `landing_settings`. Les champs `image_url` et `slogan` sont ajoutés à `filieres` par la migration `20261107_add_landing_management.sql`.
+
+### Tags et mentions dans le salon
+
+Les publications peuvent être associées à des tags actifs et mentionner jusqu'à dix personnes ayant accès au salon. Les résultats de recherche sont classés par rôle (professeurs, délégation, administration) et une mention envoie une notification à la personne sélectionnée. Les membres peuvent proposer de nouveaux tags ; ils restent invisibles dans le fil jusqu'à leur validation par un administrateur depuis « Filières & Salons ». Les administrateurs peuvent également créer, renommer, désactiver, réactiver ou supprimer des tags. Les tags actifs peuvent servir à filtrer le fil.
+
+Pour une base existante, exécuter `database/migrations/20261108_add_publication_tags_mentions.sql` après les migrations précédentes.
+
 ---
 
 ## 9. Gestion des signalements et modération
 
 ### 9.1 Principe
 
-Un utilisateur peut signaler une publication ou un commentaire. Les modérateurs / administrateurs décident ensuite des actions :
+Un utilisateur peut signaler une publication ou un commentaire. Les administrateurs et délégués de classe décident ensuite des actions dans leur périmètre :
 
 - avertir l’auteur,
 - bloquer la publication,
 - supprimer le contenu,
 - rejeter le signalement.
+
+Seuls les administrateurs peuvent agir sur toute la plateforme. Un délégué de
+classe peut traiter les signalements de ses filières attribuées uniquement. Le
+délégué général consulte les signalements globalement, sans pouvoir les traiter.
+Les professeurs et étudiants ne disposent pas de droits de modération.
 
 ### 9.2 Fichiers impliqués
 
@@ -323,6 +371,10 @@ Elles portent :
 - statut,
 - date de création.
 
+Les publications de type `discussion` ouvrent un panneau latéral contenant le sujet et ses commentaires. Les membres peuvent commenter et aimer les commentaires; le commentaire ayant le plus de likes est automatiquement marqué comme solution. Une `annonce` n'autorise que les likes. Une publication de type `question` est un sondage à choix multiples : les membres votent et peuvent modifier leur vote, sans commentaires ni réactions.
+
+Le formulaire adapte ses champs au type choisi. Un sondage requiert de 2 à 10 choix et chaque membre ne peut avoir qu'un vote par publication.
+
 ### 10.2 Réactions
 
 Les réactions sont gérées dans la table `reactions`.
@@ -342,6 +394,16 @@ Types pris en charge :
 - réaction sur une publication,
 - signalement reçu.
 
+### 10.4 Profil et bibliothèque personnelle
+
+Le profil de son propre compte regroupe les publications, les salons rejoints, les fichiers partagés et les favoris. Les publications personnelles signalées restent visibles par leur auteur avec leur état de modération; elles restent masquées aux autres visiteurs.
+
+Les fichiers sont joints à une publication ou à un commentaire, et non téléversés dans un espace indépendant. Depuis le profil, leur auteur peut les filtrer par rubrique, les prévisualiser lorsqu’il s’agit d’images, les télécharger et les ajouter ou retirer des favoris. L’accès aux fichiers vérifie également les droits sur la publication et le salon.
+
+Les nouvelles pièces jointes sont stockées hors du dossier public puis servies via les routes protégées du projet. Les métadonnées `type_media` et `ordre_affichage` sont ajoutées par `database/migrations/20261108_add_attachment_media_metadata.sql` et sont également présentes dans le schéma neuf de `database.sql`. Les pièces jointes sont supprimées lors de la suppression modérée de leur publication/commentaire; les avatars sont redimensionnés à 400 × 400 pixels et supprimés lors de leur remplacement ou de la suppression du compte.
+
+Le salon propose également la rubrique « Documents partagés », filtrée par salon ou catégorie. Elle regroupe les fichiers des publications et commentaires accessibles; les PDF peuvent y être prévisualisés et tous les fichiers téléchargés via les routes protégées du projet.
+
 ---
 
 ## 11. Base de données
@@ -358,6 +420,7 @@ La base de données est définie dans `database.sql`.
 - `commentaires`
 - `reactions`
 - `pieces_jointes`
+- `pieces_jointes_sauvegardees`
 - `tags`
 - `publication_tags`
 - `signalements`
@@ -381,6 +444,7 @@ Comptes de test disponibles :
 
 - XAMPP ou WAMP avec Apache + MySQL
 - PHP 8.x
+- Extension PHP `mbstring`
 - MySQL / MariaDB
 - Un navigateur web
 
@@ -427,7 +491,9 @@ Le projet a connu une erreur liée à des fonctions comme :
 
 Cela arrive si l’extension `mbstring` n’est pas activée dans PHP.
 
-La correction consiste à gérer un fallback PHP ou activer `mbstring` dans PHP.
+L'extension `mbstring` est requise par les vues, les notifications et la
+modération. La configuration arrête explicitement l'application si elle est
+absente ; activez-la dans la configuration PHP de l'environnement.
 
 ### 13.2 Vérification syntaxique
 

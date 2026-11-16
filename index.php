@@ -22,6 +22,7 @@ define('ROOT_PATH', __DIR__);
 if (file_exists(ROOT_PATH . '/config/database.php')) {
     require_once ROOT_PATH . '/config/database.php';
 }
+require_once ROOT_PATH . '/models/LandingContent.php';
 
 if (!function_exists('getRequestedRoute')) {
     /**
@@ -129,6 +130,40 @@ if (!function_exists('asset')) {
     }
 }
 
+if (!function_exists('loadActiveFilieres')) {
+    function loadActiveFilieres(?PDO $pdo): array {
+        if (!$pdo) {
+            $error = $GLOBALS['dbError'] ?? 'Connexion à la base de données indisponible.';
+            error_log('Chargement des filières impossible : ' . $error);
+            return [[], true];
+        }
+
+        try {
+            $statement = $pdo->query(
+                'SELECT id, nom, code, description, image_url, slogan
+                 FROM filieres
+                 WHERE est_active = 1
+                 ORDER BY nom ASC'
+            );
+            return [$statement->fetchAll(), false];
+        } catch (PDOException $exception) {
+            error_log('Chargement des champs visuels des filières impossible : ' . $exception->getMessage());
+            try {
+                $statement = $pdo->query(
+                    'SELECT id, nom, code, description, NULL AS image_url, NULL AS slogan
+                     FROM filieres
+                     WHERE est_active = 1
+                     ORDER BY nom ASC'
+                );
+                return [$statement->fetchAll(), false];
+            } catch (PDOException $fallbackException) {
+                error_log('Chargement des filières impossible : ' . $fallbackException->getMessage());
+                return [[], true];
+            }
+        }
+    }
+}
+
 // =============================================================
 // GARDE-FOU ASSETS MANQUANTS (Évite de renvoyer du HTML sur un CSS/JS)
 // =============================================================
@@ -140,9 +175,32 @@ if (in_array(strtolower($ext), ['css', 'js', 'png', 'jpg', 'jpeg', 'svg', 'gif',
     exit;
 }
 
+if (!empty($_SESSION['user_id']) && $pdo instanceof PDO) {
+    $activityStatement = $pdo->prepare('UPDATE utilisateurs SET derniere_activite = NOW() WHERE id = :user_id');
+    $activityStatement->execute(['user_id' => (int)$_SESSION['user_id']]);
+}
+
 // =============================================================
 // ROUTEUR UNIVERSEL DES VUES DESKTOP
 // =============================================================
+if (preg_match('#^attachment/view/([1-9][0-9]*)$#', $fullRoute, $attachmentViewMatch)) {
+    require_once ROOT_PATH . '/controllers/AttachmentController.php';
+    (new AttachmentController())->view((int)$attachmentViewMatch[1]);
+}
+if (preg_match('#^attachment/download/([1-9][0-9]*)$#', $fullRoute, $attachmentMatch)) {
+    require_once ROOT_PATH . '/controllers/AttachmentController.php';
+    (new AttachmentController())->download((int)$attachmentMatch[1]);
+}
+if (preg_match('#^messages/attachment/([1-9][0-9]*)$#', $fullRoute, $messageAttachmentMatch)) {
+    require_once ROOT_PATH . '/controllers/SocialController.php';
+    (new SocialController())->messageAttachment((int)$messageAttachmentMatch[1]);
+}
+if (preg_match('#^publication/([1-9][0-9]*)$#', $fullRoute, $publicationMatch)) {
+    require_once ROOT_PATH . '/controllers/PublicationController.php';
+    (new PublicationController())->show((int)$publicationMatch[1]);
+    exit;
+}
+
 switch ($fullRoute) {
 
     // ---------------------------------------------------------
@@ -151,7 +209,15 @@ switch ($fullRoute) {
     case '':
     case 'landing':
     case 'home':
-        require_once ROOT_PATH . '/views/desktop/landing.php';
+        [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
+        $landingSettings = (new LandingContent($pdo))->getSettings();
+        header('Vary: User-Agent');
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        if (preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)) {
+            require_once ROOT_PATH . '/views/smartphone/landing.php';
+        } else {
+            require_once ROOT_PATH . '/views/desktop/landing.php';
+        }
         break;
 
     case 'salon':
@@ -159,6 +225,21 @@ switch ($fullRoute) {
     case 'Salon':
         require_once ROOT_PATH . '/controllers/SalonController.php';
         (new SalonController())->index();
+        break;
+
+    case 'salon/mentionable-users':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->mentionableUsers();
+        break;
+
+    case 'salon/save':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->toggleSaved();
+        break;
+
+    case 'salon/presence':
+        require_once ROOT_PATH . '/controllers/SalonController.php';
+        (new SalonController())->presence();
         break;
 
     case 'salons/create-zone':
@@ -207,9 +288,29 @@ switch ($fullRoute) {
         (new PublicationController())->create();
         break;
 
+    case 'publication/discussion':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->discussion();
+        break;
+
+    case 'publication/live-stats':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->liveStats();
+        break;
+
+    case 'publication/vote':
+        require_once ROOT_PATH . '/controllers/PublicationController.php';
+        (new PublicationController())->vote();
+        break;
+
     case 'comment/create':
         require_once ROOT_PATH . '/controllers/PublicationController.php';
         (new PublicationController())->createComment();
+        break;
+
+    case 'search':
+        require_once ROOT_PATH . '/controllers/SearchController.php';
+        (new SearchController())->search();
         break;
 
     // ---------------------------------------------------------
@@ -290,6 +391,30 @@ switch ($fullRoute) {
         break;
 
     // ---------------------------------------------------------
+    // AMIS & MESSAGERIE PRIVÉE
+    // ---------------------------------------------------------
+    case 'messages':
+    case 'messagerie':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->messages();
+        break;
+
+    case 'friends/action':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->friendAction();
+        break;
+
+    case 'messages/send':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->sendMessage();
+        break;
+
+    case 'messages/delete':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->deleteMessage();
+        break;
+
+    // ---------------------------------------------------------
     // ESPACE ADMINISTRATION (Géré par AdminController)
     // ---------------------------------------------------------
     case 'dashboard':
@@ -366,6 +491,11 @@ switch ($fullRoute) {
         (new AdminController())->createCategory();
         break;
 
+    case 'admin/tags/action':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->tagAction();
+        break;
+
     case 'admin/settings':
         require_once ROOT_PATH . '/controllers/AdminController.php';
         (new AdminController())->settings();
@@ -375,14 +505,7 @@ switch ($fullRoute) {
     // ROUTE PAR DÉFAUT / SOUS-ROUTER
     // ---------------------------------------------------------
     default:
-        if (strpos($fullRoute, 'admin') === 0) {
-            require_once ROOT_PATH . '/controllers/AdminController.php';
-            (new AdminController())->dashboard();
-        } elseif (strpos($fullRoute, 'profile') === 0) {
-            require_once ROOT_PATH . '/controllers/ProfileController.php';
-            (new ProfileController())->index();
-        } else {
-            require_once ROOT_PATH . '/views/desktop/landing.php';
-        }
+        http_response_code(404);
+        require_once ROOT_PATH . '/views/errors/404.php';
         break;
 }

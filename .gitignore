@@ -25,3 +25,9 @@ node_modules/
 
 # Fichiers uploadés par les utilisateurs
 /public/uploads/
+!/public/uploads/
+/public/uploads/*
+!/public/uploads/.htaccess
+!/public/uploads/avatars/
+/public/uploads/avatars/*
+!/public/uploads/avatars/.htaccess

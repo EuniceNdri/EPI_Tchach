@@ -1,19 +1,4 @@
 <?php
-if (!function_exists('mb_strimwidth')) {
-    function mb_strimwidth(string $string, int $start, int $width, string $trimmarker = '...'): string {
-        if ($width <= 0) {
-            return '';
-        }
-
-        if (strlen($string) <= $width) {
-            return $string;
-        }
-
-        $trimLength = max(0, $width - strlen($trimmarker));
-        return substr($string, $start, $trimLength) . $trimmarker;
-    }
-}
-
 $base = $base ?? (isset($baseUrl) ? $baseUrl : '');
 $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
 $activeAdminPage = $activeAdminPage ?? 'dashboard';
@@ -29,8 +14,10 @@ $topReports = array_slice($recentReports, 0, 4);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= htmlspecialchars($title ?? 'Dashboard') ?> · EPI Tchach</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/views/desktop/partials/admin-sidebar.php'; ?>
 

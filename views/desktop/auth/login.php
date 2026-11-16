@@ -15,11 +15,11 @@ $logoPath = $asset . '/images/logo.jpeg';
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/auth.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/smartphone/auth.css" />
+  <?php include ROOT_PATH . '/views/partials/theme-head.php'; ?>
 </head>
 <body>
-  <!-- Bande tricolore -->
-  <div class="tricolor-bar"></div>
-
+  <?php include ROOT_PATH . '/views/partials/theme-toggle.php'; ?>
   <!-- En-tête -->
   <header class="auth-header">
     <a href="<?= $base ?>/landing" class="brand-link">
@@ -37,15 +37,34 @@ $logoPath = $asset . '/images/logo.jpeg';
     <div class="blob blob-left"></div>
     <div class="blob blob-right"></div>
 
+    <div class="auth-layout">
+    <aside class="auth-visual">
+      <div class="auth-visual-brand">
+        <img src="<?= htmlspecialchars($logoPath) ?>" alt="Logo EPI" />
+        <span>La communauté EPI</span>
+      </div>
+      <div class="auth-visual-art" aria-hidden="true">
+        <span class="auth-orbit auth-orbit-one"></span>
+        <span class="auth-orbit auth-orbit-two"></span>
+        <span class="auth-orb"></span>
+        <span class="auth-orb-glow"></span>
+      </div>
+      <div class="auth-visual-copy">
+        <span class="auth-visual-kicker">Échanger · Apprendre · Réussir</span>
+        <h2>Votre communauté vous attend.</h2>
+        <p>Retrouvez les étudiants et enseignants de l’EPI dans un espace de partage et d’entraide.</p>
+      </div>
+      <div class="auth-visual-footer"><span>Ensemble, faisons grandir nos idées.</span><span class="auth-visual-dots" aria-hidden="true">● ● ●</span></div>
+    </aside>
     <section class="auth-card">
       <div class="auth-card-header">
         <span class="auth-badge">Espace Membres</span>
         <h1>Bon retour parmi nous</h1>
-        <p>Connectez-vous à votre compte institutionnel</p>
+        <p>Connectez-vous à votre compte</p>
       </div>
 
       <?php if (!empty($error)): ?>
-        <div class="alert alert-error">
+        <div class="alert alert-error" role="alert" aria-live="assertive">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span><?= htmlspecialchars($error) ?></span>
         </div>
@@ -61,10 +80,10 @@ $logoPath = $asset . '/images/logo.jpeg';
       <form action="<?= $base ?>/login" method="POST" class="auth-form">
         <!-- Champ Email -->
         <div class="form-group">
-          <label for="email" class="form-label">Adresse Email Institutionnelle</label>
+          <label for="email" class="form-label">Adresse email</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <input type="email" id="email" name="email" class="form-input" placeholder="prenom.nom@epi-yakro.ci" required autocomplete="email" />
+            <input type="email" id="email" name="email" class="form-input" placeholder="exemple@gmail.com" required autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
           </div>
         </div>
 
@@ -98,6 +117,7 @@ $logoPath = $asset . '/images/logo.jpeg';
         <a href="<?= $base ?>/register" class="auth-link">Créer un compte</a>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="auth-footer">
