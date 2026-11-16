@@ -28,6 +28,7 @@ class AuthController {
     }
 
     private function renderAuthView(string $view): void {
+        global $baseUrl, $base, $assetBase, $asset;
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         $device = preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)
             ? 'smartphone'
