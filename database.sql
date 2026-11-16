@@ -214,26 +214,7 @@ CREATE TABLE pieces_jointes_sauvegardees (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 11. TAGS
--- ============================================================
-CREATE TABLE tags (
-    id      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom     VARCHAR(50) NOT NULL UNIQUE
-) ENGINE=InnoDB;
-
--- ============================================================
--- 12. PUBLICATION_TAGS
--- ============================================================
-CREATE TABLE publication_tags (
-    publication_id  INT UNSIGNED NOT NULL,
-    tag_id          INT UNSIGNED NOT NULL,
-    PRIMARY KEY (publication_id, tag_id),
-    FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- ============================================================
--- 13. SIGNALEMENTS
+-- 11. SIGNALEMENTS
 -- ============================================================
 CREATE TABLE signalements (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -250,7 +231,7 @@ CREATE TABLE signalements (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 14. NOTIFICATIONS
+-- 12. NOTIFICATIONS
 -- ============================================================
 CREATE TABLE notifications (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -264,7 +245,7 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 15. TAGS ET MENTIONS DES PUBLICATIONS
+-- 13. TAGS ET MENTIONS DES PUBLICATIONS
 -- ============================================================
 CREATE TABLE tags_publication (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -299,7 +280,7 @@ CREATE TABLE publications_mentions (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 16. MOTS INTERDITS (Modération automatique)
+-- 14. MOTS INTERDITS (Modération automatique)
 -- ============================================================
 CREATE TABLE mots_interdits (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -412,7 +393,7 @@ INSERT INTO categories (zone_id, nom, slug, description, ordre) VALUES
 (5, 'Communications Officielles', 'comms-delegation', 'Messages officiels de la Délégation.', 3);
 
 -- TAGS
-INSERT INTO tags (nom) VALUES
+INSERT INTO tags_publication (nom, statut) VALUES
 ('laravel'),('php'),('mysql'),('javascript'),('html-css'),
 ('examen'),('tp'),('projet'),('stage'),('reseaux'),
 ('python'),('fastapi'),('git'),('api'),('debug');
@@ -453,8 +434,8 @@ INSERT INTO pieces_jointes (type_cible, cible_id, nom_fichier, chemin_fichier, t
 ('commentaire', 1, 'corrige_migration.docx', '/uploads/corrige_migration.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'document', 2048, 0),
 ('publication', 3, 'screenshot_erreur.png', '/uploads/screenshot_erreur.png', 'image/png', 'image', 153600, 0);
 
--- PUBLICATION_TAGS
-INSERT INTO publication_tags (publication_id, tag_id) VALUES
+-- PUBLICATIONS_TAGS
+INSERT INTO publications_tags (publication_id, tag_id) VALUES
 (3,1),(3,2),(3,3),(3,15),
 (4,1),(4,14),
 (5,8),

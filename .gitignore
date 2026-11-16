@@ -22,6 +22,10 @@ node_modules/
 
 # Logs
 *.log
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
 
 # Fichiers uploadés par les utilisateurs
 /public/uploads/
@@ -31,3 +35,11 @@ node_modules/
 !/public/uploads/avatars/
 /public/uploads/avatars/*
 !/public/uploads/avatars/.htaccess
+!/public/uploads/publications/
+/public/uploads/publications/*
+!/public/uploads/publications/images/
+!/public/uploads/publications/documents/
+!/public/uploads/temp/
+!/public/uploads/publications/images/.gitkeep
+!/public/uploads/publications/documents/.gitkeep
+!/public/uploads/temp/.gitkeep

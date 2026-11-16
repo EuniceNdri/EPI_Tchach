@@ -31,12 +31,19 @@ $host = $env['DB_HOST'] ?? 'localhost';
 $dbname = $env['DB_NAME'] ?? 'forum_ecole';
 $username = $env['DB_USER'] ?? 'admin';
 $password = $env['DB_PASS'] ?? 'admin';
+$port = $env['DB_PORT'] ?? null;
+
+$dsn = $env['DB_DSN'] ?? (
+    $port !== null && $port !== ''
+        ? "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4"
+        : "mysql:host=$host;dbname=$dbname;charset=utf8mb4"
+);
 
 $pdo = null;
 
 try {
     $pdo = new PDO(
-        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $dsn,
         $username,
         $password,
         [

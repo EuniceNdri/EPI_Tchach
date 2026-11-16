@@ -9,6 +9,8 @@
 document.addEventListener("DOMContentLoaded", () => {
     // Détermination de la base URL relative
     const getBaseUrl = () => {
+        const bodyBase = document.body.dataset.baseUrl;
+        if (typeof bodyBase === "string") return bodyBase;
         const path = window.location.pathname;
         const match = path.match(/^(.*?\/admin)/);
         if (match) {

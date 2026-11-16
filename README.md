@@ -49,21 +49,16 @@ EPI_Tchach/
 ├── config/                       → Configuration de l'application
 │   └── database.php              → Connexion à la base de données (PDO)
 │
-├── controllers/                  → Logique métier + traitement des requêtes
-│   ├── AuthController.php
-│   ├── PublicationController.php
-│   ├── ZoneController.php
-│   ├── CommentaireController.php
-│   └── ...
-│
-├── models/                       → Accès aux données (requêtes SQL)
-│   ├── User.php
-│   ├── Publication.php
-│   ├── Commentaire.php
-│   ├── Zone.php
-│   └── ...
-│
-├── views/                        → Affichage (fichiers HTML/PHP)
+├── app/
+│   ├── Bootstrap.php             → Session, configuration et helpers communs
+│   ├── Controllers/              → Contrôleurs HTTP
+│   ├── Models/                   → Accès aux données
+│   ├── Services/                 → Logique métier réutilisable
+│   ├── Middleware/               → Contrôles d'accès
+│   └── Helpers/                  → Fonctions utilitaires
+├── routes/
+│   └── web.php                   → Déclaration centralisée des routes
+├── resources/views/              → Affichage et composants réutilisables
 │   ├── desktop/                 → Pages du frontend ordinateur
 │   │   ├── admin/               → Administration
 │   │   ├── auth/                → Connexion, inscription et récupération
@@ -84,6 +79,9 @@ EPI_Tchach/
 │       │   ├── desktop/         → Scripts ordinateur
 │       │   └── smartphone/      → Scripts smartphone (dont auth.js)
 │       └── images/
+│   └── uploads/                  → Fichiers utilisateurs
+│
+├── storage/                      → Logs et cache non publics
 │
 ├── .htaccess                     → Redirige vers public/
 ├── .gitignore
@@ -95,10 +93,60 @@ EPI_Tchach/
 | Dossier | Rôle principal | Qui y touche le plus ? |
 |---------|---------------|----------------------|
 | `config/` | Paramètres de l'application (BDD, constantes...) | Tout le monde (avec précaution) |
-| `controllers/` | Reçoit la demande, appelle le Model, envoie à la View | Développeurs backend |
-| `models/` | Contient toutes les requêtes SQL | Développeurs backend |
-| `views/` | Contient le HTML + petits bouts de PHP d'affichage | Développeurs frontend |
-| `views/auth/` | Pages d'authentification (connexion, inscription...) | Développeurs frontend/backend |
+| `app/Controllers/` | Reçoit la demande et appelle les services/modèles | Développeurs backend |
+| `app/Models/` | Contient l'accès aux données | Développeurs backend |
+| `app/Services/` | Centralise la logique métier réutilisable | Développeurs backend |
+| `resources/views/` | Contient le HTML + petits bouts de PHP d'affichage | Développeurs frontend |
+| `routes/web.php` | Déclare les routes applicatives | Développeurs backend |
+
+### Organisation frontend
+
+Les assets frontend sont organisés par portée :
+
+- `public/assets/css/theme.css` et `feedback.css` sont globaux.
+- `public/assets/css/desktop/` contient les styles par domaine.
+- `public/assets/css/smartphone/` contient les styles mobiles.
+- `public/assets/js/desktop/` et `public/assets/js/smartphone/` suivent la même séparation.
+- `resources/views/partials/frontend-assets.php` charge les assets globaux puis ceux déclarés par la page.
+- `resources/views/components/` est réservé aux fragments HTML réutilisables.
+
+Les interactions de messagerie et de notifications sont chargées depuis
+`public/assets/js/desktop/messages.js` et
+`public/assets/js/desktop/notifications.js`, plutôt que d’être maintenues dans
+les vues.
+
+### Services et API JSON
+
+Les services orchestrent les règles qui utilisent plusieurs modèles :
+
+- `NotificationService` : compte et mise à jour des notifications ;
+- `MentionService` : recherche, validation et enregistrement des mentions ;
+- `PublicationService` : coordination des tags, mentions et notifications ;
+- `RoleService` : vérification des accès liés aux rôles.
+
+Les premiers endpoints JSON sont déclarés dans `routes/web.php` :
+
+| Endpoint | Méthode | Contrôleur |
+|---|---|---|
+| `/api/notifications/unread-count` | GET | `NotificationApiController` |
+| `/api/reactions` | POST | `ReactionApiController` |
+| `/api/mentions/search` | GET | `MentionApiController` |
+
+Les endpoints exigent une session authentifiée. L’API des réactions réutilise
+les contrôles d’accès du contrôleur HTML existant afin de conserver le même
+comportement et les mêmes permissions.
+
+### Routage et middlewares
+
+`index.php` charge le bootstrap, récupère la route puis délègue son exécution à
+`app/Routing/Router.php`. Les routes existantes restent déclarées sous forme de
+tableau dans `routes/web.php` afin de préserver les URLs historiques.
+
+Les routes applicatives sont protégées par `auth` par défaut. Les routes de
+connexion utilisent `guest`, les routes `/admin/*` utilisent `admin`, et les
+tableaux de bord de délégué utilisent `role:delegue_de_classe`. Les contrôleurs
+conservent leurs vérifications métier détaillées lorsqu'une permission dépend
+de la zone, de la catégorie ou de la ressource ciblée.
 | `public/` | Fichiers publics (CSS, JS, images, `index.php`) | Tout le monde |
 | `public/index.php` | Routeur principal de l'application | Développeurs backend |
 
@@ -258,13 +306,16 @@ mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_filieres
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_forum_features.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261105_add_salon_interactions.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261107_add_landing_management.sql
+mysql -u nom_utilisateur -p nom_base < migrations/20261108_social_friends_messages.sql
+mysql -u nom_utilisateur -p nom_base < migrations/20261108_private_message_deletions.sql
+mysql -u nom_utilisateur -p nom_base < migrations/20261108_private_message_attachments.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261108_add_publication_tags_mentions.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261108_add_attachment_media_metadata.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261109_align_school_roles.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261110_enforce_delegation_assignments.sql
 ```
 
-Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, les réglages administrables de la landing, les tags et mentions, la classification image/document et l'ordre des pièces jointes, puis alignent les rôles de compte et les responsabilités par zone. La migration des rôles convertit les anciens comptes `moderateur` et `delegue_general` en comptes étudiants. La migration `20261110_enforce_delegation_assignments.sql` applique ensuite les règles d’attribution : un seul Délégué Général, un seul Délégué de classe par filière, un Délégué de classe étudiant rattaché à sa propre filière et automatiquement membre de la zone Délégation. Si plusieurs Délégués Généraux existent lors de cette migration, le compte ayant l’identifiant le plus élevé est conservé. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, les réglages administrables de la landing, les tables d’amitié et de messagerie privée, les suppressions et pièces jointes des messages, les tags et mentions, la classification image/document et l'ordre des pièces jointes, puis alignent les rôles de compte et les responsabilités par zone. La migration des rôles convertit les anciens comptes `moderateur` et `delegue_general` en comptes étudiants. La migration `20261110_enforce_delegation_assignments.sql` applique ensuite les règles d’attribution : un seul Délégué Général, un seul Délégué de classe par filière, un Délégué de classe étudiant rattaché à sa propre filière et automatiquement membre de la zone Délégation. Si plusieurs Délégués Généraux existent lors de cette migration, le compte ayant l’identifiant le plus élevé est conservé. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
 
 Les responsabilités ne sont modifiables que depuis l’administration. Les rôles de compte restent Étudiant, Professeur et Administrateur; Délégué Général et Délégué de classe sont des responsabilités d’élèves dans `appartenance_zones`. Le Délégué Général voit l’activité globale sans pouvoir modérer. Un Délégué de classe ne peut modérer que les signalements de sa filière.
 

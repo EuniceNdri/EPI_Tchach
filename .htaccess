@@ -7,8 +7,9 @@ DirectoryIndex index.php public/index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 1. Raccourci transparent pour que /assets/... pointe vers /public/assets/...
+    # 1. Raccourcis transparents pour /assets/... et /uploads/...
     RewriteRule ^assets/(.*)$ public/assets/$1 [L,QSA]
+    RewriteRule ^uploads/(.*)$ public/uploads/$1 [L,QSA]
 
     # 2. Si la ressource demandée existe (fichier CSS, JS, image...), on la sert directement
     RewriteCond %{REQUEST_FILENAME} !-f

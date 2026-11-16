@@ -13,6 +13,69 @@ EPI Tchach est une plateforme éducative / communautaire conçue pour une école
 
 Le projet est construit selon une architecture MVC simple en PHP, avec des vues HTML/PHP, des contrôleurs et des modèles.
 
+Depuis la migration d'architecture, le code applicatif est regroupé dans
+`app/` : `app/Controllers/`, `app/Models/`, `app/Services/`,
+`app/Middleware/` et `app/Helpers/`. Les vues sont dans `resources/views/`,
+les routes dans `routes/web.php` et le chargement commun dans
+`app/Bootstrap.php`. `public/index.php` reste le point d'entrée HTTP public.
+
+### Carte des modules
+
+Chaque domaine possède un emplacement de recherche principal. Un contrôleur
+coordonne la requête HTTP, un modèle porte les requêtes de sa table ou de son
+agrégat, et un service porte une règle métier qui traverse plusieurs tables.
+
+| Domaine | Contrôleur | Modèle ou service principal | Tables principales |
+|---|---|---|---|
+| Identité et authentification | `app/Controllers/Auth/`, `Profile/` | `app/Models/Identity/User.php`, `Avatar.php` | `utilisateurs`, `filieres` |
+| Administration | `app/Controllers/Admin/`, `Dashboard/` | `app/Models/Identity/Admin.php` | `utilisateurs`, `appartenance_zones`, `zones` |
+| Salons et catégories | `app/Controllers/Salon/` | `app/Models/Salon/Salon.php` | `zones`, `categories`, `filieres` |
+| Publications et commentaires | `app/Controllers/Publications/` | `app/Models/Publications/` | `publications`, `commentaires`, `sondage_options`, `sondage_votes` |
+| Pièces jointes | `app/Controllers/Attachments/` | `app/Models/Publications/Attachment.php`, `app/Services/UploadService.php` | `pieces_jointes` |
+| Réactions | `app/Controllers/Publications/ReactionController.php` | `app/Models/Publications/Reaction.php` | `reactions` |
+| Notifications | `app/Controllers/Notifications/` | `app/Models/Notifications/Notification.php` | `notifications` |
+| Modération et signalements | `app/Controllers/Moderation/` | `app/Models/Moderation/`, `app/Services/ModerationService.php` | `signalements`, `mots_interdits` |
+| Réseau social et messages | `app/Controllers/Social/` | `app/Models/Social/Social.php` | `friendships`, `private_messages`, tables `private_message_*` |
+| Tags et mentions | `app/Controllers/Publications/`, `Search/` | `app/Models/Publications/PublicationMetadata.php` | `tags_publication`, `publications_tags`, `publications_mentions` |
+| Landing page | `index.php`, `app/Controllers/Admin/` | `app/Models/Platform/LandingContent.php` | `landing_settings` |
+
+Les tables de tags utilisent les noms de la migration active :
+`tags_publication`, `publications_tags` et `publications_mentions`.
+`publication_tags` reste uniquement une ancienne définition présente dans
+`database.sql` et ne doit pas être utilisée dans le code applicatif.
+
+### Services et endpoints API
+
+Les règles qui traversent plusieurs modèles sont placées dans
+`app/Services/` :
+
+- `NotificationService` pour les notifications ;
+- `MentionService` pour la recherche et la validation des mentions ;
+- `PublicationService` pour l'orchestration des métadonnées ;
+- `RoleService` pour les permissions de rôle.
+
+Les contrôleurs JSON se trouvent dans `app/Controllers/Api/` et sont accessibles
+via les routes suivantes :
+
+- `GET /api/notifications/unread-count`
+- `POST /api/reactions`
+- `GET /api/mentions/search?category_id=...&q=...`
+
+Les contrôleurs API authentifient la session avant d'appeler un service ou un
+modèle. L'endpoint des réactions réutilise les contrôles d'accès de
+`ReactionController` pour éviter une divergence avec le flux HTML.
+
+### Routage et middleware
+
+`index.php` est limité au bootstrap, aux routes spéciales de fichiers et à la
+délégation vers `app/Routing/Router.php`. Le routeur exécute les middlewares
+avant de construire le contrôleur.
+
+Les middlewares disponibles sont `auth`, `guest`, `admin` et
+`role:delegue_de_classe`. Toute route contrôleur est protégée par `auth` par
+défaut, sauf les routes publiques de connexion et les routes explicitement
+spécialisées. Les contrôleurs gardent les contrôles fins liés aux ressources.
+
 ---
 
 ## 2. Vision fonctionnelle globale
