@@ -16,14 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `forum_ecole`
---
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `forum_ecole` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-
-USE `forum_ecole`;
-
---
 -- Table structure for table `appartenance_zones`
 --
 
@@ -214,6 +206,7 @@ CREATE TABLE `filiere_group_reads` (
 
 LOCK TABLES `filiere_group_reads` WRITE;
 /*!40000 ALTER TABLE `filiere_group_reads` DISABLE KEYS */;
+INSERT INTO `filiere_group_reads` VALUES (1,14,'2026-11-16 19:38:15');
 /*!40000 ALTER TABLE `filiere_group_reads` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -231,7 +224,7 @@ CREATE TABLE `filiere_message_groups` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `filiere_id` (`filiere_id`),
   CONSTRAINT `fk_filiere_message_groups_filiere` FOREIGN KEY (`filiere_id`) REFERENCES `filieres` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -710,13 +703,13 @@ CREATE TABLE `reactions` (
   `utilisateur_id` int unsigned NOT NULL,
   `type_cible` enum('publication','commentaire') COLLATE utf8mb4_unicode_ci NOT NULL,
   `cible_id` int unsigned NOT NULL,
-  `type_reaction` enum('like','utile','jadore') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'like',
+  `type_reaction` enum('like','jadore','utile','haha','wouah','triste') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'like',
   `date_reaction` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_reaction` (`utilisateur_id`,`type_cible`,`cible_id`),
   KEY `idx_reactions_cible` (`type_cible`,`cible_id`),
   CONSTRAINT `reactions_ibfk_1` FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateurs` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -725,7 +718,7 @@ CREATE TABLE `reactions` (
 
 LOCK TABLES `reactions` WRITE;
 /*!40000 ALTER TABLE `reactions` DISABLE KEYS */;
-INSERT INTO `reactions` VALUES (1,1,'publication',1,'utile','2026-10-28 20:53:26'),(2,2,'publication',1,'like','2026-10-28 20:53:26'),(3,14,'commentaire',2,'like','2026-11-07 20:02:35'),(17,20,'publication',3,'like','2026-11-09 15:06:53');
+INSERT INTO `reactions` VALUES (1,1,'publication',1,'utile','2026-10-28 20:53:26'),(2,2,'publication',1,'like','2026-10-28 20:53:26'),(3,14,'commentaire',2,'like','2026-11-07 20:02:35'),(17,20,'publication',3,'like','2026-11-09 15:06:53'),(24,14,'publication',7,'like','2026-11-16 19:28:20');
 /*!40000 ALTER TABLE `reactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -920,7 +913,7 @@ CREATE TABLE `utilisateurs` (
 
 LOCK TABLES `utilisateurs` WRITE;
 /*!40000 ALTER TABLE `utilisateurs` DISABLE KEYS */;
-INSERT INTO `utilisateurs` VALUES (1,'Kouassi','Momo','momo.kouassi@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en BTS IDA, passionné de développement web.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,'2026-11-07 13:58:07',1),(2,'Traoré','Sarah','sarah.traore@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiante en BTS IDA.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,1),(3,'Diallo','Jean','jean.diallo@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en Licence Informatique.','Licence Informatique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,2),(4,'N\'Guessan','Awa','awa.nguessan@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Chef de classe (Modérateur) BTS IDA.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,1),(5,'Yao','Kofi','kofi.yao@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Délégué Général des étudiants.','Licence Informatique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,'2026-11-09 14:38:19',2),(6,'Koné','Dr. Ibrahim','ibrahim.kone@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Professeur de Développement Web.',NULL,'Développement Web, Base de données','professeur',1,'2026-10-28 20:53:26',NULL,'2026-11-07 12:55:43',NULL),(7,'Bamba','Fatou','fatou.bamba@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Professeure de Réseaux.',NULL,'Réseaux, Sécurité','professeur',1,'2026-10-28 20:53:26',NULL,NULL,NULL),(8,'Admin','Système','admin@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Compte administrateur principal.',NULL,NULL,'administrateur',1,'2026-10-28 20:53:26',NULL,'2026-11-09 14:39:36',NULL),(9,'Modo','Paul','paul.modo@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Modérateur global de la plateforme.',NULL,NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,NULL),(10,'Bakayoko','Amadou','amadou.bakayoko@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en Génie Mécanique.','Génie Mécanique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,3),(11,'Shadow','Darck','darckshafow@gmail.com','$2y$12$XNz8Fj6GMAB0aWTHGJOvcuGmkuj9aTv2UKjTvmWvD7nuvXCXnMeYy','uploads/avatars/c4afc035fa0be24b29e53f942343a417.jpg','','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:55:32',NULL,'2026-11-09 14:07:10',1),(12,'Shadow','Darck','mohamed@gmail.com','$2y$12$K6TZscQU/i.EP6odoElf8uxF9Q1wdGLSII5Vi5MqZs.CkCdqahu5e',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-04 08:47:32',NULL,'2026-11-08 10:45:01',1),(13,'Test','Etudiant','test.etudiant.20261105.1216@epi-yakro.ci','$2y$12$Ewsc0qCV0gBXVgszuoFDi.Mib1F./Fz/L2aDi7Fmba/8HJdevdZ2O',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-05 12:19:34',NULL,NULL,1),(14,'Shadow','Darck','darckshafow@epi-yakro.ci','$2y$12$PSk6wC7O6R1SpU0PdckJsOCUlvNBFPjGKQ13Ika1JfK4WDkomHJcO','uploads/avatars/2def71d6a7c053b9215d8c876557622c.jpg','je suis le meilleur','BTS IDA',NULL,'etudiant',1,'2026-11-05 12:29:45',NULL,'2026-11-16 17:01:55',1),(15,'TestGmail','Etudiant','epi.test.gmail.1793882035771@gmail.com','$2y$12$BKhS6ufToH2FcZer/R6WSOWKBcMhzC1atzhVp/jxxBMPvIRwum3xa',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-05 12:33:58',NULL,'2026-11-05 13:07:40',1),(16,'mohamed','momo','mohamed@yakro-epi.ci','$2y$12$nKeo22yCDJBbL0wZwI6euuTovqhQx/5.x.40NxkP3KEN8uaq7MjGm','uploads/avatars/d95617443c94424dd50ef9b70439f1d2.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-07 20:10:49',NULL,'2026-11-07 20:23:39',1),(17,'sala','kata','darckshafo@gmail.com','$2y$12$AxtnMgPjSTG0cBDw/lOmUOu/9TodVoRiYic2Ihh6xaLKKP4WpZLiO','uploads/avatars/b86cb55241f59bca75a5ee67e1f12c61.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-08 10:13:57',NULL,'2026-11-09 15:56:42',1),(19,'Saad','Yasmine','yasminesad@gmail.com','$2y$12$VEvdGA065Gx/XKOLnmzLauqMj3u2qyB9NqvUpSFFVyTYd2KH6qczO','uploads/avatars/dde98e1b614e09e1bd4f2eb137f0a922.jpg',NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-09 14:21:24',NULL,'2026-11-09 14:45:00',1),(20,'L\'homme qui pleure jamais','Capelo','romariccapelo8@gmail.com','$2y$12$JYySYFGbmJW1OcMkayBNj.XFpyYc5/5eB3F8vk3fCWVOU6Q8EHVJK','uploads/avatars/31582d75b7770e7904a01382da18f7d4.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-09 14:56:17',NULL,'2026-11-09 16:04:29',1),(21,'kouasso','ariel','jdupon@gmail.com','$2y$12$PUDRTgSl/8/lCHkNPK1zjefuUwLMeju7BBUFeZEVCfd7gdTz.PYaO',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-09 15:37:17',NULL,'2026-11-09 15:58:46',1);
+INSERT INTO `utilisateurs` VALUES (1,'Kouassi','Momo','momo.kouassi@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en BTS IDA, passionné de développement web.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,'2026-11-07 13:58:07',1),(2,'Traoré','Sarah','sarah.traore@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiante en BTS IDA.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,1),(3,'Diallo','Jean','jean.diallo@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en Licence Informatique.','Licence Informatique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,2),(4,'N\'Guessan','Awa','awa.nguessan@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Chef de classe (Modérateur) BTS IDA.','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,1),(5,'Yao','Kofi','kofi.yao@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Délégué Général des étudiants.','Licence Informatique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,'2026-11-09 14:38:19',2),(6,'Koné','Dr. Ibrahim','ibrahim.kone@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Professeur de Développement Web.',NULL,'Développement Web, Base de données','professeur',1,'2026-10-28 20:53:26',NULL,'2026-11-07 12:55:43',NULL),(7,'Bamba','Fatou','fatou.bamba@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Professeure de Réseaux.',NULL,'Réseaux, Sécurité','professeur',1,'2026-10-28 20:53:26',NULL,NULL,NULL),(8,'Admin','Système','admin@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Compte administrateur principal.',NULL,NULL,'administrateur',1,'2026-10-28 20:53:26',NULL,'2026-11-09 14:39:36',NULL),(9,'Modo','Paul','paul.modo@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Modérateur global de la plateforme.',NULL,NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,NULL),(10,'Bakayoko','Amadou','amadou.bakayoko@epi-yakro.ci','$2y$12$8F/UiuqNU1NEs611GD4lBOxmZHqqD/4bwZhn3kNpevRAluU0S6ILG',NULL,'Étudiant en Génie Mécanique.','Génie Mécanique',NULL,'etudiant',1,'2026-10-28 20:53:26',NULL,NULL,3),(11,'Shadow','Darck','darckshafow@gmail.com','$2y$12$XNz8Fj6GMAB0aWTHGJOvcuGmkuj9aTv2UKjTvmWvD7nuvXCXnMeYy','uploads/avatars/c4afc035fa0be24b29e53f942343a417.jpg','','BTS IDA',NULL,'etudiant',1,'2026-10-28 20:55:32',NULL,'2026-11-09 14:07:10',1),(12,'Shadow','Darck','mohamed@gmail.com','$2y$12$K6TZscQU/i.EP6odoElf8uxF9Q1wdGLSII5Vi5MqZs.CkCdqahu5e',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-04 08:47:32',NULL,'2026-11-08 10:45:01',1),(13,'Test','Etudiant','test.etudiant.20261105.1216@epi-yakro.ci','$2y$12$Ewsc0qCV0gBXVgszuoFDi.Mib1F./Fz/L2aDi7Fmba/8HJdevdZ2O',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-05 12:19:34',NULL,NULL,1),(14,'Shadow','Darck','darckshafow@epi-yakro.ci','$2y$12$PSk6wC7O6R1SpU0PdckJsOCUlvNBFPjGKQ13Ika1JfK4WDkomHJcO','uploads/avatars/2def71d6a7c053b9215d8c876557622c.jpg','je suis le meilleur','BTS IDA',NULL,'etudiant',1,'2026-11-05 12:29:45',NULL,'2026-11-16 19:43:28',1),(15,'TestGmail','Etudiant','epi.test.gmail.1793882035771@gmail.com','$2y$12$BKhS6ufToH2FcZer/R6WSOWKBcMhzC1atzhVp/jxxBMPvIRwum3xa',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-05 12:33:58',NULL,'2026-11-05 13:07:40',1),(16,'mohamed','momo','mohamed@yakro-epi.ci','$2y$12$nKeo22yCDJBbL0wZwI6euuTovqhQx/5.x.40NxkP3KEN8uaq7MjGm','uploads/avatars/d95617443c94424dd50ef9b70439f1d2.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-07 20:10:49',NULL,'2026-11-07 20:23:39',1),(17,'sala','kata','darckshafo@gmail.com','$2y$12$AxtnMgPjSTG0cBDw/lOmUOu/9TodVoRiYic2Ihh6xaLKKP4WpZLiO','uploads/avatars/b86cb55241f59bca75a5ee67e1f12c61.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-08 10:13:57',NULL,'2026-11-09 15:56:42',1),(19,'Saad','Yasmine','yasminesad@gmail.com','$2y$12$VEvdGA065Gx/XKOLnmzLauqMj3u2qyB9NqvUpSFFVyTYd2KH6qczO','uploads/avatars/dde98e1b614e09e1bd4f2eb137f0a922.jpg',NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-09 14:21:24',NULL,'2026-11-09 14:45:00',1),(20,'L\'homme qui pleure jamais','Capelo','romariccapelo8@gmail.com','$2y$12$JYySYFGbmJW1OcMkayBNj.XFpyYc5/5eB3F8vk3fCWVOU6Q8EHVJK','uploads/avatars/31582d75b7770e7904a01382da18f7d4.jpg','','BTS IDA',NULL,'etudiant',1,'2026-11-09 14:56:17',NULL,'2026-11-09 16:04:29',1),(21,'kouasso','ariel','jdupon@gmail.com','$2y$12$PUDRTgSl/8/lCHkNPK1zjefuUwLMeju7BBUFeZEVCfd7gdTz.PYaO',NULL,NULL,'BTS IDA',NULL,'etudiant',1,'2026-11-09 15:37:17',NULL,'2026-11-09 15:58:46',1);
 /*!40000 ALTER TABLE `utilisateurs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -954,10 +947,6 @@ LOCK TABLES `zones` WRITE;
 INSERT INTO `zones` VALUES (1,'Zone Générale - Vie de l\'École','generale','Espace public pour les annonces officielles et la vie étudiante.',8,1,'2026-10-28 20:53:26'),(2,'Filière BTS IDA','filiere','Espace dédié aux étudiants et professeurs de BTS IDA.',4,1,'2026-10-28 20:53:26'),(3,'Filière Licence Informatique','filiere','Espace dédié aux étudiants de Licence Informatique.',8,1,'2026-10-28 20:53:26'),(4,'Espace Professeurs','professeurs','Zone restreinte réservée aux enseignants.',8,1,'2026-10-28 20:53:26'),(5,'Bureau de la Délégation','delegation','Espace de travail de la Délégation étudiante.',5,1,'2026-10-28 20:53:26');
 /*!40000 ALTER TABLE `zones` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Dumping routines for database 'forum_ecole'
---
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -968,4 +957,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-16 17:25:51
+-- Dump completed on 2026-11-16 19:43:34

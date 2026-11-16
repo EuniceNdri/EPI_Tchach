@@ -180,9 +180,31 @@ $roleLabels = [
         <?php endif; ?>
 
         <div class="epi-card-actions publication-detail-actions">
-          <div class="epi-vote-capsule">
-            <button type="button" class="epi-vote-btn upvote <?= !empty($publication['user_liked']) ? 'is-voted' : '' ?>" data-toggle-reaction data-target-type="publication" data-target-id="<?= (int)$publication['id'] ?>" aria-label="Aimer la publication" aria-pressed="<?= !empty($publication['user_liked']) ? 'true' : 'false' ?>">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+          <div class="epi-vote-capsule epi-reaction-container">
+            <div class="epi-reaction-picker" role="toolbar" aria-label="Choisir une réaction">
+              <button type="button" class="epi-reaction-option" data-reaction-type="like" title="J'aime"><span class="emoji-icon">👍</span><span class="reaction-label">J'aime</span></button>
+              <button type="button" class="epi-reaction-option" data-reaction-type="jadore" title="J'adore"><span class="emoji-icon">❤️</span><span class="reaction-label">J'adore</span></button>
+              <button type="button" class="epi-reaction-option" data-reaction-type="utile" title="Utile"><span class="emoji-icon">💡</span><span class="reaction-label">Utile</span></button>
+              <button type="button" class="epi-reaction-option" data-reaction-type="haha" title="Haha"><span class="emoji-icon">😂</span><span class="reaction-label">Haha</span></button>
+              <button type="button" class="epi-reaction-option" data-reaction-type="wouah" title="Wouah"><span class="emoji-icon">😮</span><span class="reaction-label">Wouah</span></button>
+              <button type="button" class="epi-reaction-option" data-reaction-type="triste" title="Triste"><span class="emoji-icon">😢</span><span class="reaction-label">Triste</span></button>
+            </div>
+            <button type="button" class="epi-vote-btn upvote <?= !empty($publication['user_liked']) ? 'is-voted' : '' ?> <?= !empty($publication['user_reaction']) ? 'is-reacted-' . htmlspecialchars((string)$publication['user_reaction']) : '' ?>"
+              data-toggle-reaction data-target-type="publication" data-target-id="<?= (int)$publication['id'] ?>"
+              data-current-reaction="<?= htmlspecialchars((string)($publication['user_reaction'] ?? '')) ?>"
+              aria-label="Aimer la publication" aria-pressed="<?= !empty($publication['user_liked']) ? 'true' : 'false' ?>">
+              <span class="epi-btn-reaction-icon">
+                <?php
+                $uReact = (string)($publication['user_reaction'] ?? '');
+                if ($uReact === 'jadore') echo '❤️';
+                elseif ($uReact === 'utile') echo '💡';
+                elseif ($uReact === 'haha') echo '😂';
+                elseif ($uReact === 'wouah') echo '😮';
+                elseif ($uReact === 'triste') echo '😢';
+                elseif ($uReact === 'like') echo '👍';
+                else echo '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>';
+                ?>
+              </span>
             </button>
             <span class="epi-vote-count publication-like-count" data-live-likes><?= (int)$publication['likes_count'] ?></span>
             <button type="button" class="epi-vote-btn downvote" aria-label="Vote bas">

@@ -77,7 +77,10 @@ class Notification {
         $reactionLabels = [
             'like'   => 'a aimé 👍',
             'jadore' => 'a adoré ❤️',
-            'utile'  => 'a trouvé utile 💡'
+            'utile'  => 'a trouvé utile 💡',
+            'haha'   => 'a ri 😂',
+            'wouah'  => 'a été surpris 😮',
+            'triste' => 'est triste 😢'
         ];
         $label = $reactionLabels[$typeReaction] ?? 'a réagi à';
 

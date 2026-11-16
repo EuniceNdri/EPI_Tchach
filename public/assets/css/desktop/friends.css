@@ -1,0 +1,436 @@
+/* ==============================================================
+ * public/assets/css/desktop/friends.css
+ * Page Liste d'amis - Design System EPI Tchach
+ * ============================================================== */
+
+.epi-friends-header-card {
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.epi-friends-header-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.epi-friends-header-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--community-green), #10b981);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 800;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.epi-friends-header-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.epi-friends-header-text h1 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--community-text);
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+.epi-friends-header-text p {
+  font-size: 0.88rem;
+  color: var(--community-muted);
+  margin: 0;
+}
+
+.epi-friends-badge-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: rgba(142, 211, 170, 0.15);
+  color: var(--community-green);
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Tabs & Search Bar */
+.epi-friends-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.epi-friends-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  padding: 0.3rem;
+  border-radius: var(--community-radius-md);
+}
+
+.epi-friends-tab-btn {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--community-radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--community-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.epi-friends-tab-btn:hover {
+  color: var(--community-text);
+  background: var(--community-hover);
+}
+
+.epi-friends-tab-btn.is-active {
+  background: var(--community-green);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.epi-friends-tab-count {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.epi-friends-tab-btn.is-active .epi-friends-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.epi-friends-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-md);
+  padding: 0.45rem 0.85rem;
+  flex: 1;
+  max-width: 320px;
+  transition: border-color 0.2s ease;
+}
+
+.epi-friends-search:focus-within {
+  border-color: var(--community-green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.epi-friends-search svg {
+  color: var(--community-muted);
+  flex-shrink: 0;
+}
+
+.epi-friends-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--community-text);
+  font-size: 0.88rem;
+  width: 100%;
+}
+
+/* Grille de cartes amis */
+.epi-friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.epi-friend-card {
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.epi-friend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border-color: var(--community-green);
+}
+
+.epi-friend-card-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+  border: 3px solid var(--community-surface);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.epi-friend-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.epi-friend-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--community-text);
+  text-decoration: none;
+  margin-bottom: 0.35rem;
+  display: block;
+  transition: color 0.2s ease;
+}
+
+.epi-friend-card-name:hover {
+  color: var(--community-green);
+}
+
+.epi-friend-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.epi-friend-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  background: var(--community-raised);
+  color: var(--community-muted);
+}
+
+.epi-friend-badge.role {
+  background: rgba(142, 211, 170, 0.18);
+  color: var(--community-green);
+}
+
+.epi-friend-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: auto;
+}
+
+.epi-btn-chat {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--community-radius-md);
+  background: #25d366;
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+}
+
+.epi-btn-chat:hover {
+  background: #20ba59;
+  transform: translateY(-1px);
+}
+
+.epi-btn-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--community-radius-md);
+  background: var(--community-raised);
+  color: var(--community-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--community-line);
+  transition: background 0.2s ease;
+}
+
+.epi-btn-profile:hover {
+  background: var(--community-hover);
+}
+
+.epi-btn-remove {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--community-radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.epi-btn-remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* Demandes d'amis */
+.epi-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 2rem;
+}
+
+.epi-request-card {
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.epi-request-user {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.epi-request-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  overflow: hidden;
+}
+
+.epi-request-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.epi-request-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.epi-btn-accept {
+  padding: 0.5rem 1rem;
+  border-radius: var(--community-radius-md);
+  background: var(--community-green);
+  color: #ffffff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.epi-btn-accept:hover {
+  background: #059669;
+}
+
+.epi-btn-decline {
+  padding: 0.5rem 1rem;
+  border-radius: var(--community-radius-md);
+  background: var(--community-raised);
+  color: var(--community-muted);
+  border: 1px solid var(--community-line);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.epi-btn-decline:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Empty State */
+.epi-friends-empty {
+  background: var(--community-surface);
+  border: 1px dashed var(--community-line);
+  border-radius: var(--community-radius-lg);
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.epi-friends-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(142, 211, 170, 0.15);
+  color: var(--community-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+.epi-friends-empty h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--community-text);
+  margin: 0 0 0.5rem;
+}
+
+.epi-friends-empty p {
+  font-size: 0.9rem;
+  color: var(--community-muted);
+  max-width: 420px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.5;
+}

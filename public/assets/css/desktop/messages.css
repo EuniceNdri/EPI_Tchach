@@ -1933,3 +1933,238 @@ body.epi-messages-page .epi-topbar-right .theme-toggle:hover {
 .epi-messages-sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ============================================================
+ * WhatsApp Web Aesthetic Theme Enhancements
+ * ============================================================ */
+.epi-messages-layout {
+  width: min(1200px, calc(100% - 1.5rem));
+  height: calc(100vh - 100px);
+  min-height: 580px;
+  max-height: 850px;
+  gap: 0;
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+  background: var(--community-surface);
+}
+
+.epi-messages-sidebar {
+  border-right: 1px solid var(--community-line);
+  background: var(--community-surface);
+  border-radius: 0;
+  height: 100%;
+}
+
+.epi-messages-panel,
+.epi-conversation-panel {
+  border: none;
+  border-radius: 0;
+  height: 100%;
+}
+
+.epi-conversation-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--community-surface);
+  position: relative;
+}
+
+/* WhatsApp Doodle Wallpaper Pattern */
+.epi-message-history {
+  flex: 1;
+  background-color: var(--community-base, #efeae2);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+[data-theme="dark"] .epi-message-history {
+  background-color: #0b141a;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* WhatsApp Message Bubbles */
+.epi-message-bubble {
+  position: relative;
+  max-width: 65%;
+  padding: 0.55rem 0.85rem 0.45rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.13);
+}
+
+/* Outgoing message (WhatsApp Green) */
+.epi-message-bubble.is-mine {
+  background: #d9fdd3;
+  color: #111b21;
+  border-radius: 10px 10px 2px 10px;
+}
+
+[data-theme="dark"] .epi-message-bubble.is-mine {
+  background: #005c4b;
+  color: #e9edef;
+}
+
+/* Incoming message (White / Dark Slate) */
+.epi-message-bubble.is-theirs {
+  background: #ffffff;
+  color: #111b21;
+  border-radius: 10px 10px 10px 2px;
+}
+
+[data-theme="dark"] .epi-message-bubble.is-theirs {
+  background: #202c33;
+  color: #e9edef;
+}
+
+/* Message Meta & Blue Checkmarks */
+.epi-message-bubble-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  float: right;
+  margin-left: 0.65rem;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  color: #667781;
+}
+
+[data-theme="dark"] .epi-message-bubble-meta {
+  color: #8696a0;
+}
+
+.epi-msg-ticks {
+  color: #53bdeb;
+  font-weight: 700;
+  letter-spacing: -1px;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+/* WhatsApp Header Styling */
+.epi-conversation-header {
+  height: 64px;
+  padding: 0 1.25rem;
+  background: var(--community-raised, #f0f2f5);
+  border-bottom: 1px solid var(--community-line);
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+[data-theme="dark"] .epi-conversation-header {
+  background: #202c33;
+}
+
+/* WhatsApp Composer Bar */
+.epi-message-composer {
+  padding: 0.65rem 1rem;
+  background: var(--community-raised, #f0f2f5);
+  border-top: 1px solid var(--community-line);
+}
+
+[data-theme="dark"] .epi-message-composer {
+  background: #202c33;
+}
+
+.epi-message-composer-input {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: transparent;
+}
+
+.epi-message-composer textarea {
+  flex: 1;
+  background: var(--community-surface, #ffffff);
+  border: none;
+  border-radius: 24px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.95rem;
+  color: var(--community-text);
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .epi-message-composer textarea {
+  background: #2a3942;
+  color: #d1d7db;
+}
+
+.epi-message-send {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #25d366 !important;
+  color: #ffffff !important;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.4);
+}
+
+.epi-message-send:hover {
+  transform: scale(1.06);
+  background: #20ba59 !important;
+}
+
+/* WhatsApp Welcome Splash Screen */
+.whatsapp-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+  background: var(--community-raised, #f0f2f5);
+}
+
+[data-theme="dark"] .whatsapp-welcome {
+  background: #222e35;
+}
+
+.whatsapp-welcome-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.whatsapp-welcome h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--community-text);
+  margin: 0 0 0.5rem;
+}
+
+.whatsapp-welcome p {
+  max-width: 440px;
+  font-size: 0.92rem;
+  color: var(--community-muted);
+  line-height: 1.5;
+  margin: 0 0 2rem;
+}
+
+.whatsapp-welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--community-muted);
+  background: var(--community-surface);
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  border: 1px solid var(--community-line);
+}

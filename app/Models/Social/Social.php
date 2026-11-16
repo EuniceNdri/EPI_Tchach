@@ -184,6 +184,61 @@ class Social
         return $statement->rowCount() === 1;
     }
 
+    public function sendFriendRequest(int $senderId, int $recipientId): string
+    {
+        return $this->requestFriend($senderId, $recipientId);
+    }
+
+    public function acceptFriendRequest(int $userId, int $senderId): bool
+    {
+        return $this->respondToRequest($userId, $senderId, 'accept');
+    }
+
+    public function rejectFriendRequest(int $userId, int $senderId): bool
+    {
+        return $this->respondToRequest($userId, $senderId, 'decline');
+    }
+
+    public function cancelFriendRequest(int $userId, int $recipientId): bool
+    {
+        return $this->respondToRequest($userId, $recipientId, 'cancel');
+    }
+
+    public function getSuggestedMembers(int $userId, int $limit = 8): array
+    {
+        try {
+            $userStmt = $this->pdo->prepare('SELECT filiere FROM utilisateurs WHERE id = ?');
+            $userStmt->execute([$userId]);
+            $userFiliere = (string)($userStmt->fetchColumn() ?: '');
+
+            $statement = $this->pdo->prepare(
+                "SELECT u.id, u.prenom, u.nom, u.role, u.filiere, u.avatar_url,
+                        CASE WHEN u.filiere = :filiere AND :filiere <> '' THEN 1 ELSE 0 END AS same_filiere
+                 FROM utilisateurs u
+                 WHERE u.id <> :user_id
+                   AND u.est_actif = 1
+                   AND u.id NOT IN (
+                       SELECT CASE WHEN user_one_id = :uid1 THEN user_two_id ELSE user_one_id END
+                       FROM friendships
+                       WHERE (user_one_id = :uid2 OR user_two_id = :uid3)
+                         AND status IN ('accepted', 'pending')
+                   )
+                 ORDER BY same_filiere DESC, u.prenom ASC, u.nom ASC
+                 LIMIT :limit"
+            );
+            $statement->bindValue(':filiere', $userFiliere, PDO::PARAM_STR);
+            $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $statement->bindValue(':uid1', $userId, PDO::PARAM_INT);
+            $statement->bindValue(':uid2', $userId, PDO::PARAM_INT);
+            $statement->bindValue(':uid3', $userId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->execute();
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
     public function getFriends(int $userId): array
     {
         try {

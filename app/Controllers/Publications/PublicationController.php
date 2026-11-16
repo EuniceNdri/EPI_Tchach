@@ -474,13 +474,13 @@ class PublicationController {
             SELECT comment.id, comment.contenu, comment.date_creation, comment.est_solution,
                    author.id AS author_id, author.prenom, author.nom, author.role AS author_role,
                    COUNT(reaction.id) AS likes_count,
+                   MAX(reaction.type_reaction) AS user_reaction,
                    MAX(reaction.utilisateur_id = :user_id) AS user_liked
             FROM commentaires comment
             JOIN utilisateurs author ON author.id = comment.utilisateur_id
             LEFT JOIN reactions reaction
               ON reaction.type_cible = 'commentaire'
              AND reaction.cible_id = comment.id
-             AND reaction.type_reaction = 'like'
             WHERE comment.publication_id = :publication_id
               AND comment.est_signale = 0
             GROUP BY comment.id, comment.contenu, comment.date_creation, comment.est_solution,
@@ -633,8 +633,9 @@ class PublicationController {
                    publication.commentaires_fermes, publication.est_signale,
                    author.id AS author_id, author.prenom, author.nom, author.role AS author_role, author.avatar_url,
                    category.nom AS category_name, zone.id AS zone_id, zone.nom AS zone_name,
-                   (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.type_reaction = 'like') AS likes_count,
-                   (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.type_reaction = 'like' AND r.utilisateur_id = :reaction_user) > 0 AS user_liked,
+                   (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id) AS likes_count,
+                   (SELECT r.type_reaction FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.utilisateur_id = :reaction_user LIMIT 1) AS user_reaction,
+                   (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.utilisateur_id = :reaction_user2) > 0 AS user_liked,
                    (SELECT id FROM publications_sauvegardees s WHERE s.utilisateur_id = :saved_user AND s.publication_id = publication.id LIMIT 1) AS saved_id
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
@@ -646,6 +647,7 @@ class PublicationController {
         $statement->execute([
             'publication_id' => $publicationId,
             'reaction_user' => $userId,
+            'reaction_user2' => $userId,
             'saved_user' => $userId,
         ]);
         $publication = $statement->fetch(PDO::FETCH_ASSOC);
@@ -659,13 +661,13 @@ class PublicationController {
             SELECT comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
                    author.id AS author_id, author.prenom, author.nom, author.avatar_url, author.role AS author_role,
                    COUNT(reaction.id) AS likes_count,
+                   MAX(reaction.type_reaction) AS user_reaction,
                    MAX(reaction.utilisateur_id = :user_id) AS user_liked
             FROM commentaires comment
             JOIN utilisateurs author ON author.id = comment.utilisateur_id
             LEFT JOIN reactions reaction
               ON reaction.type_cible = 'commentaire'
              AND reaction.cible_id = comment.id
-             AND reaction.type_reaction = 'like'
             WHERE comment.publication_id = :publication_id
               AND comment.est_signale = 0
             GROUP BY comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,

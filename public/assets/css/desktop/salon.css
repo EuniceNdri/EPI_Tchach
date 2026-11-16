@@ -2089,3 +2089,108 @@ body.community-salon .discussion-comment.is-solution {
       width: 100%;
     }
   }
+/* ============================================================
+ * Facebook Style Reactions Bar (Floating Emoji Picker)
+ * ============================================================ */
+.epi-reaction-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.epi-reaction-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--community-card, #ffffff);
+  border: 1px solid var(--community-border, #e2e8f0);
+  border-radius: 40px;
+  padding: 6px 12px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.22), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.9);
+  transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 100;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.epi-reaction-container:hover .epi-reaction-picker,
+.epi-reaction-container.picker-open .epi-reaction-picker {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.epi-reaction-option {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.epi-reaction-option:hover {
+  transform: scale(1.4) translateY(-6px);
+}
+
+.epi-reaction-option .emoji-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  display: inline-block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+}
+
+.epi-reaction-option .reaction-label {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.epi-reaction-option:hover .reaction-label {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Reaction Active Styles */
+.epi-vote-btn.is-reacted-like {
+  color: #1877F2 !important;
+  background: rgba(24, 119, 242, 0.12) !important;
+}
+.epi-vote-btn.is-reacted-jadore {
+  color: #FA383E !important;
+  background: rgba(250, 56, 62, 0.12) !important;
+}
+.epi-vote-btn.is-reacted-utile {
+  color: #D97706 !important;
+  background: rgba(217, 119, 6, 0.12) !important;
+}
+.epi-vote-btn.is-reacted-haha,
+.epi-vote-btn.is-reacted-wouah,
+.epi-vote-btn.is-reacted-triste {
+  color: #F7B125 !important;
+  background: rgba(247, 177, 37, 0.12) !important;
+}

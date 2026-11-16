@@ -115,14 +115,10 @@ class ReactionController {
             && $this->salonModel->canAccessCategory($userId, (int)$target['categorie_id'], strtolower(trim($storedRole)));
         if ($typeCible === 'publication') {
             $isAllowed = $isAllowed && in_array($target['type_publication'], ['discussion', 'question', 'annonce'], true);
-            if ($target && $target['type_publication'] === 'annonce' && $typeReaction !== 'like') {
-                $isAllowed = false;
-            }
         } else {
             $isAllowed = $isAllowed
                 && in_array($target['type_publication'], ['discussion', 'question', 'annonce'], true)
-                && !(bool)($target['comment_signale'] ?? false)
-                && $typeReaction === 'like';
+                && !(bool)($target['comment_signale'] ?? false);
         }
         if (!$isAllowed) {
             http_response_code(403);

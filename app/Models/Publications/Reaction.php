@@ -20,8 +20,8 @@ class Reaction {
     private ?PDO $pdo;
     private Notification $notificationModel;
 
-    // Types de réactions autorisés dans la base (alignés avec ENUM SQL)
-    public const VALID_TYPES = ['like', 'jadore', 'utile'];
+    // Types de réactions autorisés dans la base (alignés avec ENUM SQL - style Facebook)
+    public const VALID_TYPES = ['like', 'jadore', 'utile', 'haha', 'wouah', 'triste'];
 
     public function __construct(?PDO $pdo = null) {
         if ($pdo !== null) {
@@ -177,6 +177,9 @@ class Reaction {
             'like'   => 0,
             'jadore' => 0,
             'utile'  => 0,
+            'haha'   => 0,
+            'wouah'  => 0,
+            'triste' => 0,
             'total'  => 0
         ];
 

@@ -199,12 +199,15 @@ class Salon {
                    z.id AS zone_id, z.nom AS zone_name, z.type_zone,
                    (SELECT COUNT(*) FROM reactions r
                     WHERE r.type_cible = 'publication'
-                      AND r.type_reaction = 'like'
                       AND r.cible_id = p.id) AS likes_count,
+                   (
+                       SELECT r2.type_reaction FROM reactions r2
+                       WHERE r2.type_cible = 'publication' AND r2.cible_id = p.id AND r2.utilisateur_id = :reaction_user
+                       LIMIT 1
+                   ) AS user_reaction,
                    EXISTS (
                        SELECT 1 FROM reactions user_reaction
                        WHERE user_reaction.type_cible = 'publication'
-                         AND user_reaction.type_reaction = 'like'
                          AND user_reaction.cible_id = p.id
                          AND user_reaction.utilisateur_id = :reaction_user
                    ) AS user_liked,

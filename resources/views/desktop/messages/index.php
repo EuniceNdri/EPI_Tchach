@@ -90,6 +90,13 @@ $roleLabels = [
           <button type="button" class="is-active" data-conversation-filter="all" aria-pressed="true">Toutes</button>
           <button type="button" data-conversation-filter="groups" aria-pressed="false">Groupes</button>
           <button type="button" data-conversation-filter="private" aria-pressed="false">Privées</button>
+          <button type="button" data-conversation-filter="requests" aria-pressed="false">
+            Demandes<?php if (count($requests) > 0): ?> <span class="epi-message-unread" style="font-size:0.72rem; padding:1px 6px; border-radius:10px; background:#ef4444;"><?= count($requests) ?></span><?php endif; ?>
+          </button>
+          <a href="<?= htmlspecialchars($base) ?>/friends" class="epi-messages-filter-link" title="Gérer mes amis" style="margin-left:auto; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; color:var(--community-green); padding:4px 8px; border-radius:12px; background:rgba(37,211,102,0.1);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span>Amis</span>
+          </a>
         </div>
       </header>
       <p class="epi-messages-search-empty" id="conversationSearchEmpty" role="status" hidden>Aucune conversation ne correspond à cette recherche.</p>
@@ -170,7 +177,7 @@ $roleLabels = [
                 ? url('public/' . ltrim((string)$request['avatar_url'], '/'))
                 : '';
             ?>
-              <article class="epi-friend-request">
+              <article class="epi-friend-request" data-conversation-item="requests">
                 <a class="epi-friend-link" href="<?= htmlspecialchars($base) ?>/profile?id=<?= $requestId ?>">
                   <span class="epi-message-avatar">
                     <span><?= htmlspecialchars(mb_substr((string)$request['prenom'], 0, 1) . mb_substr((string)$request['nom'], 0, 1)) ?></span>
@@ -184,14 +191,18 @@ $roleLabels = [
                 <div class="epi-request-actions">
                   <form method="post" action="<?= htmlspecialchars($base) ?>/friends/action">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="target_user_id" value="<?= $requestId ?>">
                     <input type="hidden" name="user_id" value="<?= $requestId ?>">
                     <input type="hidden" name="action" value="accept">
+                    <input type="hidden" name="return_url" value="messages">
                     <button class="epi-message-accept" type="submit">Accepter</button>
                   </form>
                   <form method="post" action="<?= htmlspecialchars($base) ?>/friends/action">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="target_user_id" value="<?= $requestId ?>">
                     <input type="hidden" name="user_id" value="<?= $requestId ?>">
                     <input type="hidden" name="action" value="decline">
+                    <input type="hidden" name="return_url" value="messages">
                     <button class="epi-message-decline" type="submit">Refuser</button>
                   </form>
                 </div>
@@ -270,7 +281,10 @@ $roleLabels = [
                 <div class="epi-message-bubble <?= $isMine ? 'is-mine' : 'is-theirs' ?>">
                   <strong class="epi-group-message-author"><?= htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') ?></strong>
                   <p><?= nl2br(htmlspecialchars((string)$message['contenu'], ENT_QUOTES, 'UTF-8')) ?></p>
-                  <time datetime="<?= htmlspecialchars((string)$message['date_creation'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('d/m/Y H:i', strtotime((string)$message['date_creation'])), ENT_QUOTES, 'UTF-8') ?></time>
+                  <div class="epi-message-bubble-meta">
+                    <time datetime="<?= htmlspecialchars((string)$message['date_creation'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('H:i', strtotime((string)$message['date_creation'])), ENT_QUOTES, 'UTF-8') ?></time>
+                    <?php if ($isMine): ?><span class="epi-msg-ticks" title="Distribué">✓✓</span><?php endif; ?>
+                  </div>
                 </div>
               </article>
             <?php endforeach; ?>
@@ -368,7 +382,10 @@ $roleLabels = [
                     </a>
                   </div>
                 <?php endforeach; ?>
-                <time datetime="<?= htmlspecialchars((string)$message['date_creation'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('d/m/Y H:i', strtotime((string)$message['date_creation']))) ?></time>
+                  <div class="epi-message-bubble-meta">
+                    <time datetime="<?= htmlspecialchars((string)$message['date_creation'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('H:i', strtotime((string)$message['date_creation']))) ?></time>
+                    <?php if ($isMine): ?><span class="epi-msg-ticks" title="Distribué">✓✓</span><?php endif; ?>
+                  </div>
                 </div>
                 <?php if (!$isDeletedForEveryone): ?>
                   <details class="epi-message-actions">
@@ -399,6 +416,7 @@ $roleLabels = [
         </div>
         <form id="privateMessageForm" class="epi-message-composer" method="post" enctype="multipart/form-data" action="<?= htmlspecialchars($base) ?>/messages/send">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="recipient_id" value="<?= (int)$selectedFriend['id'] ?>">
           <input type="hidden" name="user_id" value="<?= (int)$selectedFriend['id'] ?>">
           <div class="epi-message-composer-input">
             <div class="epi-message-attachment-picker">
@@ -427,10 +445,16 @@ $roleLabels = [
           </div>
         </form>
       <?php else: ?>
-        <div class="epi-conversation-empty epi-conversation-welcome">
-          <div class="epi-conversation-icon">✉</div>
-          <h1>Ta messagerie privée</h1>
-          <p>Sélectionne un ami pour ouvrir une conversation. Les messages sont disponibles uniquement entre amis acceptés.</p>
+        <div class="epi-conversation-empty epi-conversation-welcome whatsapp-welcome">
+          <div class="whatsapp-welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </div>
+          <h1>EPI Tchach Web</h1>
+          <p>Discutez en direct avec vos camarades et vos groupes de filières.<br>Fluidité, partage de cours et confidentialité garantis.</p>
+          <div class="whatsapp-welcome-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Chiffrement et confidentialité des échanges</span>
+          </div>
         </div>
       <?php endif; ?>
     </section>

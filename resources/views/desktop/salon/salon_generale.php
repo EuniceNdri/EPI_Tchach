@@ -217,7 +217,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
     <!-- ========== SIDEBAR GAUCHE (grid-area: sidebar) ========== -->
     <aside class="epi-sidebar-left">
       <div class="epi-sidebar-box">
-        <div class="epi-nav-heading">Feeds</div>
+        <div class="epi-nav-heading">Flux & Publications</div>
         <a href="<?= $base ?>/salon" class="epi-nav-item <?= $selectedZone === null && $feedView === 'latest' && !$categoryId ? 'is-active' : '' ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span>Fil public</span>
@@ -235,6 +235,78 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
           <span>Documents</span>
         </a>
 
+        <div class="epi-zone-group">
+          <div class="epi-nav-heading">Communauté & Social</div>
+          <a href="<?= $base ?>/friends" class="epi-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Mes amis</span>
+          </a>
+          <a href="<?= $base ?>/messages" class="epi-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span>Messagerie Web</span>
+          </a>
+          <a href="<?= $base ?>/profile" class="epi-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Mon profil</span>
+          </a>
+          <a href="<?= $base ?>/notifications" class="epi-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span>Notifications</span>
+            <?php if (!empty($unreadCount) && (int)$unreadCount > 0): ?>
+              <span class="epi-zone-count" style="background:#ef4444; color:#ffffff; margin-left:auto;"><?= (int)$unreadCount ?></span>
+            <?php endif; ?>
+          </a>
+        </div>
+
+        <?php if (!empty($zones)): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Espaces & Salons</div>
+            <?php foreach ($zones as $zoneItem):
+              $isZoneSelected = ($selectedZone !== null && (int)$selectedZone['id'] === (int)$zoneItem['id']);
+              $catCount = count($zoneItem['categories'] ?? []);
+            ?>
+              <a href="<?= $base ?>/salon?zone=<?= (int)$zoneItem['id'] ?>" class="epi-zone-header <?= $isZoneSelected ? 'is-selected' : '' ?>">
+                <span><?= htmlspecialchars($zoneItem['nom']) ?></span>
+                <span class="epi-zone-count"><?= $catCount ?></span>
+              </a>
+              <?php if ($isZoneSelected && !empty($zoneItem['categories'])): ?>
+                <?php foreach ($zoneItem['categories'] as $cat):
+                  $isCatSelected = ($categoryId !== null && (int)$categoryId === (int)$cat['id']);
+                ?>
+                  <a href="<?= $base ?>/salon?zone=<?= (int)$zoneItem['id'] ?>&category=<?= (int)$cat['id'] ?>" class="epi-category-item <?= $isCatSelected ? 'is-selected' : '' ?>">
+                    <span># <?= htmlspecialchars($cat['nom']) ?></span>
+                  </a>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if ($userRole === 'administrateur'): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Administration</div>
+            <a href="<?= $base ?>/admin" class="epi-nav-item" style="color:var(--community-orange);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>Panneau Admin</span>
+            </a>
+          </div>
+        <?php elseif ($userRole === 'delegue_general'): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Espace Délégué</div>
+            <a href="<?= $base ?>/dashboard/delegue" class="epi-nav-item" style="color:var(--community-green);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Tableau de bord</span>
+            </a>
+          </div>
+        <?php elseif ($userRole === 'delegue_de_classe'): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Espace Chef de Classe</div>
+            <a href="<?= $base ?>/dashboard/chef-classe" class="epi-nav-item" style="color:var(--community-green);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Espace Classe</span>
+            </a>
+          </div>
+        <?php endif; ?>
       </div>
     </aside>
 
@@ -452,12 +524,32 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
             <!-- Actions Style EPI (Capsule de vote, Commentaires, Partager, Sauvegarder) -->
             <div class="epi-card-actions">
               
-              <!-- Capsule Vote EPI [ ▲ Vote ▼ ] -->
-              <div class="epi-vote-capsule">
-                <button type="button" class="epi-vote-btn upvote <?= !empty($post['user_liked']) ? 'is-voted' : '' ?>"
+              <!-- Capsule Vote EPI avec Réactions Emojis Facebook [ 👍 ❤️ 💡 😂 😮 😢 ] -->
+              <div class="epi-vote-capsule epi-reaction-container">
+                <div class="epi-reaction-picker" role="toolbar" aria-label="Choisir une réaction">
+                  <button type="button" class="epi-reaction-option" data-reaction-type="like" title="J'aime"><span class="emoji-icon">👍</span><span class="reaction-label">J'aime</span></button>
+                  <button type="button" class="epi-reaction-option" data-reaction-type="jadore" title="J'adore"><span class="emoji-icon">❤️</span><span class="reaction-label">J'adore</span></button>
+                  <button type="button" class="epi-reaction-option" data-reaction-type="utile" title="Utile"><span class="emoji-icon">💡</span><span class="reaction-label">Utile</span></button>
+                  <button type="button" class="epi-reaction-option" data-reaction-type="haha" title="Haha"><span class="emoji-icon">😂</span><span class="reaction-label">Haha</span></button>
+                  <button type="button" class="epi-reaction-option" data-reaction-type="wouah" title="Wouah"><span class="emoji-icon">😮</span><span class="reaction-label">Wouah</span></button>
+                  <button type="button" class="epi-reaction-option" data-reaction-type="triste" title="Triste"><span class="emoji-icon">😢</span><span class="reaction-label">Triste</span></button>
+                </div>
+                <button type="button" class="epi-vote-btn upvote <?= !empty($post['user_liked']) ? 'is-voted' : '' ?> <?= !empty($post['user_reaction']) ? 'is-reacted-' . htmlspecialchars((string)$post['user_reaction']) : '' ?>"
                   data-toggle-reaction data-target-type="publication" data-target-id="<?= $postId ?>"
-                  aria-label="Voter ou aimer">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                  data-current-reaction="<?= htmlspecialchars((string)($post['user_reaction'] ?? '')) ?>"
+                  aria-label="Réagir ou aimer">
+                  <span class="epi-btn-reaction-icon">
+                    <?php
+                    $uReact = (string)($post['user_reaction'] ?? '');
+                    if ($uReact === 'jadore') echo '❤️';
+                    elseif ($uReact === 'utile') echo '💡';
+                    elseif ($uReact === 'haha') echo '😂';
+                    elseif ($uReact === 'wouah') echo '😮';
+                    elseif ($uReact === 'triste') echo '😢';
+                    elseif ($uReact === 'like') echo '👍';
+                    else echo '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>';
+                    ?>
+                  </span>
                 </button>
                 <span class="epi-vote-count publication-like-count" data-live-likes><?= (int)$post['likes_count'] ?></span>
                 <button type="button" class="epi-vote-btn downvote" aria-label="Vote bas">

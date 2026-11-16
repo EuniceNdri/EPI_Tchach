@@ -3,6 +3,7 @@
 require_once ROOT_PATH . '/app/Models/Social/Social.php';
 require_once ROOT_PATH . '/app/Models/Social/FiliereGroups.php';
 require_once ROOT_PATH . '/app/Models/Notifications/Notification.php';
+require_once ROOT_PATH . '/app/Models/Identity/User.php';
 
 class SocialController
 {
@@ -108,11 +109,45 @@ class SocialController
         exit;
     }
 
+    public function friendsList(): void
+    {
+        $currentUserId = $this->requireAuthentication();
+        global $baseUrl, $base, $assetBase, $asset;
+        $targetUserId = !empty($_GET['user'])
+            ? filter_var($_GET['user'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : (!empty($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : $currentUserId);
+        if ($targetUserId === false || $targetUserId === null) {
+            $targetUserId = $currentUserId;
+        }
+
+        $userModel = new User();
+        $targetUser = $userModel->findById((int)$targetUserId);
+        if (!$targetUser) {
+            $this->redirectWithError('Utilisateur introuvable.', 'salon');
+        }
+
+        $isOwnProfile = ((int)$currentUserId === (int)$targetUserId);
+        $friends = $this->social->getFriends((int)$targetUserId);
+        $pendingRequests = $isOwnProfile ? $this->social->getPendingRequests((int)$currentUserId) : [];
+        $suggestions = $isOwnProfile ? $this->social->getSuggestedMembers((int)$currentUserId, 8) : [];
+        $unreadMessagesCount = $this->social->getUnreadMessageCount($currentUserId);
+
+        if (empty($_SESSION['social_csrf'])) {
+            $_SESSION['social_csrf'] = bin2hex(random_bytes(32));
+        }
+        $csrfToken = $_SESSION['social_csrf'];
+        $flashSuccess = (string)($_SESSION['flash_success'] ?? '');
+        $flashError = (string)($_SESSION['flash_error'] ?? '');
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+        require ROOT_PATH . '/resources/views/desktop/friends/index.php';
+    }
+
     public function friendAction(): void
     {
         $userId = $this->requireAuthentication();
         $this->requirePostAndCsrf();
-        $targetId = filter_var($_POST['target_user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $targetId = filter_var($_POST['target_user_id'] ?? $_POST['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $action = (string)($_POST['action'] ?? '');
         $returnUrl = (string)($_POST['return_url'] ?? 'messages');
 
@@ -128,7 +163,7 @@ class SocialController
                         (int)$targetId,
                         'friend_request',
                         ($_SESSION['user_prenom'] ?? 'Un membre') . ' vous a envoyé une demande d’ami.',
-                        url('messages')
+                        url('friends')
                     );
                     $_SESSION['flash_success'] = 'Demande d’ami envoyée.';
                     break;
@@ -143,6 +178,7 @@ class SocialController
                     $_SESSION['flash_success'] = 'Demande d’ami acceptée.';
                     break;
                 case 'reject':
+                case 'decline':
                     $this->social->rejectFriendRequest($userId, (int)$targetId);
                     $_SESSION['flash_success'] = 'Demande d’ami refusée.';
                     break;
@@ -172,9 +208,9 @@ class SocialController
     {
         $userId = $this->requireAuthentication();
         $this->requirePostAndCsrf();
-        $recipientId = filter_var($_POST['recipient_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $recipientId = filter_var($_POST['recipient_id'] ?? $_POST['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $content = (string)($_POST['contenu'] ?? '');
-        $attachments = $_FILES['attachments'] ?? null;
+        $attachments = $_FILES['attachments'] ?? $_FILES['pieces_jointes'] ?? [];
 
         if ($recipientId === false || $recipientId === null) {
             $this->redirectWithError('Destinataire invalide.', 'messages');
