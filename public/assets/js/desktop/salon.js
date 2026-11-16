@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const batchSet = new Set(batch.map(String));
                         const commentIds = [...new Set(
                             [...document.querySelectorAll("[data-live-comment-id]")]
-                            .filter((comment) => batchSet.has(comment.closest("[data-live-publication-id]") ? .dataset.livePublicationId))
+                            .filter((comment) => batchSet.has(comment.closest("[data-live-publication-id]")?.dataset.livePublicationId))
                             .map((comment) => Number(comment.dataset.liveCommentId))
                             .filter((id) => Number.isInteger(id) && id > 0)
                         )];
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             if (!result.success) throw new Error(result.message || "Les compteurs des publications n’ont pas pu être actualisés.");
 
                             document.querySelectorAll("[data-live-publication-id]").forEach((publication) => {
-                                const stats = result.publications ? .[publication.dataset.livePublicationId];
+                                const stats = result.publications?.[publication.dataset.livePublicationId];
                                 if (!stats) return;
                                 publication.querySelectorAll("[data-live-likes]").forEach((count) => {
                                     count.textContent = String(stats.likes_count);
@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             });
 
                             document.querySelectorAll("[data-live-comment-id]").forEach((comment) => {
-                                const stats = result.comments ? .[comment.dataset.liveCommentId];
+                                const stats = result.comments?.[comment.dataset.liveCommentId];
                                 if (!stats) return;
                                 const likeButton = comment.querySelector('[data-toggle-reaction][data-target-type="commentaire"]');
                                 if (!likeButton) return;
@@ -146,15 +146,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const updatePostSubmitState = () => {
                 if (!submitPostButton || !postTitle || !postContent || !postCategory) return;
-                const pollChoices = Array.from(postForm ? .querySelectorAll("input[name='options[]']:not(:disabled)") || [])
+                const pollChoices = Array.from(postForm?.querySelectorAll("input[name='options[]']:not(:disabled)") || [])
                     .filter((input) => input.value.trim() !== "");
-                const validPoll = publicationType ? .value !== "question" || pollChoices.length >= 2;
+                const validPoll = publicationType?.value !== "question" || pollChoices.length >= 2;
                 submitPostButton.disabled = !postTitle.value.trim() || !postContent.value.trim() ||
                     !postCategory.value || !validPoll;
             };
 
-            postForm ? .addEventListener("input", updatePostSubmitState);
-            postForm ? .addEventListener("change", updatePostSubmitState);
+            postForm?.addEventListener("input", updatePostSubmitState);
+            postForm?.addEventListener("change", updatePostSubmitState);
 
             document.querySelectorAll(".epi-search-input").forEach((input) => {
                 input.addEventListener("keydown", (event) => {
@@ -221,10 +221,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (mode === "media" || mode === "file") {
-                    attachmentInput ? .click();
+                    attachmentInput?.click();
                 }
 
-                setTimeout(() => postTitle ? .focus(), 80);
+                setTimeout(() => postTitle?.focus(), 80);
             };
 
             const closeComposerModal = () => {
@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 modal.style.display = "none";
                 modal.setAttribute("aria-hidden", "true");
                 document.body.style.overflow = "";
-                modalOpener ? .focus();
+                modalOpener?.focus();
                 modalOpener = null;
             };
 
@@ -245,33 +245,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.preventDefault();
                 openComposerModal("discussion");
             }));
-            dummyComposerInput ? .addEventListener("click", (e) => {
+            dummyComposerInput?.addEventListener("click", (e) => {
                 e.preventDefault();
                 openComposerModal("discussion");
             });
-            quickAddMedia ? .addEventListener("click", (e) => {
+            quickAddMedia?.addEventListener("click", (e) => {
                 e.preventDefault();
                 openComposerModal("discussion");
             });
-            quickAddFile ? .addEventListener("click", (e) => {
+            quickAddFile?.addEventListener("click", (e) => {
                 e.preventDefault();
                 openComposerModal("discussion");
             });
-            quickAddPoll ? .addEventListener("click", (e) => {
+            quickAddPoll?.addEventListener("click", (e) => {
                 e.preventDefault();
                 openComposerModal("question");
             });
 
-            closeModalBtn ? .addEventListener("click", (e) => {
+            closeModalBtn?.addEventListener("click", (e) => {
                 e.preventDefault();
                 closeComposerModal();
             });
-            cancelPostBtn ? .addEventListener("click", (e) => {
+            cancelPostBtn?.addEventListener("click", (e) => {
                 e.preventDefault();
                 closeComposerModal();
             });
 
-            modal ? .addEventListener("click", (e) => {
+            modal?.addEventListener("click", (e) => {
                 if (e.target === modal) closeComposerModal();
             });
             document.addEventListener("keydown", (event) => {
@@ -287,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             // Onglets dans la modale de création
-            modal ? .querySelectorAll("[data-type-target]").forEach((tabBtn) => {
+            modal?.querySelectorAll("[data-type-target]").forEach((tabBtn) => {
                 tabBtn.addEventListener("click", () => {
                     const mode = tabBtn.dataset.typeTarget;
                     modal.querySelectorAll("[data-type-target]").forEach((b) => b.classList.remove("is-active"));
@@ -348,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else {
                         const icon = document.createElement("span");
                         icon.className = "epi-file-badge";
-                        icon.textContent = file.name.split(".").pop() ? .toUpperCase().slice(0, 4) || "DOC";
+                        icon.textContent = file.name.split(".").pop()?.toUpperCase().slice(0, 4) || "DOC";
                         item.append(icon);
                     }
 
@@ -381,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             };
 
-            attachmentInput ? .addEventListener("change", () => {
+            attachmentInput?.addEventListener("change", () => {
                 const files = Array.from(attachmentInput.files || []);
                 if (files.length > 5) {
                     const transfer = new DataTransfer();
@@ -391,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderAttachmentPreview();
             });
 
-            attachmentPreview ? .addEventListener("click", (event) => {
+            attachmentPreview?.addEventListener("click", (event) => {
                 const removeButton = event.target.closest("[data-remove-attachment]");
                 if (!removeButton || !attachmentInput) return;
 
@@ -477,7 +477,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (content) content.placeholder = isPoll ? "Posez une question à la communauté..." : "Partagez une question, une idée ou une ressource...";
                 updatePostSubmitState();
             };
-            publicationType ? .addEventListener("change", updatePollComposer);
+            publicationType?.addEventListener("change", updatePollComposer);
             updatePollComposer();
 
             if (new URLSearchParams(window.location.search).get("compose") === "1") {
@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Ajouter un choix de sondage
-            document.getElementById("addPollOption") ? .addEventListener("click", () => {
+            document.getElementById("addPollOption")?.addEventListener("click", () => {
                 if (!pollOptionsList || pollOptionsList.querySelectorAll("input").length >= 10) return;
                 const index = pollOptionsList.querySelectorAll("input").length + 1;
                 const input = document.createElement("input");
@@ -506,12 +506,12 @@ document.addEventListener("DOMContentLoaded", () => {
             document.addEventListener("click", async(event) => {
                 const replyToggle = event.target.closest(".publication-reply-toggle");
                 if (replyToggle) {
-                    const form = replyToggle.closest(".publication-comment") ? .querySelector(".publication-reply-form");
+                    const form = replyToggle.closest(".publication-comment")?.querySelector(".publication-reply-form");
                     if (form) {
                         const isOpening = form.hidden;
                         form.hidden = !isOpening;
                         replyToggle.setAttribute("aria-expanded", String(isOpening));
-                        if (isOpening) form.querySelector("textarea") ? .focus();
+                        if (isOpening) form.querySelector("textarea")?.focus();
                     }
                     return;
                 }
@@ -556,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     event.preventDefault();
                     event.stopPropagation();
                     const container = reactionOption.closest(".epi-reaction-container");
-                    const reactionBtn = container ? .querySelector("[data-toggle-reaction]");
+                    const reactionBtn = container?.querySelector("[data-toggle-reaction]");
                     if (reactionBtn) {
                         const type = reactionOption.dataset.reactionType || "like";
                         const targetId = reactionBtn.dataset.targetId;
@@ -652,11 +652,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
                     // Total des votes
-                    const totalCount = Number(result.counts ? .total ? ? result.counts ? .like ? ? 0);
+                    const totalCount = Number(result.counts?.total ?? result.counts?.like ?? 0);
 
                     if (targetType === "publication") {
                         const card = reactionButton.closest("[data-live-publication-id]");
-                        const count = card ? .querySelector("[data-live-likes]");
+                        const count = card?.querySelector("[data-live-likes]");
                         if (count) count.textContent = `${totalCount}`;
 
                         if (typeof window.showFeedback === "function") {
