@@ -1,4 +1,7 @@
 <?php
+if (!class_exists('LandingContent')) {
+    require_once ROOT_PATH . '/app/Models/Platform/LandingContent.php';
+}
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 $logoFile = $asset . '/images/logo.jpeg';

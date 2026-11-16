@@ -1,7 +1,26 @@
 <?php
-$base = is_string($pageBase ?? null) ? $pageBase : '';
-$asset = is_string($pageAsset ?? null) ? $pageAsset : ($base . '/public/assets');
-$authorName = trim((string)$publication['prenom'] . ' ' . (string)$publication['nom']);
+/**
+ * @var string|null $pageBase
+ * @var string|null $pageAsset
+ * @var array $publication
+ * @var array $comments
+ * @var array $publicationAttachments
+ * @var array $pollOptions
+ * @var int $unreadMessagesCount
+ * @var int $unreadCount
+ */
+$pageBase = $pageBase ?? ($baseUrl ?? '');
+$base = is_string($pageBase) ? $pageBase : '';
+$pageAsset = $pageAsset ?? ($assetBase ?? ($base . '/public/assets'));
+$asset = is_string($pageAsset) ? $pageAsset : ($base . '/public/assets');
+$publication = is_array($publication ?? null) ? $publication : [];
+$comments = is_array($comments ?? null) ? $comments : [];
+$publicationAttachments = is_array($publicationAttachments ?? null) ? $publicationAttachments : [];
+$pollOptions = is_array($pollOptions ?? null) ? $pollOptions : [];
+$unreadMessagesCount = (int)($unreadMessagesCount ?? 0);
+$unreadCount = (int)($unreadCount ?? 0);
+
+$authorName = trim((string)($publication['prenom'] ?? '') . ' ' . (string)($publication['nom'] ?? ''));
 $authorAvatar = !empty($publication['avatar_url'])
     ? url('public/' . ltrim((string)$publication['avatar_url'], '/'))
     : '';
@@ -156,10 +175,10 @@ $roleLabels = [
           </div>
         <?php endif; ?>
 
-        <?php if ($publication['type_publication'] === 'question' && $pollOptions): ?>
+        <?php if (!empty($publication['type_publication']) && $publication['type_publication'] === 'question' && !empty($pollOptions)): ?>
           <?php
-            $pollTotal = array_sum(array_map(static fn (array $option): int => (int)$option['votes'], $pollOptions));
-            $hasVoted = (bool)array_filter($pollOptions, static fn (array $option): bool => (bool)$option['user_voted']);
+            $pollTotal = array_sum(array_map(static fn ($option): int => (int)($option['votes'] ?? 0), $pollOptions));
+            $hasVoted = (bool)array_filter($pollOptions, static fn ($option): bool => !empty($option['user_voted']));
           ?>
           <form class="poll-form publication-detail-poll" action="<?= htmlspecialchars($base) ?>/publication/vote" method="post">
             <fieldset <?= $hasVoted ? 'class="poll-has-voted"' : '' ?>>

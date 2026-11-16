@@ -50,7 +50,7 @@ if (preg_match('#^messages/attachment/([1-9][0-9]*)$#', $fullRoute, $messageAtta
     require_once controllerFile('SocialController');
     (new SocialController())->messageAttachment((int)$messageAttachmentMatch[1]);
 }
-if (preg_match('#^publication/([1-9][0-9]*)$#', $fullRoute, $publicationMatch)) {
+if (preg_match('#^publication/(?:show/)?([1-9][0-9]*)$#', $fullRoute, $publicationMatch)) {
     require_once controllerFile('PublicationController');
     (new PublicationController())->show((int)$publicationMatch[1]);
     exit;
