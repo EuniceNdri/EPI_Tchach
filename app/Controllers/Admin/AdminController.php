@@ -241,11 +241,12 @@ class AdminController {
             if ($pdo instanceof PDO) {
                 if ($isDelegue) {
                     $fzStmt = $pdo->prepare(
-                        "SELECT COALESCE(f.zone_id, z.id) FROM filieres f 
-                         LEFT JOIN zones z ON z.nom = CONCAT('Filière ', f.nom) AND z.type_zone = 'filiere'
-                         WHERE LOWER(TRIM(f.nom)) = LOWER(TRIM(:filiere)) LIMIT 1"
+                        "SELECT z.id FROM zones z
+                         WHERE z.type_zone = 'filiere'
+                           AND (LOWER(TRIM(z.nom)) = LOWER(TRIM(:filiere)) OR LOWER(TRIM(z.nom)) = LOWER(CONCAT('Filière ', TRIM(:filiere2))))
+                         LIMIT 1"
                     );
-                    $fzStmt->execute(['filiere' => $filiere]);
+                    $fzStmt->execute(['filiere' => $filiere, 'filiere2' => $filiere]);
                     $filiereZoneId = (int)$fzStmt->fetchColumn();
                     if ($filiereZoneId > 0) {
                         $zoneRoles[$filiereZoneId] = 'delegue_de_classe';

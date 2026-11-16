@@ -110,22 +110,15 @@ class Attachment
         $storedPaths = [];
         $attachments = [];
         try {
-            $orderStatement = $pdo->prepare(
-                'SELECT COALESCE(MAX(ordre_affichage) + 1, 0)
-                 FROM pieces_jointes
-                 WHERE type_cible = :type_cible AND cible_id = :cible_id'
-            );
-            $orderStatement->execute(['type_cible' => $targetType, 'cible_id' => $targetId]);
-            $displayOrder = (int)$orderStatement->fetchColumn();
             $statement = $pdo->prepare(
                 'INSERT INTO pieces_jointes (
-                    type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, type_media, taille, ordre_affichage
+                    type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, taille
                  ) VALUES (
-                    :type_cible, :cible_id, :nom_fichier, :chemin_fichier, :type_mime, :type_media, :taille, :ordre_affichage
+                    :type_cible, :cible_id, :nom_fichier, :chemin_fichier, :type_mime, :taille
                  )'
             );
 
-            foreach ($files as $index => $file) {
+            foreach ($files as $file) {
                 $storedName = bin2hex(random_bytes(16)) . '.' . $file['extension'];
                 $destination = $uploadDirectory . '/' . $storedName;
                 if (!move_uploaded_file($file['tmp_name'], $destination)) {
@@ -144,9 +137,7 @@ class Attachment
                     'nom_fichier' => $file['name'],
                     'chemin_fichier' => $relativePath,
                     'type_mime' => $file['type'],
-                    'type_media' => str_starts_with($file['type'], 'image/') ? 'image' : 'document',
                     'taille' => $file['size'],
-                    'ordre_affichage' => $displayOrder + $index,
                 ]);
 
                 $attachments[] = [

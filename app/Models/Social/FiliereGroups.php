@@ -9,75 +9,78 @@ class FiliereGroups
         $this->pdo = $pdo;
     }
 
+    /**
+     * Récupère la liste des zones accessibles avec leur chat de groupe.
+     * Règle : 1 zone = 1 conversation de groupe automatique.
+     */
     public function getAccessibleGroups(int $userId): array
     {
-        $user = $this->getActiveUser($userId);
-        if (!$user) {
+        if ($userId <= 0) {
             return [];
         }
 
-        $this->ensureGroups();
-        $role = strtolower(trim((string)$user['role']));
-        $conditions = [];
-        $parameters = [];
-
-        if (in_array($role, ['administrateur', 'admin', 'moderateur'], true)) {
-            $conditions[] = '1 = 1';
-        } elseif ($role === 'professeur') {
-            $conditions[] = 'EXISTS (
-                SELECT 1 FROM filiere_group_professors access
-                WHERE access.group_id = message_group.id AND access.user_id = :user_id
-            )';
-            $parameters['user_id'] = $userId;
-        } elseif ($role === 'etudiant') {
-            $conditions[] = 'message_group.filiere_id = COALESCE(
-                :filiere_id,
-                (SELECT legacy_filiere.id FROM filieres legacy_filiere
-                 WHERE legacy_filiere.nom = TRIM(:filiere_name)
-                    OR legacy_filiere.code = TRIM(:filiere_name)
-                    OR CONCAT("BTS ", legacy_filiere.code) = TRIM(:filiere_name)
-                    OR TRIM(:filiere_name) LIKE CONCAT("%", legacy_filiere.code, "%")
-                 LIMIT 1)
-            )';
-            $parameters['filiere_id'] = $user['filiere_id'];
-            $parameters['filiere_name'] = (string)($user['filiere'] ?? '');
-        } else {
-            return [];
-        }
+        $userStmt = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = ? LIMIT 1');
+        $userStmt->execute([$userId]);
+        $role = strtolower(trim((string)$userStmt->fetchColumn()));
+        $isAdmin = in_array($role, ['administrateur', 'admin'], true);
 
         $statement = $this->pdo->prepare(
-            'SELECT message_group.id, filiere.nom AS name,
-                    COALESCE(unread.message_count, 0) AS unread_count
-             FROM filiere_message_groups message_group
-             JOIN filieres filiere ON filiere.id = message_group.filiere_id AND filiere.est_active = 1
+            'SELECT z.id, z.nom AS name, z.type_zone, z.visibilite, z.description,
+                    COALESCE(unread.unread_count, 0) AS unread_count,
+                    latest.contenu AS last_message,
+                    latest.date_creation AS last_message_date
+             FROM zones z
              LEFT JOIN (
-                 SELECT message.group_id, COUNT(*) AS message_count
-                 FROM filiere_group_messages message
-                 LEFT JOIN filiere_group_reads read_state
-                   ON read_state.group_id = message.group_id AND read_state.user_id = :read_user
-                 WHERE message.sender_id <> :sender_user
-                   AND (read_state.last_read_at IS NULL OR message.date_creation > read_state.last_read_at)
-                 GROUP BY message.group_id
-             ) unread ON unread.group_id = message_group.id
-             WHERE ' . implode(' AND ', $conditions) . '
-             ORDER BY filiere.nom'
+                 SELECT zm.zone_id, COUNT(*) AS unread_count
+                 FROM zone_messages zm
+                 LEFT JOIN zone_message_reads zmr
+                   ON zmr.zone_id = zm.zone_id AND zmr.user_id = :read_user
+                 WHERE zm.expediteur_id <> :sender_user
+                   AND (zmr.last_read_at IS NULL OR zm.date_creation > zmr.last_read_at)
+                 GROUP BY zm.zone_id
+             ) unread ON unread.zone_id = z.id
+             LEFT JOIN (
+                 SELECT zm1.zone_id, zm1.contenu, zm1.date_creation
+                 FROM zone_messages zm1
+                 INNER JOIN (
+                     SELECT zone_id, MAX(id) AS max_id
+                     FROM zone_messages
+                     GROUP BY zone_id
+                 ) zm2 ON zm1.id = zm2.max_id
+             ) latest ON latest.zone_id = z.id
+             WHERE z.est_active = 1
+               AND (
+                   :is_admin = 1
+                   OR z.visibilite = \'public\'
+                   OR EXISTS (
+                       SELECT 1 FROM appartenance_zones az
+                       WHERE az.zone_id = z.id AND az.utilisateur_id = :access_user
+                   )
+               )
+             ORDER BY COALESCE(latest.date_creation, z.date_creation) DESC, z.nom ASC'
         );
-        $statement->execute(array_merge([
+        $statement->execute([
             'read_user' => $userId,
             'sender_user' => $userId,
-        ], $parameters));
+            'is_admin' => $isAdmin ? 1 : 0,
+            'access_user' => $userId,
+        ]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Récupère les messages d'un salon/groupe.
+     */
     public function getMessages(int $userId, int $groupId, int $limit = 100): array
     {
         if (!$this->canAccessGroup($userId, $groupId)) {
-            throw new DomainException('Vous n’avez pas accès à ce groupe.');
+            throw new DomainException('Vous n’avez pas accès à ce salon.');
         }
 
+        // Marquer comme lu
         $markRead = $this->pdo->prepare(
-            'INSERT INTO filiere_group_reads (group_id, user_id, last_read_at)
+            'INSERT INTO zone_message_reads (zone_id, user_id, last_read_at)
              VALUES (?, ?, NOW())
              ON DUPLICATE KEY UPDATE last_read_at = NOW()'
         );
@@ -85,12 +88,12 @@ class FiliereGroups
 
         $limit = max(1, min(200, $limit));
         $statement = $this->pdo->prepare(
-            "SELECT message.id, message.group_id, message.sender_id, message.contenu, message.date_creation,
-                    user.prenom, user.nom, user.role, user.avatar_url
-             FROM filiere_group_messages message
-             JOIN utilisateurs user ON user.id = message.sender_id
-             WHERE message.group_id = ?
-             ORDER BY message.date_creation DESC, message.id DESC
+            "SELECT zm.id, zm.zone_id AS group_id, zm.expediteur_id AS sender_id, zm.contenu, zm.date_creation,
+                    u.prenom, u.nom, u.role, u.avatar_url
+             FROM zone_messages zm
+             JOIN utilisateurs u ON u.id = zm.expediteur_id
+             WHERE zm.zone_id = ?
+             ORDER BY zm.date_creation DESC, zm.id DESC
              LIMIT {$limit}"
         );
         $statement->execute([$groupId]);
@@ -98,6 +101,45 @@ class FiliereGroups
         return array_reverse($statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
+    /**
+     * Envoie un message dans un salon/groupe.
+     */
+    public function sendMessage(int $userId, int $groupId, string $content): int
+    {
+        $content = trim($content);
+        if ($userId <= 0 || $groupId <= 0) {
+            throw new InvalidArgumentException('Paramètres invalides.');
+        }
+        if ($content === '') {
+            throw new InvalidArgumentException('Le message ne peut pas être vide.');
+        }
+        if (mb_strlen($content, 'UTF-8') > 2000) {
+            throw new InvalidArgumentException('Le message ne peut pas dépasser 2 000 caractères.');
+        }
+        if (!$this->canAccessGroup($userId, $groupId)) {
+            throw new DomainException('Vous n’avez pas accès à ce salon.');
+        }
+
+        $statement = $this->pdo->prepare(
+            'INSERT INTO zone_messages (zone_id, expediteur_id, contenu, date_creation)
+             VALUES (?, ?, ?, NOW())'
+        );
+        $statement->execute([$groupId, $userId, $content]);
+
+        // Marquer comme lu pour l'expéditeur
+        $markRead = $this->pdo->prepare(
+            'INSERT INTO zone_message_reads (zone_id, user_id, last_read_at)
+             VALUES (?, ?, NOW())
+             ON DUPLICATE KEY UPDATE last_read_at = NOW()'
+        );
+        $markRead->execute([$groupId, $userId]);
+
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * Liste des membres d'un salon/groupe.
+     */
     public function getGroupMembers(int $userId, int $groupId): array
     {
         if (!$this->canAccessGroup($userId, $groupId)) {
@@ -105,188 +147,60 @@ class FiliereGroups
         }
 
         $statement = $this->pdo->prepare(
-            "SELECT member.id, member.prenom, member.nom, member.role, member.avatar_url
-             FROM filiere_message_groups message_group
-             JOIN filieres filiere ON filiere.id = message_group.filiere_id
-             JOIN utilisateurs member ON member.est_actif = 1
-             WHERE message_group.id = ?
-               AND (
-                    (member.role = 'etudiant' AND COALESCE(
-                        member.filiere_id,
-                        (SELECT legacy_filiere.id
-                         FROM filieres legacy_filiere
-                         WHERE legacy_filiere.nom = TRIM(member.filiere)
-                             OR legacy_filiere.code = TRIM(member.filiere)
-                             OR CONCAT('BTS ', legacy_filiere.code) = TRIM(member.filiere)
-                             OR TRIM(member.filiere) LIKE CONCAT('%', legacy_filiere.code, '%')
-                         LIMIT 1)
-                    ) = filiere.id)
-                    OR (
-                        member.role = 'professeur'
-                        AND EXISTS (
-                            SELECT 1
-                            FROM filiere_group_professors access
-                            WHERE access.group_id = message_group.id
-                              AND access.user_id = member.id
-                        )
-                    )
-               )
-             ORDER BY CASE member.role WHEN 'professeur' THEN 0 ELSE 1 END,
-                      member.nom, member.prenom"
+            "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url,
+                    COALESCE(az.role_dans_zone, 'membre') AS role_dans_zone
+             FROM utilisateurs u
+             JOIN appartenance_zones az ON az.utilisateur_id = u.id AND az.zone_id = ?
+             WHERE u.est_actif = 1
+             ORDER BY FIELD(az.role_dans_zone, 'admin_zone', 'delegue_general', 'delegue_de_classe', 'membre'),
+                      u.prenom ASC, u.nom ASC"
         );
         $statement->execute([$groupId]);
+        $members = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function sendMessage(int $userId, int $groupId, string $content): int
-    {
-        $content = trim($content);
-        if ($groupId <= 0 || $content === '' || mb_strlen($content, 'UTF-8') > 2000) {
-            throw new InvalidArgumentException('Le message doit contenir entre 1 et 2 000 caractères.');
-        }
-        if (!$this->canAccessGroup($userId, $groupId)) {
-            throw new DomainException('Vous n’avez pas accès à ce groupe.');
-        }
-
-        $statement = $this->pdo->prepare(
-            'INSERT INTO filiere_group_messages (group_id, sender_id, contenu) VALUES (?, ?, ?)'
-        );
-        $statement->execute([$groupId, $userId, $content]);
-
-        return (int)$this->pdo->lastInsertId();
-    }
-
-    public function getActiveGroups(): array
-    {
-        $this->ensureGroups();
-        $statement = $this->pdo->query(
-            'SELECT message_group.id, filiere.nom AS name
-             FROM filiere_message_groups message_group
-             JOIN filieres filiere ON filiere.id = message_group.filiere_id
-             WHERE filiere.est_active = 1
-             ORDER BY filiere.nom'
-        );
-
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function getProfessorAssignments(): array
-    {
-        $statement = $this->pdo->query(
-            'SELECT access.user_id, access.group_id
-             FROM filiere_group_professors access
-             JOIN utilisateurs professor ON professor.id = access.user_id
-             JOIN filiere_message_groups message_group ON message_group.id = access.group_id
-             JOIN filieres filiere ON filiere.id = message_group.filiere_id
-             WHERE professor.role = \'professeur\'
-               AND professor.est_actif = 1
-               AND filiere.est_active = 1'
-        );
-        $assignments = [];
-        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $assignment) {
-            $assignments[(int)$assignment['user_id']][] = (int)$assignment['group_id'];
+        // Si la zone est générale/publique et qu'il y a peu ou pas d'appartenance_zones explicite
+        if (empty($members)) {
+            $genStmt = $this->pdo->prepare(
+                "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url, 'membre' AS role_dans_zone
+                 FROM utilisateurs u
+                 WHERE u.est_actif = 1
+                 ORDER BY u.prenom ASC, u.nom ASC
+                 LIMIT 50"
+            );
+            $genStmt->execute();
+            $members = $genStmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        return $assignments;
+        return $members;
     }
 
-    public function getActiveProfessors(): array
+    /**
+     * Vérifie si un utilisateur a accès à une zone/groupe.
+     */
+    public function canAccessGroup(int $userId, int $groupId): bool
     {
-        $statement = $this->pdo->query(
-            "SELECT id, prenom, nom, email
-             FROM utilisateurs
-             WHERE role = 'professeur' AND est_actif = 1
-             ORDER BY nom, prenom"
-        );
+        if ($userId <= 0 || $groupId <= 0) {
+            return false;
+        }
 
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function replaceProfessorGroups(int $professorId, array $groupIds, int $adminId): void
-    {
-        $professor = $this->pdo->prepare(
-            "SELECT id FROM utilisateurs
-             WHERE id = ? AND role = 'professeur' AND est_actif = 1
+        $stmt = $this->pdo->prepare(
+            "SELECT z.visibilite,
+                    EXISTS (SELECT 1 FROM appartenance_zones az WHERE az.zone_id = z.id AND az.utilisateur_id = :u1) AS is_member,
+                    EXISTS (SELECT 1 FROM utilisateurs adm WHERE adm.id = :u2 AND adm.role = 'administrateur') AS is_admin
+             FROM zones z
+             WHERE z.id = :group_id AND z.est_active = 1
              LIMIT 1"
         );
-        $professor->execute([$professorId]);
-        if (!$professor->fetchColumn()) {
-            throw new InvalidArgumentException('Le professeur sélectionné est introuvable ou inactif.');
+        $stmt->execute([
+            'group_id' => $groupId,
+            'u1' => $userId,
+            'u2' => $userId,
+        ]);
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$res) {
+            return false;
         }
 
-        $validatedGroupIds = [];
-        foreach ($groupIds as $groupId) {
-            if (!is_scalar($groupId)) {
-                throw new InvalidArgumentException('La liste des groupes sélectionnés est invalide.');
-            }
-            $validatedId = filter_var((string)$groupId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-            if ($validatedId === false) {
-                throw new InvalidArgumentException('La liste des groupes sélectionnés est invalide.');
-            }
-            $validatedGroupIds[] = (int)$validatedId;
-        }
-        $groupIds = array_values(array_unique($validatedGroupIds));
-        $activeGroups = $this->getActiveGroups();
-        $validGroupIds = array_map(static fn (array $group): int => (int)$group['id'], $activeGroups);
-        if (array_diff($groupIds, $validGroupIds)) {
-            throw new InvalidArgumentException('Un ou plusieurs groupes sélectionnés ne sont plus disponibles.');
-        }
-
-        $this->pdo->beginTransaction();
-        try {
-            $delete = $this->pdo->prepare('DELETE FROM filiere_group_professors WHERE user_id = ?');
-            $delete->execute([$professorId]);
-            $insert = $this->pdo->prepare(
-                'INSERT INTO filiere_group_professors (group_id, user_id, assigned_by) VALUES (?, ?, ?)'
-            );
-            foreach ($groupIds as $groupId) {
-                $insert->execute([$groupId, $professorId, $adminId]);
-            }
-            $this->pdo->commit();
-        } catch (Throwable $exception) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw $exception;
-        }
-    }
-
-    private function canAccessGroup(int $userId, int $groupId): bool
-    {
-        $groups = $this->getAccessibleGroups($userId);
-        foreach ($groups as $group) {
-            if ((int)$group['id'] === $groupId) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function getActiveUser(int $userId): ?array
-    {
-        if ($userId <= 0) {
-            return null;
-        }
-        $statement = $this->pdo->prepare(
-            'SELECT role, filiere_id, filiere
-             FROM utilisateurs
-             WHERE id = ? AND est_actif = 1
-             LIMIT 1'
-        );
-        $statement->execute([$userId]);
-        $user = $statement->fetch(PDO::FETCH_ASSOC);
-
-        return $user ?: null;
-    }
-
-    private function ensureGroups(): void
-    {
-        $this->pdo->exec(
-            'INSERT IGNORE INTO filiere_message_groups (filiere_id)
-             SELECT filiere.id FROM filieres filiere
-             WHERE filiere.est_active = 1'
-        );
+        return (bool)$res['is_admin'] || $res['visibilite'] === 'public' || (bool)$res['is_member'];
     }
 }

@@ -140,8 +140,8 @@ class ProfileController {
                           AND reaction.cible_id = publication.id) AS likes_count,
                        saved.id AS saved_id
                 FROM publications publication
-                JOIN categories category ON category.id = publication.categorie_id
-                JOIN zones zone ON zone.id = category.zone_id
+                JOIN zones zone ON zone.id = publication.zone_id
+                LEFT JOIN categories category ON category.id = publication.categorie_id
                 LEFT JOIN publications_sauvegardees saved
                   ON saved.publication_id = publication.id AND saved.utilisateur_id = :saved_user
                 WHERE publication.utilisateur_id = :user_id
@@ -202,8 +202,8 @@ class ProfileController {
                 JOIN publications publication
                   ON attachment.type_cible = 'publication'
                  AND publication.id = attachment.cible_id
-                JOIN categories category ON category.id = publication.categorie_id
-                JOIN zones zone ON zone.id = category.zone_id
+                JOIN zones zone ON zone.id = publication.zone_id
+                LEFT JOIN categories category ON category.id = publication.categorie_id
                 LEFT JOIN pieces_jointes_sauvegardees saved
                   ON saved.piece_jointe_id = attachment.id AND saved.utilisateur_id = :saved_user_publication
                 WHERE publication.utilisateur_id = :publication_user
@@ -220,8 +220,8 @@ class ProfileController {
                   ON attachment.type_cible = 'commentaire'
                  AND comment.id = attachment.cible_id
                 JOIN publications publication ON publication.id = comment.publication_id
-                JOIN categories category ON category.id = publication.categorie_id
-                JOIN zones zone ON zone.id = category.zone_id
+                JOIN zones zone ON zone.id = publication.zone_id
+                LEFT JOIN categories category ON category.id = publication.categorie_id
                 LEFT JOIN pieces_jointes_sauvegardees saved
                   ON saved.piece_jointe_id = attachment.id AND saved.utilisateur_id = :saved_user_comment
                 WHERE comment.utilisateur_id = :comment_user
@@ -293,8 +293,8 @@ class ProfileController {
                               AND reaction.cible_id = publication.id) AS likes_count
                     FROM publications_sauvegardees saved
                     JOIN publications publication ON publication.id = saved.publication_id
-                    JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-                    JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+                    JOIN zones zone ON zone.id = publication.zone_id AND zone.est_active = 1
+                    LEFT JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
                     WHERE saved.utilisateur_id = :user_id
                       AND (publication.est_signale = 0 OR publication.utilisateur_id = :owner_user)
                       AND (:can_view_all = 1 OR EXISTS (
@@ -328,8 +328,8 @@ class ProfileController {
                      AND comment.id = attachment.cible_id
                     JOIN publications publication
                       ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-                    JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-                    JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+                    JOIN zones zone ON zone.id = publication.zone_id AND zone.est_active = 1
+                    LEFT JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
                     WHERE saved.utilisateur_id = :user_id
                       AND (publication.est_signale = 0 OR publication.utilisateur_id = :publication_owner
                            OR comment.utilisateur_id = :comment_report_owner)

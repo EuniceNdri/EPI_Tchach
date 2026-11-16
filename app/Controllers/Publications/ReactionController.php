@@ -98,9 +98,9 @@ class ReactionController {
         $roleStatement->execute(['user_id' => $userId]);
         $storedRole = $roleStatement->fetchColumn();
         $targetStatement = $typeCible === 'publication'
-            ? $this->pdo->prepare('SELECT type_publication, categorie_id, est_signale FROM publications WHERE id = :id LIMIT 1')
+            ? $this->pdo->prepare('SELECT type_publication, zone_id, categorie_id, est_signale FROM publications WHERE id = :id LIMIT 1')
             : $this->pdo->prepare("
-                SELECT publication.type_publication, publication.categorie_id, publication.est_signale,
+                SELECT publication.type_publication, publication.zone_id, publication.categorie_id, publication.est_signale,
                        comment.est_signale AS comment_signale
                 FROM commentaires comment
                 JOIN publications publication ON publication.id = comment.publication_id
@@ -110,14 +110,19 @@ class ReactionController {
         $targetStatement->execute(['id' => $cibleId]);
         $target = $targetStatement->fetch(PDO::FETCH_ASSOC);
 
-        $isAllowed = is_string($storedRole) && $storedRole !== '' && $target
-            && !(bool)$target['est_signale']
-            && $this->salonModel->canAccessCategory($userId, (int)$target['categorie_id'], strtolower(trim($storedRole)));
+        $userRole = is_string($storedRole) ? strtolower(trim($storedRole)) : '';
+        $canAccess = $target && $userRole !== '' && (
+            !empty($target['categorie_id'])
+                ? $this->salonModel->canAccessCategory($userId, (int)$target['categorie_id'], $userRole)
+                : $this->salonModel->canAccessZone($userId, (int)$target['zone_id'], $userRole)
+        );
+        $validPubTypes = ['discussion', 'question', 'annonce', 'sondage'];
+        $isAllowed = $canAccess && !(bool)$target['est_signale'];
         if ($typeCible === 'publication') {
-            $isAllowed = $isAllowed && in_array($target['type_publication'], ['discussion', 'question', 'annonce'], true);
+            $isAllowed = $isAllowed && in_array($target['type_publication'], $validPubTypes, true);
         } else {
             $isAllowed = $isAllowed
-                && in_array($target['type_publication'], ['discussion', 'question', 'annonce'], true)
+                && in_array($target['type_publication'], $validPubTypes, true)
                 && !(bool)($target['comment_signale'] ?? false);
         }
         if (!$isAllowed) {

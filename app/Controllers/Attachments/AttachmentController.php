@@ -42,12 +42,14 @@ class AttachmentController
         $canViewAll = RoleAccess::canViewAllZones($pdo, $userId);
 
         $statement = $pdo->prepare(
-            "SELECT attachment.type_cible, attachment.nom_fichier, attachment.chemin_fichier,
+            "SELECT attachment.type_cible, attachment.cible_id, attachment.nom_fichier, attachment.chemin_fichier,
                     attachment.type_mime, attachment.taille,
                     publication.est_signale AS publication_reported,
                     comment.est_signale AS comment_reported,
                     category.est_active AS category_active,
-                    zone.id AS zone_id, zone.est_active AS zone_active
+                    COALESCE(publication.zone_id, zm.zone_id) AS zone_id,
+                    COALESCE(zone.est_active, zm_zone.est_active) AS zone_active,
+                    mp.expediteur_id, c.utilisateur1_id, c.utilisateur2_id
              FROM pieces_jointes attachment
              LEFT JOIN publications direct_publication
                ON attachment.type_cible = 'publication'
@@ -55,10 +57,14 @@ class AttachmentController
              LEFT JOIN commentaires comment
                ON attachment.type_cible = 'commentaire'
               AND comment.id = attachment.cible_id
-             JOIN publications publication
+             LEFT JOIN publications publication
                ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-             JOIN categories category ON category.id = publication.categorie_id
-             JOIN zones zone ON zone.id = category.zone_id
+             LEFT JOIN zones zone ON zone.id = publication.zone_id
+             LEFT JOIN categories category ON category.id = publication.categorie_id
+             LEFT JOIN zone_messages zm ON attachment.type_cible = 'message_zone' AND zm.id = attachment.cible_id
+             LEFT JOIN zones zm_zone ON zm_zone.id = zm.zone_id
+             LEFT JOIN messages_prives mp ON attachment.type_cible = 'message_prive' AND mp.id = attachment.cible_id
+             LEFT JOIN conversations c ON c.id = mp.conversation_id
              WHERE attachment.id = :id
              LIMIT 1"
         );
@@ -70,15 +76,31 @@ class AttachmentController
         }
 
         $hasZoneAccess = false;
-        if ($canViewAll && (int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1) {
-            $hasZoneAccess = true;
-        } elseif ((int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1
-            && !(bool)$attachment['publication_reported'] && !(bool)($attachment['comment_reported'] ?? false)) {
-            $membership = $pdo->prepare(
-                'SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1'
-            );
-            $membership->execute(['user_id' => $userId, 'zone_id' => (int)$attachment['zone_id']]);
-            $hasZoneAccess = (bool)$membership->fetchColumn();
+        if ($attachment['type_cible'] === 'message_prive') {
+            if ($userId === (int)$attachment['utilisateur1_id'] || $userId === (int)$attachment['utilisateur2_id']) {
+                $hasZoneAccess = true;
+            }
+        } elseif ($attachment['type_cible'] === 'message_zone') {
+            $effectiveZoneId = (int)$attachment['zone_id'];
+            if ($canViewAll && (int)$attachment['zone_active'] === 1) {
+                $hasZoneAccess = true;
+            } elseif ((int)$attachment['zone_active'] === 1) {
+                $membership = $pdo->prepare('SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1');
+                $membership->execute(['user_id' => $userId, 'zone_id' => $effectiveZoneId]);
+                $hasZoneAccess = (bool)$membership->fetchColumn();
+            }
+        } else {
+            $catActive = $attachment['category_active'] === null || (int)$attachment['category_active'] === 1;
+            if ($canViewAll && (int)$attachment['zone_active'] === 1 && $catActive) {
+                $hasZoneAccess = true;
+            } elseif ((int)$attachment['zone_active'] === 1 && $catActive
+                && !(bool)$attachment['publication_reported'] && !(bool)($attachment['comment_reported'] ?? false)) {
+                $membership = $pdo->prepare(
+                    'SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1'
+                );
+                $membership->execute(['user_id' => $userId, 'zone_id' => (int)$attachment['zone_id']]);
+                $hasZoneAccess = (bool)$membership->fetchColumn();
+            }
         }
         if (!$hasZoneAccess) {
             http_response_code(403);

@@ -63,15 +63,15 @@ class Salon {
 
         $canViewAll = RoleAccess::canViewAllZones($this->pdo, $userId);
         $statement = $this->pdo->prepare("
-            SELECT z.id, z.nom, z.type_zone, z.description,
+            SELECT z.id, z.nom, z.type_zone, z.visibilite, z.description,
                    az.role_dans_zone,
                    (SELECT COUNT(*) FROM appartenance_zones members WHERE members.zone_id = z.id) AS membres_count
             FROM zones z
             LEFT JOIN appartenance_zones az
               ON az.zone_id = z.id AND az.utilisateur_id = :membership_user
             WHERE z.est_active = 1
-              AND (:view_all = 1 OR az.utilisateur_id IS NOT NULL)
-            ORDER BY FIELD(z.type_zone, 'generale', 'filiere', 'professeurs', 'delegation'), z.nom
+              AND (:view_all = 1 OR az.utilisateur_id IS NOT NULL OR z.visibilite = 'public')
+            ORDER BY FIELD(z.type_zone, 'generale', 'filiere', 'professeurs', 'delegation', 'libre'), z.nom
         ");
         $statement->execute([
             'membership_user' => $userId,
@@ -119,7 +119,7 @@ class Salon {
             WHERE c.id = :category_id
               AND c.est_active = 1
               AND z.est_active = 1
-              AND (:can_view_all = 1 OR EXISTS (
+              AND (:can_view_all = 1 OR z.visibilite = 'public' OR EXISTS (
                   SELECT 1
                   FROM appartenance_zones membership
                   WHERE membership.utilisateur_id = :user_id
@@ -130,6 +130,36 @@ class Salon {
         $statement->execute([
             'category_id' => $categoryId,
             'can_view_all' => $canViewAll ? 1 : 0,
+            'user_id' => $userId,
+        ]);
+
+        return (bool)$statement->fetchColumn();
+    }
+
+    public function canAccessZone(int $userId, int $zoneId, string $role = ''): bool {
+        if (!$this->pdo || $userId <= 0 || $zoneId <= 0) {
+            return false;
+        }
+
+        if (RoleAccess::canViewAllZones($this->pdo, $userId)) {
+            return true;
+        }
+
+        $statement = $this->pdo->prepare("
+            SELECT 1
+            FROM zones z
+            WHERE z.id = :zone_id
+              AND z.est_active = 1
+              AND (z.visibilite = 'public' OR EXISTS (
+                  SELECT 1
+                  FROM appartenance_zones membership
+                  WHERE membership.utilisateur_id = :user_id
+                    AND membership.zone_id = z.id
+              ))
+            LIMIT 1
+        ");
+        $statement->execute([
+            'zone_id' => $zoneId,
             'user_id' => $userId,
         ]);
 
@@ -160,11 +190,11 @@ class Salon {
             $conditions[] = 'saved.id IS NOT NULL';
         }
         if (!$canViewAll) {
-            $conditions[] = "EXISTS (
+            $conditions[] = "(z.visibilite = 'public' OR EXISTS (
                 SELECT 1 FROM appartenance_zones member_access
                 WHERE member_access.utilisateur_id = :access_user
                   AND member_access.zone_id = z.id
-            )";
+            ))";
             $parameters['access_user'] = $userId;
         }
 
@@ -218,8 +248,8 @@ class Salon {
                    saved.id AS saved_id
             FROM publications p
             JOIN utilisateurs u ON u.id = p.utilisateur_id
-            JOIN categories c ON c.id = p.categorie_id AND c.est_active = 1
-            JOIN zones z ON z.id = c.zone_id AND z.est_active = 1
+            JOIN zones z ON z.id = p.zone_id AND z.est_active = 1
+            LEFT JOIN categories c ON c.id = p.categorie_id AND c.est_active = 1
             LEFT JOIN publications_sauvegardees saved
               ON saved.publication_id = p.id AND saved.utilisateur_id = :saved_user
             WHERE " . implode(' AND ', $conditions) . "
@@ -254,7 +284,7 @@ class Salon {
             FROM sondage_options option_row
             JOIN publications publication ON publication.id = option_row.publication_id
             WHERE option_row.publication_id IN ($placeholders)
-              AND publication.type_publication = 'question'
+              AND publication.type_publication IN ('sondage', 'question')
             ORDER BY option_row.publication_id, option_row.ordre, option_row.id
         ");
         $statement->execute(array_merge([$userId], $publicationIds));
@@ -288,11 +318,11 @@ class Salon {
         $parameters = [];
 
         if (!$canViewAll) {
-            $conditions[] = 'EXISTS (
+            $conditions[] = "(zone.visibilite = 'public' OR EXISTS (
                 SELECT 1 FROM appartenance_zones membership
                 WHERE membership.utilisateur_id = :membership_user
                   AND membership.zone_id = zone.id
-            )';
+            ))";
             $parameters['membership_user'] = $userId;
         }
         if ($categoryId !== null && $categoryId > 0) {
@@ -320,11 +350,11 @@ class Salon {
              AND comment.id = attachment.cible_id
             JOIN publications publication
               ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-            JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-            JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+            JOIN zones zone ON zone.id = publication.zone_id AND zone.est_active = 1
+            LEFT JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
             WHERE " . implode(' AND ', $conditions) . "
-            ORDER BY attachment.ordre_affichage, attachment.id
+            ORDER BY attachment.id ASC
             LIMIT $limit
         ");
         $statement->execute($parameters);
@@ -383,7 +413,7 @@ class Salon {
               ON saved.piece_jointe_id = attachment.id AND saved.utilisateur_id = ?
             WHERE attachment.type_cible = 'publication'
               AND attachment.cible_id IN ($placeholders)
-            ORDER BY attachment.ordre_affichage, attachment.id
+            ORDER BY attachment.id ASC
         ");
         $statement->execute(array_merge([$userId], $publicationIds));
         $attachmentsByPublication = [];
@@ -415,10 +445,10 @@ class Salon {
              AND comment.id = attachment.cible_id
             JOIN publications publication
               ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-            JOIN categories category ON category.id = publication.categorie_id
-            JOIN zones zone ON zone.id = category.zone_id
+            JOIN zones zone ON zone.id = publication.zone_id
+            LEFT JOIN categories category ON category.id = publication.categorie_id
             WHERE saved.utilisateur_id = :user_id
-              AND (:can_view_all = 1 OR EXISTS (
+              AND (:can_view_all = 1 OR zone.visibilite = 'public' OR EXISTS (
                   SELECT 1 FROM appartenance_zones membership
                   WHERE membership.utilisateur_id = :membership_user
                     AND membership.zone_id = zone.id
@@ -444,11 +474,12 @@ class Salon {
         }
 
         $statement = $this->pdo->query("
-            SELECT id, prenom, nom, role, filiere, avatar_url
-            FROM utilisateurs
-            WHERE est_actif = 1
-              AND derniere_activite >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-            ORDER BY prenom, nom
+            SELECT u.id, u.prenom, u.nom, u.role, f.nom AS filiere, u.avatar_url
+            FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
+            WHERE u.est_actif = 1
+              AND u.derniere_activite >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+            ORDER BY u.prenom, u.nom
         ");
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -472,12 +503,12 @@ class Salon {
         $check = $this->pdo->prepare("
             SELECT publication.id
             FROM publications publication
-            JOIN categories category ON category.id = publication.categorie_id
-            JOIN zones zone ON zone.id = category.zone_id
+            JOIN zones zone ON zone.id = publication.zone_id
+            LEFT JOIN categories category ON category.id = publication.categorie_id
             WHERE publication.id = :publication_id
               AND (publication.utilisateur_id = :publication_owner OR (
                   publication.est_signale = 0
-                  AND (:can_view_all = 1 OR EXISTS (
+                  AND (:can_view_all = 1 OR zone.visibilite = 'public' OR EXISTS (
                   SELECT 1 FROM appartenance_zones membership
                   WHERE membership.utilisateur_id = :user_id
                     AND membership.zone_id = zone.id
@@ -535,15 +566,15 @@ class Salon {
              AND comment.id = attachment.cible_id
             JOIN publications publication
               ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-            JOIN categories category ON category.id = publication.categorie_id
-            JOIN zones zone ON zone.id = category.zone_id
+            JOIN zones zone ON zone.id = publication.zone_id
+            LEFT JOIN categories category ON category.id = publication.categorie_id
             WHERE attachment.id = :attachment_id
               AND (
                 (attachment.type_cible = 'publication' AND publication.utilisateur_id = :owner_user)
                 OR (attachment.type_cible = 'commentaire' AND comment.utilisateur_id = :owner_user)
                 OR (publication.est_signale = 0
                     AND (comment.id IS NULL OR comment.est_signale = 0)
-                    AND (:can_view_all = 1 OR EXISTS (
+                    AND (:can_view_all = 1 OR zone.visibilite = 'public' OR EXISTS (
                   SELECT 1 FROM appartenance_zones membership
                   WHERE membership.utilisateur_id = :user_id
                     AND membership.zone_id = zone.id

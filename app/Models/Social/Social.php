@@ -3,100 +3,36 @@
 class Social
 {
     private PDO $pdo;
-    private static bool $schemaChecked = false;
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
-        $this->ensureSchema();
     }
 
     /**
-     * Initialise automatiquement les tables de messagerie privée si elles n'existent pas.
+     * Récupère la relation d'amitié entre deux utilisateurs.
      */
-    private function ensureSchema(): void
-    {
-        if (self::$schemaChecked) {
-            return;
-        }
-
-        try {
-            $this->pdo->exec(
-                "CREATE TABLE IF NOT EXISTS friendships (
-                    user_one_id INT UNSIGNED NOT NULL,
-                    user_two_id INT UNSIGNED NOT NULL,
-                    requested_by INT UNSIGNED NOT NULL,
-                    status ENUM('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
-                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    PRIMARY KEY (user_one_id, user_two_id),
-                    INDEX idx_friendships_requested_by_status (requested_by, status),
-                    CONSTRAINT fk_friendships_user_one FOREIGN KEY (user_one_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-                    CONSTRAINT fk_friendships_user_two FOREIGN KEY (user_two_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-                    CONSTRAINT fk_friendships_requested_by FOREIGN KEY (requested_by) REFERENCES utilisateurs(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB"
-            );
-
-            $this->pdo->exec(
-                "CREATE TABLE IF NOT EXISTS private_messages (
-                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                    sender_id INT UNSIGNED NOT NULL,
-                    recipient_id INT UNSIGNED NOT NULL,
-                    contenu TEXT NOT NULL,
-                    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    read_at DATETIME DEFAULT NULL,
-                    deleted_for_everyone_at DATETIME DEFAULT NULL,
-                    INDEX idx_private_messages_thread (sender_id, recipient_id, date_creation, id),
-                    INDEX idx_private_messages_unread (recipient_id, sender_id, read_at),
-                    CONSTRAINT fk_private_messages_sender FOREIGN KEY (sender_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-                    CONSTRAINT fk_private_messages_recipient FOREIGN KEY (recipient_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB"
-            );
-
-            $this->pdo->exec(
-                "CREATE TABLE IF NOT EXISTS private_message_deletions (
-                    message_id BIGINT UNSIGNED NOT NULL,
-                    user_id INT UNSIGNED NOT NULL,
-                    deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (message_id, user_id),
-                    INDEX idx_private_message_deletions_user (user_id, message_id),
-                    CONSTRAINT fk_private_message_deletions_message FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE,
-                    CONSTRAINT fk_private_message_deletions_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB"
-            );
-
-            $this->pdo->exec(
-                "CREATE TABLE IF NOT EXISTS private_message_attachments (
-                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                    message_id BIGINT UNSIGNED NOT NULL,
-                    nom_fichier VARCHAR(255) NOT NULL,
-                    chemin_fichier VARCHAR(255) NOT NULL,
-                    type_mime VARCHAR(127) NOT NULL,
-                    taille BIGINT UNSIGNED NOT NULL,
-                    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_private_message_attachments_message (message_id),
-                    CONSTRAINT fk_private_message_attachments_message FOREIGN KEY (message_id) REFERENCES private_messages(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB"
-            );
-
-            self::$schemaChecked = true;
-        } catch (Throwable $e) {
-            throw new RuntimeException(
-                'Impossible d’initialiser le schéma de messagerie privée.',
-                0,
-                $e
-            );
-        }
-    }
-
     public function getFriendship(int $userId, int $otherUserId): ?array
     {
         try {
-            [$firstId, $secondId] = $this->orderedPair($userId, $otherUserId);
             $statement = $this->pdo->prepare(
-                'SELECT requested_by, status FROM friendships WHERE user_one_id = ? AND user_two_id = ? LIMIT 1'
+                "SELECT id, utilisateur_id, ami_id, statut,
+                        CASE WHEN statut = 'accepte' THEN 'accepted'
+                             WHEN statut = 'en_attente' THEN 'pending'
+                             WHEN statut = 'refuse' THEN 'declined'
+                             ELSE statut END AS status,
+                        utilisateur_id AS requested_by
+                 FROM amis
+                 WHERE (utilisateur_id = :u1 AND ami_id = :o1)
+                    OR (utilisateur_id = :o2 AND ami_id = :u2)
+                 LIMIT 1"
             );
-            $statement->execute([$firstId, $secondId]);
+            $statement->execute([
+                'u1' => $userId,
+                'o1' => $otherUserId,
+                'o2' => $otherUserId,
+                'u2' => $userId,
+            ]);
             $friendship = $statement->fetch(PDO::FETCH_ASSOC);
 
             return $friendship ?: null;
@@ -105,83 +41,91 @@ class Social
         }
     }
 
+    /**
+     * Envoie une demande d'ami.
+     */
     public function requestFriend(int $senderId, int $recipientId): string
     {
         if ($senderId <= 0 || $recipientId <= 0 || $senderId === $recipientId) {
             throw new InvalidArgumentException('Cette demande d’ami n’est pas valide.');
         }
 
-        [$firstId, $secondId] = $this->orderedPair($senderId, $recipientId);
-        $friendship = $this->getFriendship($senderId, $recipientId);
+        $existing = $this->getFriendship($senderId, $recipientId);
 
-        if ($friendship && $friendship['status'] === 'accepted') {
+        if ($existing && $existing['statut'] === 'accepte') {
             return 'already_friends';
         }
-        if ($friendship && $friendship['status'] === 'pending') {
-            return (int)$friendship['requested_by'] === $senderId ? 'already_sent' : 'incoming_request';
+        if ($existing && $existing['statut'] === 'en_attente') {
+            return (int)$existing['utilisateur_id'] === $senderId ? 'already_sent' : 'incoming_request';
         }
 
-        if ($friendship) {
+        if ($existing) {
             $statement = $this->pdo->prepare(
-                "UPDATE friendships
-                 SET requested_by = ?, status = 'pending', updated_at = NOW()
-                 WHERE user_one_id = ? AND user_two_id = ?"
+                "UPDATE amis
+                 SET utilisateur_id = ?, ami_id = ?, statut = 'en_attente', date_demande = NOW(), date_reponse = NULL
+                 WHERE id = ?"
             );
-            $statement->execute([$senderId, $firstId, $secondId]);
+            $statement->execute([$senderId, $recipientId, (int)$existing['id']]);
         } else {
             $statement = $this->pdo->prepare(
-                "INSERT INTO friendships (user_one_id, user_two_id, requested_by, status)
-                 VALUES (?, ?, ?, 'pending')"
+                "INSERT INTO amis (utilisateur_id, ami_id, statut, date_demande)
+                 VALUES (?, ?, 'en_attente', NOW())"
             );
-            $statement->execute([$firstId, $secondId, $senderId]);
+            $statement->execute([$senderId, $recipientId]);
         }
 
         return 'sent';
     }
 
+    /**
+     * Répond à une demande d'ami (accept, decline, cancel).
+     */
     public function respondToRequest(int $userId, int $otherUserId, string $action): bool
     {
-        [$firstId, $secondId] = $this->orderedPair($userId, $otherUserId);
-        $friendship = $this->getFriendship($userId, $otherUserId);
-        if (!$friendship || $friendship['status'] !== 'pending') {
+        $existing = $this->getFriendship($userId, $otherUserId);
+        if (!$existing || $existing['statut'] !== 'en_attente') {
             return false;
         }
 
-        $requestedBy = (int)$friendship['requested_by'];
-        if ($action === 'accept' && $requestedBy === $userId) {
-            return false;
-        }
-        if (in_array($action, ['accept', 'decline'], true) && $requestedBy !== $userId) {
-            $status = $action === 'accept' ? 'accepted' : 'declined';
+        $senderId = (int)$existing['utilisateur_id'];
+
+        if ($action === 'accept' && $senderId !== $userId) {
             $statement = $this->pdo->prepare(
-                'UPDATE friendships SET status = ?, updated_at = NOW()
-                 WHERE user_one_id = ? AND user_two_id = ? AND status = \'pending\''
+                "UPDATE amis SET statut = 'accepte', date_reponse = NOW() WHERE id = ?"
             );
-            $statement->execute([$status, $firstId, $secondId]);
+            $statement->execute([(int)$existing['id']]);
             return $statement->rowCount() === 1;
         }
 
-        if ($action === 'cancel' && $requestedBy === $userId) {
+        if (in_array($action, ['decline', 'reject'], true) && $senderId !== $userId) {
             $statement = $this->pdo->prepare(
-                "DELETE FROM friendships
-                 WHERE user_one_id = ? AND user_two_id = ? AND status = 'pending' AND requested_by = ?"
+                "UPDATE amis SET statut = 'refuse', date_reponse = NOW() WHERE id = ?"
             );
-            $statement->execute([$firstId, $secondId, $userId]);
+            $statement->execute([(int)$existing['id']]);
+            return $statement->rowCount() === 1;
+        }
+
+        if ($action === 'cancel' && $senderId === $userId) {
+            $statement = $this->pdo->prepare("DELETE FROM amis WHERE id = ?");
+            $statement->execute([(int)$existing['id']]);
             return $statement->rowCount() === 1;
         }
 
         return false;
     }
 
+    /**
+     * Supprime un ami.
+     */
     public function removeFriend(int $userId, int $otherUserId): bool
     {
-        [$firstId, $secondId] = $this->orderedPair($userId, $otherUserId);
         $statement = $this->pdo->prepare(
-            "DELETE FROM friendships
-             WHERE user_one_id = ? AND user_two_id = ? AND status = 'accepted'"
+            "DELETE FROM amis
+             WHERE ((utilisateur_id = ? AND ami_id = ?) OR (utilisateur_id = ? AND ami_id = ?))
+               AND statut = 'accepte'"
         );
-        $statement->execute([$firstId, $secondId]);
-        return $statement->rowCount() === 1;
+        $statement->execute([$userId, $otherUserId, $otherUserId, $userId]);
+        return $statement->rowCount() > 0;
     }
 
     public function sendFriendRequest(int $senderId, int $recipientId): string
@@ -204,29 +148,102 @@ class Social
         return $this->respondToRequest($userId, $recipientId, 'cancel');
     }
 
+    /**
+     * Vérifie si deux utilisateurs sont amis.
+     */
+    public function areFriends(int $firstUserId, int $secondUserId): bool
+    {
+        try {
+            $statement = $this->pdo->prepare(
+                "SELECT 1 FROM amis
+                 WHERE ((utilisateur_id = ? AND ami_id = ?) OR (utilisateur_id = ? AND ami_id = ?))
+                   AND statut = 'accepte'
+                 LIMIT 1"
+            );
+            $statement->execute([$firstUserId, $secondUserId, $secondUserId, $firstUserId]);
+            return (bool)$statement->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Récupère la liste des amis d'un utilisateur.
+     */
+    public function getFriends(int $userId): array
+    {
+        try {
+            $statement = $this->pdo->prepare(
+                "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url, f.nom AS filiere
+                 FROM amis a
+                 JOIN utilisateurs u ON (u.id = CASE WHEN a.utilisateur_id = :u1 THEN a.ami_id ELSE a.utilisateur_id END)
+                 LEFT JOIN filieres f ON f.id = u.filiere_id
+                 WHERE (a.utilisateur_id = :u2 OR a.ami_id = :u3)
+                   AND a.statut = 'accepte'
+                   AND u.est_actif = 1
+                 ORDER BY u.prenom ASC, u.nom ASC"
+            );
+            $statement->execute([
+                'u1' => $userId,
+                'u2' => $userId,
+                'u3' => $userId,
+            ]);
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Récupère les demandes d'amis en attente reçues par un utilisateur.
+     */
+    public function getPendingRequests(int $userId): array
+    {
+        try {
+            $statement = $this->pdo->prepare(
+                "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url, f.nom AS filiere, a.date_demande AS updated_at
+                 FROM amis a
+                 JOIN utilisateurs u ON u.id = a.utilisateur_id
+                 LEFT JOIN filieres f ON f.id = u.filiere_id
+                 WHERE a.ami_id = :user_id
+                   AND a.statut = 'en_attente'
+                   AND u.est_actif = 1
+                 ORDER BY a.date_demande DESC"
+            );
+            $statement->execute(['user_id' => $userId]);
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Suggestions de membres à ajouter.
+     */
     public function getSuggestedMembers(int $userId, int $limit = 8): array
     {
         try {
-            $userStmt = $this->pdo->prepare('SELECT filiere FROM utilisateurs WHERE id = ?');
+            $userStmt = $this->pdo->prepare('SELECT filiere_id FROM utilisateurs WHERE id = ?');
             $userStmt->execute([$userId]);
-            $userFiliere = (string)($userStmt->fetchColumn() ?: '');
+            $userFiliereId = (int)($userStmt->fetchColumn() ?: 0);
 
             $statement = $this->pdo->prepare(
-                "SELECT u.id, u.prenom, u.nom, u.role, u.filiere, u.avatar_url,
-                        CASE WHEN u.filiere = :filiere AND :filiere <> '' THEN 1 ELSE 0 END AS same_filiere
+                "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url, f.nom AS filiere,
+                        CASE WHEN u.filiere_id = :filiere_id AND :filiere_id > 0 THEN 1 ELSE 0 END AS same_filiere
                  FROM utilisateurs u
+                 LEFT JOIN filieres f ON f.id = u.filiere_id
                  WHERE u.id <> :user_id
                    AND u.est_actif = 1
                    AND u.id NOT IN (
-                       SELECT CASE WHEN user_one_id = :uid1 THEN user_two_id ELSE user_one_id END
-                       FROM friendships
-                       WHERE (user_one_id = :uid2 OR user_two_id = :uid3)
-                         AND status IN ('accepted', 'pending')
+                       SELECT CASE WHEN a.utilisateur_id = :uid1 THEN a.ami_id ELSE a.utilisateur_id END
+                       FROM amis a
+                       WHERE (a.utilisateur_id = :uid2 OR a.ami_id = :uid3)
+                         AND a.statut IN ('accepte', 'en_attente')
                    )
                  ORDER BY same_filiere DESC, u.prenom ASC, u.nom ASC
                  LIMIT :limit"
             );
-            $statement->bindValue(':filiere', $userFiliere, PDO::PARAM_STR);
+            $statement->bindValue(':filiere_id', $userFiliereId, PDO::PARAM_INT);
             $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
             $statement->bindValue(':uid1', $userId, PDO::PARAM_INT);
             $statement->bindValue(':uid2', $userId, PDO::PARAM_INT);
@@ -239,130 +256,78 @@ class Social
         }
     }
 
-    public function getFriends(int $userId): array
+    /**
+     * Trouve ou crée une conversation privée entre 2 utilisateurs.
+     */
+    public function getOrCreateConversation(int $userId, int $friendId): int
     {
-        try {
-            $statement = $this->pdo->prepare(
-                "SELECT user.id, user.prenom, user.nom, user.role, user.filiere, user.avatar_url
-                 FROM friendships friendship
-                 JOIN utilisateurs user
-                   ON user.id = CASE
-                        WHEN friendship.user_one_id = :first_user THEN friendship.user_two_id
-                        ELSE friendship.user_one_id
-                      END
-                 WHERE (friendship.user_one_id = :second_user OR friendship.user_two_id = :third_user)
-                   AND friendship.status = 'accepted'
-                   AND user.est_actif = 1
-                 ORDER BY user.prenom, user.nom"
-            );
-            $statement->execute([
-                'first_user' => $userId,
-                'second_user' => $userId,
-                'third_user' => $userId,
-            ]);
-            return $statement->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Throwable $e) {
-            return [];
+        [$u1, $u2] = [$userId < $friendId ? $userId : $friendId, $userId < $friendId ? $friendId : $userId];
+
+        $stmt = $this->pdo->prepare(
+            'SELECT id FROM conversations WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?) LIMIT 1'
+        );
+        $stmt->execute([$u1, $u2, $u2, $u1]);
+        $convId = (int)$stmt->fetchColumn();
+
+        if ($convId > 0) {
+            return $convId;
         }
+
+        $ins = $this->pdo->prepare(
+            'INSERT INTO conversations (user1_id, user2_id, date_creation, derniere_activite) VALUES (?, ?, NOW(), NOW())'
+        );
+        $ins->execute([$u1, $u2]);
+        return (int)$this->pdo->lastInsertId();
     }
 
-    public function getPendingRequests(int $userId): array
-    {
-        try {
-            $statement = $this->pdo->prepare(
-                "SELECT sender.id, sender.prenom, sender.nom, sender.role, sender.filiere, sender.avatar_url,
-                        friendship.updated_at
-                 FROM friendships friendship
-                 JOIN utilisateurs sender ON sender.id = friendship.requested_by
-                 WHERE (friendship.user_one_id = :first_user OR friendship.user_two_id = :second_user)
-                   AND friendship.status = 'pending'
-                   AND friendship.requested_by <> :recipient
-                 ORDER BY friendship.updated_at DESC"
-            );
-            $statement->execute([
-                'first_user' => $userId,
-                'second_user' => $userId,
-                'recipient' => $userId,
-            ]);
-            return $statement->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Throwable $e) {
-            return [];
-        }
-    }
-
+    /**
+     * Récupère le nombre total de messages privés non lus.
+     */
     public function getUnreadMessageCount(int $userId): int
     {
         try {
             $statement = $this->pdo->prepare(
-                'SELECT COUNT(*) FROM private_messages message
-                 WHERE message.recipient_id = ? AND message.read_at IS NULL
-                   AND NOT EXISTS (
-                        SELECT 1 FROM private_message_deletions hidden
-                        WHERE hidden.message_id = message.id AND hidden.user_id = ?
-                   )'
+                'SELECT COUNT(*)
+                 FROM messages_prives mp
+                 JOIN conversations c ON c.id = mp.conversation_id
+                 WHERE (c.user1_id = :u1 OR c.user2_id = :u2)
+                   AND mp.expediteur_id <> :u3
+                   AND mp.lu = 0'
             );
-            $statement->execute([$userId, $userId]);
+            $statement->execute(['u1' => $userId, 'u2' => $userId, 'u3' => $userId]);
             return (int)$statement->fetchColumn();
         } catch (Throwable $e) {
             return 0;
         }
     }
 
+    /**
+     * Boîte de réception des amis avec le dernier message et le compteur non lus.
+     */
     public function getInbox(int $userId): array
     {
         try {
             $statement = $this->pdo->prepare(
-                "SELECT friend.id, friend.prenom, friend.nom, friend.role, friend.filiere, friend.avatar_url,
-                        CASE
-                            WHEN latest.deleted_for_everyone_at IS NOT NULL THEN '[Message supprimé]'
-                            WHEN latest.contenu <> '' THEN latest.contenu
-                            WHEN EXISTS (
-                                SELECT 1 FROM private_message_attachments attachment
-                                WHERE attachment.message_id = latest.id
-                            ) THEN '[Pièce jointe]'
-                            ELSE ''
-                        END AS last_message,
-                        latest.date_creation AS last_message_at,
-                        (SELECT COUNT(*) FROM private_messages unread
-                         WHERE unread.sender_id = friend.id AND unread.recipient_id = :unread_user
-                           AND unread.read_at IS NULL
-                           AND NOT EXISTS (
-                                SELECT 1 FROM private_message_deletions hidden
-                                WHERE hidden.message_id = unread.id AND hidden.user_id = :unread_hidden_user
-                           )) AS unread_count
-                 FROM friendships friendship
-                 JOIN utilisateurs friend
-                   ON friend.id = CASE
-                        WHEN friendship.user_one_id = :join_first THEN friendship.user_two_id
-                        ELSE friendship.user_one_id
-                      END
-                 LEFT JOIN private_messages latest
-                   ON latest.id = (
-                        SELECT message.id
-                        FROM private_messages message
-                        WHERE ((message.sender_id = :sender_user AND message.recipient_id = friend.id)
-                           OR (message.sender_id = friend.id AND message.recipient_id = :recipient_user))
-                          AND NOT EXISTS (
-                                SELECT 1 FROM private_message_deletions hidden
-                                WHERE hidden.message_id = message.id AND hidden.user_id = :latest_hidden_user
-                          )
-                        ORDER BY message.date_creation DESC, message.id DESC
-                        LIMIT 1
-                   )
-                 WHERE (friendship.user_one_id = :first_user OR friendship.user_two_id = :second_user)
-                   AND friendship.status = 'accepted'
-                   AND friend.est_actif = 1
-                 ORDER BY COALESCE(latest.date_creation, friendship.updated_at) DESC, friend.prenom, friend.nom"
+                "SELECT u.id, u.prenom, u.nom, u.role, u.avatar_url, f.nom AS filiere,
+                        c.id AS conversation_id,
+                        (SELECT mp.contenu FROM messages_prives mp WHERE mp.conversation_id = c.id ORDER BY mp.date_creation DESC, mp.id DESC LIMIT 1) AS last_message,
+                        (SELECT mp.date_creation FROM messages_prives mp WHERE mp.conversation_id = c.id ORDER BY mp.date_creation DESC, mp.id DESC LIMIT 1) AS last_message_date,
+                        (SELECT COUNT(*) FROM messages_prives mp WHERE mp.conversation_id = c.id AND mp.expediteur_id = u.id AND mp.lu = 0) AS unread_count
+                 FROM amis a
+                 JOIN utilisateurs u ON (u.id = CASE WHEN a.utilisateur_id = :u1 THEN a.ami_id ELSE a.utilisateur_id END)
+                 LEFT JOIN filieres f ON f.id = u.filiere_id
+                 LEFT JOIN conversations c ON (c.user1_id = :u2 AND c.user2_id = u.id) OR (c.user1_id = u.id AND c.user2_id = :u3)
+                 WHERE (a.utilisateur_id = :u4 OR a.ami_id = :u5)
+                   AND a.statut = 'accepte'
+                   AND u.est_actif = 1
+                 ORDER BY COALESCE(last_message_date, a.date_reponse) DESC, u.prenom ASC, u.nom ASC"
             );
             $statement->execute([
-                'unread_user' => $userId,
-                'unread_hidden_user' => $userId,
-                'join_first' => $userId,
-                'sender_user' => $userId,
-                'recipient_user' => $userId,
-                'latest_hidden_user' => $userId,
-                'first_user' => $userId,
-                'second_user' => $userId,
+                'u1' => $userId,
+                'u2' => $userId,
+                'u3' => $userId,
+                'u4' => $userId,
+                'u5' => $userId,
             ]);
             return $statement->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
@@ -370,128 +335,72 @@ class Social
         }
     }
 
+    /**
+     * Récupère les messages d'une conversation privée entre deux amis.
+     */
     public function getMessages(int $userId, int $friendId, int $limit = 100): array
     {
         try {
             if (!$this->areFriends($userId, $friendId)) {
                 return [];
             }
+
+            $convId = $this->getOrCreateConversation($userId, $friendId);
             $limit = max(1, min(200, $limit));
+
             $statement = $this->pdo->prepare(
-                "SELECT id, sender_id, recipient_id, contenu, date_creation, deleted_for_everyone_at
-                 FROM private_messages message
-                 WHERE ((sender_id = ? AND recipient_id = ?)
-                    OR (sender_id = ? AND recipient_id = ?))
-                   AND NOT EXISTS (
-                        SELECT 1 FROM private_message_deletions hidden
-                        WHERE hidden.message_id = message.id AND hidden.user_id = ?
-                   )
-                 ORDER BY date_creation DESC, id DESC
+                "SELECT m.id, m.conversation_id, m.expediteur_id AS sender_id,
+                        CASE WHEN m.expediteur_id = :u1 THEN :friend1 ELSE :u2 END AS recipient_id,
+                        m.contenu, m.lu, m.date_creation, NULL AS deleted_for_everyone_at
+                 FROM messages_prives m
+                 WHERE m.conversation_id = :conv_id
+                 ORDER BY m.date_creation ASC, m.id ASC
                  LIMIT {$limit}"
             );
-            $statement->execute([$userId, $friendId, $friendId, $userId, $userId]);
-            $messages = array_reverse($statement->fetchAll(PDO::FETCH_ASSOC));
+            $statement->execute([
+                'u1' => $userId,
+                'friend1' => $friendId,
+                'u2' => $userId,
+                'conv_id' => $convId,
+            ]);
+            $messages = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+            // Charger les pièces jointes associées
             if ($messages) {
                 $messageIds = array_column($messages, 'id');
                 $placeholders = implode(',', array_fill(0, count($messageIds), '?'));
-                $attachmentsStatement = $this->pdo->prepare(
-                    "SELECT id, message_id, nom_fichier, type_mime, taille
-                     FROM private_message_attachments
-                     WHERE message_id IN ({$placeholders})
-                     ORDER BY id"
+                $attachStmt = $this->pdo->prepare(
+                    "SELECT id, cible_id AS message_id, nom_fichier, chemin_fichier, type_mime, taille
+                     FROM pieces_jointes
+                     WHERE type_cible = 'message_prive' AND cible_id IN ({$placeholders})
+                     ORDER BY id ASC"
                 );
-                $attachmentsStatement->execute($messageIds);
-                $attachmentsByMessage = [];
-                foreach ($attachmentsStatement->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
-                    $attachmentsByMessage[(int)$attachment['message_id']][] = $attachment;
+                $attachStmt->execute($messageIds);
+                $attachmentsByMsg = [];
+                foreach ($attachStmt->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
+                    $attachmentsByMsg[(int)$attachment['message_id']][] = $attachment;
                 }
-                foreach ($messages as &$message) {
-                    $message['attachments'] = $attachmentsByMessage[(int)$message['id']] ?? [];
+                foreach ($messages as &$msg) {
+                    $msg['attachments'] = $attachmentsByMsg[(int)$msg['id']] ?? [];
                 }
-                unset($message);
+                unset($msg);
             }
+
+            // Marquer les messages reçus comme lus
             $markRead = $this->pdo->prepare(
-                'UPDATE private_messages SET read_at = NOW()
-                 WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL'
+                'UPDATE messages_prives SET lu = 1 WHERE conversation_id = ? AND expediteur_id = ? AND lu = 0'
             );
-            $markRead->execute([$friendId, $userId]);
+            $markRead->execute([$convId, $friendId]);
+
             return $messages;
         } catch (Throwable $e) {
             return [];
         }
     }
 
-    public function deleteMessageForMe(int $userId, int $messageId, int $friendId): bool
-    {
-        if ($messageId <= 0 || !$this->areFriends($userId, $friendId)) {
-            return false;
-        }
-
-        $statement = $this->pdo->prepare(
-            'INSERT IGNORE INTO private_message_deletions (message_id, user_id)
-             SELECT message.id, ?
-             FROM private_messages message
-             WHERE message.id = ?
-               AND ((message.sender_id = ? AND message.recipient_id = ?)
-                 OR (message.sender_id = ? AND message.recipient_id = ?))'
-        );
-        $statement->execute([$userId, $messageId, $userId, $friendId, $friendId, $userId]);
-        return $statement->rowCount() === 1;
-    }
-
-    public function deleteMessageForEveryone(int $userId, int $messageId, int $friendId): bool
-    {
-        if ($messageId <= 0 || !$this->areFriends($userId, $friendId)) {
-            return false;
-        }
-
-        $this->pdo->beginTransaction();
-        try {
-            $attachments = $this->pdo->prepare(
-                'SELECT attachment.chemin_fichier
-                 FROM private_message_attachments attachment
-                 JOIN private_messages message ON message.id = attachment.message_id
-                 WHERE message.id = ? AND message.sender_id = ? AND message.recipient_id = ?
-                   AND message.deleted_for_everyone_at IS NULL
-                 FOR UPDATE'
-            );
-            $attachments->execute([$messageId, $userId, $friendId]);
-            $storedPaths = $attachments->fetchAll(PDO::FETCH_COLUMN);
-
-            $update = $this->pdo->prepare(
-                'UPDATE private_messages
-                 SET contenu = \'\', deleted_for_everyone_at = NOW()
-                 WHERE id = ? AND sender_id = ? AND recipient_id = ?
-                   AND deleted_for_everyone_at IS NULL'
-            );
-            $update->execute([$messageId, $userId, $friendId]);
-            if ($update->rowCount() !== 1) {
-                $this->pdo->rollBack();
-                return false;
-            }
-
-            $deleteAttachments = $this->pdo->prepare('DELETE FROM private_message_attachments WHERE message_id = ?');
-            $deleteAttachments->execute([$messageId]);
-            $this->pdo->commit();
-        } catch (Throwable $exception) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw $exception;
-        }
-
-        $uploadDirectory = realpath(ROOT_PATH . '/public/uploads/private-messages');
-        foreach ($storedPaths as $relativePath) {
-            $filePath = realpath(ROOT_PATH . '/public/uploads/' . ltrim((string)$relativePath, '/'));
-            if ($filePath && $uploadDirectory
-                && str_starts_with($filePath, $uploadDirectory . DIRECTORY_SEPARATOR)
-                && is_file($filePath) && !unlink($filePath)) {
-                error_log('Impossible de supprimer la pièce jointe du message privé supprimé : ' . $filePath);
-            }
-        }
-        return true;
-    }
-
+    /**
+     * Envoie un message privé à un ami.
+     */
     public function sendMessage(int $senderId, int $recipientId, string $content, array $files = []): int
     {
         $content = trim($content);
@@ -517,50 +426,86 @@ class Social
         $storedPaths = [];
         $this->pdo->beginTransaction();
         try {
-            $statement = $this->pdo->prepare(
-                'INSERT INTO private_messages (sender_id, recipient_id, contenu) VALUES (?, ?, ?)'
-            );
-            $statement->execute([$senderId, $recipientId, $content]);
-            $messageId = (int)$this->pdo->lastInsertId();
-            $attachmentStatement = $this->pdo->prepare(
-                'INSERT INTO private_message_attachments
-                    (message_id, nom_fichier, chemin_fichier, type_mime, taille)
-                 VALUES (?, ?, ?, ?, ?)'
-            );
+            $convId = $this->getOrCreateConversation($senderId, $recipientId);
 
-            foreach ($validatedFiles as $file) {
-                $storedName = bin2hex(random_bytes(16)) . '.' . $file['extension'];
-                $destination = $uploadDirectory . DIRECTORY_SEPARATOR . $storedName;
-                if (!move_uploaded_file($file['tmp_name'], $destination)) {
-                    throw new RuntimeException('Impossible de stocker une pièce jointe.');
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO messages_prives (conversation_id, expediteur_id, contenu, lu, date_creation)
+                 VALUES (?, ?, ?, 0, NOW())'
+            );
+            $stmt->execute([$convId, $senderId, $content]);
+            $messageId = (int)$this->pdo->lastInsertId();
+
+            $upConv = $this->pdo->prepare('UPDATE conversations SET derniere_activite = NOW() WHERE id = ?');
+            $upConv->execute([$convId]);
+
+            if ($validatedFiles !== []) {
+                $attachStmt = $this->pdo->prepare(
+                    "INSERT INTO pieces_jointes (type_cible, cible_id, nom_fichier, chemin_fichier, type_mime, taille)
+                     VALUES ('message_prive', ?, ?, ?, ?, ?)"
+                );
+
+                foreach ($validatedFiles as $file) {
+                    $storedName = bin2hex(random_bytes(16)) . '.' . $file['extension'];
+                    $destination = $uploadDirectory . DIRECTORY_SEPARATOR . $storedName;
+                    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+                        throw new RuntimeException('Impossible de stocker une pièce jointe.');
+                    }
+                    $storedPaths[] = $destination;
+                    $attachStmt->execute([
+                        $messageId,
+                        $file['name'],
+                        'private-messages/' . $storedName,
+                        $file['type'],
+                        $file['size'],
+                    ]);
                 }
-                $storedPaths[] = $destination;
-                $attachmentStatement->execute([
-                    $messageId,
-                    $file['name'],
-                    'private-messages/' . $storedName,
-                    $file['type'],
-                    $file['size'],
-                ]);
             }
 
             $this->pdo->commit();
             return $messageId;
-        } catch (Throwable $exception) {
+        } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            foreach ($storedPaths as $storedPath) {
-                if (is_file($storedPath)) {
-                    unlink($storedPath);
+            foreach ($storedPaths as $p) {
+                if (is_file($p)) {
+                    unlink($p);
                 }
             }
-            throw $exception;
+            throw $e;
         }
     }
 
     /**
-     * @return array<int, array{name: string, tmp_name: string, size: int, type: string, extension: string}>
+     * Suppression d'un message privé.
+     */
+    public function deleteMessageForMe(int $userId, int $messageId, int $friendId): bool
+    {
+        return $this->deleteMessage($userId, $messageId);
+    }
+
+    public function deleteMessageForEveryone(int $userId, int $messageId, int $friendId): bool
+    {
+        return $this->deleteMessage($userId, $messageId);
+    }
+
+    public function deleteMessage(int $userId, int $messageId): bool
+    {
+        if ($messageId <= 0 || $userId <= 0) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare(
+            "DELETE mp FROM messages_prives mp
+             JOIN conversations c ON c.id = mp.conversation_id
+             WHERE mp.id = :mid AND (mp.expediteur_id = :uid OR c.user1_id = :uid OR c.user2_id = :uid)"
+        );
+        $stmt->execute(['mid' => $messageId, 'uid' => $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Valide les pièces jointes pour les messages privés.
      */
     private function validateMessageFiles(array $files): array
     {
@@ -589,54 +534,41 @@ class Social
             'ppt' => ['application/vnd.ms-powerpoint'],
             'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
             'txt' => ['text/plain'],
-            'zip' => ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
+            'zip' => ['application/zip', 'application/x-zip-compressed'],
         ];
-        $names = is_array($files['name']) ? $files['name'] : [$files['name']];
-        $tmpNames = is_array($files['tmp_name'] ?? null) ? $files['tmp_name'] : [$files['tmp_name'] ?? ''];
-        $sizes = is_array($files['size'] ?? null) ? $files['size'] : [$files['size'] ?? 0];
-        $errors = is_array($files['error'] ?? null) ? $files['error'] : [$files['error'] ?? UPLOAD_ERR_NO_FILE];
-        $validated = [];
-        $totalSize = 0;
 
-        foreach ($names as $index => $originalName) {
-            $error = (int)($errors[$index] ?? UPLOAD_ERR_NO_FILE);
+        $validated = [];
+        $fileCount = is_array($files['name']) ? count($files['name']) : 1;
+        if ($fileCount > 5) {
+            throw new InvalidArgumentException('Vous pouvez joindre au maximum 5 fichiers.');
+        }
+
+        for ($i = 0; $i < $fileCount; $i++) {
+            $error = is_array($files['error']) ? $files['error'][$i] : $files['error'];
             if ($error === UPLOAD_ERR_NO_FILE) {
                 continue;
             }
-            $name = basename(str_replace('\\', '/', (string)$originalName));
-            $name = preg_replace('/[\x00-\x1F\x7F]/u', '_', $name) ?? '';
-            $name = mb_strcut($name, 0, 255, 'UTF-8');
             if ($error !== UPLOAD_ERR_OK) {
-                throw new InvalidArgumentException("La pièce jointe « {$name} » n’a pas pu être envoyée.");
+                throw new RuntimeException('Le transfert d’une pièce jointe a échoué.');
             }
-            if (count($validated) >= 5) {
-                throw new InvalidArgumentException('Vous pouvez joindre au maximum 5 fichiers par message.');
+
+            $name = (string)(is_array($files['name']) ? $files['name'][$i] : $files['name']);
+            $tmpName = (string)(is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name']);
+            $size = (int)(is_array($files['size']) ? $files['size'][$i] : $files['size']);
+
+            if ($size > 10 * 1024 * 1024) {
+                throw new InvalidArgumentException('Chaque pièce jointe est limitée à 10 Mo.');
             }
 
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            $size = (int)($sizes[$index] ?? 0);
-            $tmpName = (string)($tmpNames[$index] ?? '');
             if (!isset($allowedTypes[$extension])) {
-                throw new InvalidArgumentException("Le format du fichier « {$name} » n’est pas autorisé.");
-            }
-            if ($size <= 0 || $size > 10 * 1024 * 1024) {
-                throw new InvalidArgumentException("Chaque fichier doit peser au maximum 10 Mo.");
-            }
-            if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-                throw new InvalidArgumentException("La pièce jointe « {$name} » est invalide.");
+                throw new InvalidArgumentException('Ce format de fichier n’est pas accepté.');
             }
 
             $finfo = new finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($tmpName);
-            if (!is_string($mime) || !in_array($mime, $allowedTypes[$extension], true)) {
-                throw new InvalidArgumentException("Le type réel du fichier « {$name} » ne correspond pas à son extension.");
-            }
-            if ($extension === 'webm' && $mime === 'video/webm') {
-                $mime = 'audio/webm';
-            }
-            $totalSize += $size;
-            if ($totalSize > 20 * 1024 * 1024) {
-                throw new InvalidArgumentException('La taille totale des pièces jointes ne peut pas dépasser 20 Mo.');
+            $mime = (string)$finfo->file($tmpName);
+            if (!in_array($mime, $allowedTypes[$extension], true)) {
+                $mime = $allowedTypes[$extension][0];
             }
 
             $validated[] = [
@@ -649,16 +581,5 @@ class Social
         }
 
         return $validated;
-    }
-
-    private function areFriends(int $firstUserId, int $secondUserId): bool
-    {
-        $friendship = $this->getFriendship($firstUserId, $secondUserId);
-        return $friendship !== null && $friendship['status'] === 'accepted';
-    }
-
-    private function orderedPair(int $firstId, int $secondId): array
-    {
-        return $firstId < $secondId ? [$firstId, $secondId] : [$secondId, $firstId];
     }
 }

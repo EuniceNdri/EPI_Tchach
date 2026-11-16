@@ -62,7 +62,7 @@ class Admin extends User {
 
         if (!empty($filterRole)) {
             $stmt = $this->pdo->prepare("
-                SELECT user.id, user.nom, user.prenom, user.email, user.role, user.filiere,
+                SELECT user.id, user.nom, user.prenom, user.email, user.role, f.nom AS filiere,
                        user.modules_enseignes, user.date_inscription,
                        (SELECT GROUP_CONCAT(
                            CONCAT(zone.nom, ' — ', CASE membership.role_dans_zone
@@ -77,13 +77,14 @@ class Admin extends User {
                           AND membership.role_dans_zone IN ('delegue_de_classe', 'delegue_general')
                        ) AS responsabilites
                 FROM utilisateurs user
+                LEFT JOIN filieres f ON f.id = user.filiere_id
                 WHERE LOWER(user.role) = LOWER(:role)
                 ORDER BY user.date_inscription DESC
             ");
             $stmt->execute(['role' => trim($filterRole)]);
         } else {
             $stmt = $this->pdo->query("
-                SELECT user.id, user.nom, user.prenom, user.email, user.role, user.filiere,
+                SELECT user.id, user.nom, user.prenom, user.email, user.role, f.nom AS filiere,
                        user.modules_enseignes, user.date_inscription,
                        (SELECT GROUP_CONCAT(
                            CONCAT(zone.nom, ' — ', CASE membership.role_dans_zone
@@ -98,6 +99,7 @@ class Admin extends User {
                           AND membership.role_dans_zone IN ('delegue_de_classe', 'delegue_general')
                        ) AS responsabilites
                 FROM utilisateurs user
+                LEFT JOIN filieres f ON f.id = user.filiere_id
                 ORDER BY user.date_inscription DESC
             ");
         }
@@ -183,8 +185,9 @@ class Admin extends User {
         }
 
         $statement = $this->pdo->prepare("
-            SELECT u.id, u.nom, u.prenom, u.email, u.role, u.filiere, u.est_actif
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, f.nom AS filiere, u.est_actif
             FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
             JOIN appartenance_zones az ON az.utilisateur_id = u.id
             JOIN zones z ON z.id = az.zone_id AND z.est_active = 1
             WHERE z.id IN (" . implode(', ', $placeholders) . ")
@@ -339,9 +342,10 @@ class Admin extends User {
         }
 
         $stmt = $this->pdo->prepare("
-            SELECT id, nom, prenom, email, role, filiere, modules_enseignes, date_inscription 
-            FROM utilisateurs 
-            ORDER BY date_inscription DESC, id DESC 
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, f.nom AS filiere, u.modules_enseignes, u.date_inscription 
+            FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
+            ORDER BY u.date_inscription DESC, u.id DESC 
             LIMIT :limit
         ");
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -362,9 +366,10 @@ class Admin extends User {
         }
 
         $stmt = $this->pdo->prepare("
-            SELECT id, nom, prenom, email, role, filiere, modules_enseignes, biographie, date_inscription 
-            FROM utilisateurs 
-            WHERE id = :id 
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, f.nom AS filiere, u.modules_enseignes, u.biographie, u.date_inscription 
+            FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
+            WHERE u.id = :id 
             LIMIT 1
         ");
         $stmt->execute(['id' => $id]);
@@ -463,23 +468,15 @@ class Admin extends User {
                     'SELECT type_zone FROM zones WHERE id = :zone_id AND est_active = 1 LIMIT 1'
                 );
                 $accountQuery = $this->pdo->prepare(
-                    'SELECT user.role, user.filiere, user.filiere_id,
-                            COALESCE(
-                                (SELECT COALESCE(filiere.zone_id, zone.id)
-                                 FROM filieres filiere
-                                 LEFT JOIN zones zone
-                                   ON zone.nom = CONCAT(\'Filière \', filiere.nom)
-                                  AND zone.type_zone = \'filiere\'
-                                 WHERE filiere.id = user.filiere_id),
-                                (SELECT COALESCE(filiere.zone_id, zone.id)
-                                 FROM filieres filiere
-                                 LEFT JOIN zones zone
-                                   ON zone.nom = CONCAT(\'Filière \', filiere.nom)
-                                  AND zone.type_zone = \'filiere\'
-                                 WHERE LOWER(TRIM(filiere.nom)) = LOWER(TRIM(user.filiere))
-                                 LIMIT 1)
-                            ) AS own_zone_id
+                    'SELECT user.role, user.filiere_id, f.nom AS filiere,
+                            (SELECT zone.id
+                             FROM zones zone
+                             LEFT JOIN filieres filiere ON zone.nom = CONCAT(\'Filière \', filiere.nom) OR zone.nom = filiere.nom
+                             WHERE zone.type_zone = \'filiere\'
+                               AND (filiere.id = user.filiere_id OR LOWER(TRIM(zone.nom)) = LOWER(CONCAT(\'filière \', TRIM(f.nom))))
+                             LIMIT 1) AS own_zone_id
                      FROM utilisateurs user
+                     LEFT JOIN filieres f ON f.id = user.filiere_id
                      WHERE user.id = :user_id
                      LIMIT 1'
                 );
@@ -490,13 +487,12 @@ class Admin extends User {
                 }
                 $clearRole = $this->pdo->prepare(
                     "UPDATE appartenance_zones
-                     SET role_dans_zone = 'membre', delegation_exception = FALSE,
-                         delegue_classe_zone_id = NULL
+                     SET role_dans_zone = 'membre'
                      WHERE utilisateur_id = :user_id AND zone_id = :zone_id
                        AND role_dans_zone IN ('delegue_de_classe', 'delegue_general')"
                 );
                 $existingRoleQuery = $this->pdo->prepare(
-                    'SELECT role_dans_zone, delegation_exception
+                    'SELECT role_dans_zone
                      FROM appartenance_zones
                      WHERE utilisateur_id = :user_id AND zone_id = :zone_id
                      LIMIT 1'
@@ -529,15 +525,13 @@ class Admin extends User {
                     $isClassException = (string)($zoneExceptions[$zoneId] ?? $zoneExceptions[(string)$zoneId] ?? '') === '1';
                     $existingRoleQuery->execute(['user_id' => $id, 'zone_id' => $zoneId]);
                     $existingRole = $existingRoleQuery->fetch(PDO::FETCH_ASSOC);
-                    $delegationException = false;
                     if ($role === 'delegue_de_classe'
                         && (int)($account['own_zone_id'] ?? 0) !== $zoneId) {
-                        if ($isClassException) {
-                            $delegationException = true;
-                        } elseif (($existingRole['role_dans_zone'] ?? null) === 'delegue_de_classe') {
-                            $clearRole->execute(['user_id' => $id, 'zone_id' => $zoneId]);
-                            continue;
-                        } else {
+                        if (!$isClassException) {
+                            if (($existingRole['role_dans_zone'] ?? null) === 'delegue_de_classe') {
+                                $clearRole->execute(['user_id' => $id, 'zone_id' => $zoneId]);
+                                continue;
+                            }
                             throw new InvalidArgumentException('Une attribution hors filière exige l’exception explicite de l’administrateur.');
                         }
                     }
@@ -548,8 +542,7 @@ class Admin extends User {
                         if ($role === 'delegue_general') {
                             $this->pdo->prepare(
                                 "UPDATE appartenance_zones
-                                SET role_dans_zone = 'membre', delegue_classe_zone_id = NULL,
-                                    delegation_exception = FALSE
+                                 SET role_dans_zone = 'membre'
                                  WHERE role_dans_zone = 'delegue_general'
                                    AND utilisateur_id <> :user_id"
                             )->execute(['user_id' => $id]);
@@ -557,8 +550,7 @@ class Admin extends User {
                         } elseif ($role === 'delegue_de_classe') {
                             $this->pdo->prepare(
                                 "UPDATE appartenance_zones
-                                SET role_dans_zone = 'membre', delegue_classe_zone_id = NULL,
-                                    delegation_exception = FALSE
+                                 SET role_dans_zone = 'membre'
                                  WHERE zone_id = :zone_id
                                    AND role_dans_zone = 'delegue_de_classe'
                                    AND utilisateur_id <> :user_id"
@@ -567,18 +559,14 @@ class Admin extends User {
                         }
                         $this->pdo->prepare(
                             'INSERT INTO appartenance_zones
-                                (utilisateur_id, zone_id, role_dans_zone, delegation_exception, delegue_classe_zone_id)
-                             VALUES (:user_id, :zone_id, :role, :delegation_exception, :class_zone_id)
+                                (utilisateur_id, zone_id, role_dans_zone)
+                             VALUES (:user_id, :zone_id, :role)
                              ON DUPLICATE KEY UPDATE
-                                 role_dans_zone = VALUES(role_dans_zone),
-                                 delegation_exception = VALUES(delegation_exception),
-                                 delegue_classe_zone_id = VALUES(delegue_classe_zone_id)'
+                                 role_dans_zone = VALUES(role_dans_zone)'
                         )->execute([
                             'user_id' => $id,
                             'zone_id' => $zoneId,
                             'role' => $role,
-                            'delegation_exception' => $delegationException ? 1 : 0,
-                            'class_zone_id' => $role === 'delegue_de_classe' ? $zoneId : null,
                         ]);
                     }
                 }
@@ -663,10 +651,12 @@ class Admin extends User {
             "SELECT membership.zone_id
              FROM appartenance_zones membership
              JOIN zones zone ON zone.id = membership.zone_id
+             LEFT JOIN utilisateurs u ON u.id = membership.utilisateur_id
+             LEFT JOIN filieres f ON f.id = u.filiere_id
              WHERE membership.utilisateur_id = :user_id
                AND zone.est_active = 1
                AND membership.role_dans_zone = 'delegue_de_classe'
-               AND membership.delegation_exception = 1"
+               AND (f.nom IS NULL OR zone.nom NOT LIKE CONCAT('%', f.nom, '%'))"
         );
         $statement->execute(['user_id' => $userId]);
 

@@ -87,8 +87,14 @@ class User {
         $email = strtolower(trim($email));
         $mot_de_passe = (string) $mot_de_passe;
 
-        // Recherche insensible à la casse
-        $stmt = $this->pdo->prepare("SELECT * FROM utilisateurs WHERE LOWER(email) = LOWER(:email) LIMIT 1");
+        // Recherche insensible à la casse avec jointure filière
+        $stmt = $this->pdo->prepare("
+            SELECT u.*, f.nom AS filiere, f.code AS filiere_code
+            FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
+            WHERE LOWER(u.email) = LOWER(:email)
+            LIMIT 1
+        ");
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
@@ -210,9 +216,21 @@ class User {
         // 3. Hachage sécurisé du mot de passe
         $hashedPassword = password_hash($mot_de_passe, PASSWORD_DEFAULT);
 
-        // 4. Insertion dans la table `utilisateurs`
-        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, avatar_url)
-                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes, :avatar_url)";
+        // 4. Résolution de filiere_id si nécessaire
+        $filiereId = null;
+        if (!empty($filiere)) {
+            if (is_numeric($filiere)) {
+                $filiereId = (int)$filiere;
+            } else {
+                $fStmt = $this->pdo->prepare('SELECT id FROM filieres WHERE nom = ? OR code = ? LIMIT 1');
+                $fStmt->execute([$filiere, $filiere]);
+                $filiereId = $fStmt->fetchColumn() ?: null;
+            }
+        }
+
+        // 5. Insertion dans la table `utilisateurs`
+        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere_id, modules_enseignes, avatar_url)
+                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere_id, :modules_enseignes, :avatar_url)";
         
         $stmt = $this->pdo->prepare($sql);
         $success = $stmt->execute([
@@ -221,7 +239,7 @@ class User {
             'email'             => $email,
             'mot_de_passe'      => $hashedPassword,
             'role'              => $role,
-            'filiere'           => $filiere,
+            'filiere_id'        => $filiereId,
             'modules_enseignes' => $modules_enseignes,
             'avatar_url'        => $avatar_url
         ]);
@@ -443,7 +461,15 @@ class User {
             return false;
         }
 
-        $stmt = $this->pdo->prepare("SELECT id, nom, prenom, email, role, filiere, modules_enseignes, avatar_url, biographie, date_inscription FROM utilisateurs WHERE id = :id LIMIT 1");
+        $stmt = $this->pdo->prepare("
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, u.filiere_id,
+                   f.nom AS filiere, f.code AS filiere_code,
+                   u.modules_enseignes, u.avatar_url, u.biographie, u.date_inscription
+            FROM utilisateurs u
+            LEFT JOIN filieres f ON f.id = u.filiere_id
+            WHERE u.id = :id
+            LIMIT 1
+        ");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch();
     }
@@ -474,8 +500,18 @@ class User {
         }
 
         if ($filiere !== null) {
-            $sql .= ", filiere = :filiere";
-            $params['filiere'] = trim($filiere);
+            $filiereVal = trim($filiere);
+            $filiereId = null;
+            if (is_numeric($filiereVal) && (int)$filiereVal > 0) {
+                $filiereId = (int)$filiereVal;
+            } elseif ($filiereVal !== '') {
+                $fStmt = $this->pdo->prepare("SELECT id FROM filieres WHERE nom = :f OR code = :f LIMIT 1");
+                $fStmt->execute(['f' => $filiereVal]);
+                $found = $fStmt->fetchColumn();
+                $filiereId = $found !== false ? (int)$found : null;
+            }
+            $sql .= ", filiere_id = :filiere_id";
+            $params['filiere_id'] = $filiereId;
         }
 
         if ($modules_enseignes !== null) {

@@ -83,10 +83,11 @@ class PublicationController {
             return;
         }
 
-        if (!in_array($typePublication, ['discussion', 'question', 'annonce'], true)) {
+        if (!in_array($typePublication, ['discussion', 'question', 'annonce', 'sondage'], true)) {
             $this->respondError("Le type de publication sélectionné n'est pas valide.", $returnUrl);
             return;
         }
+        $isPoll = in_array($typePublication, ['sondage', 'question'], true);
         if ($typePublication === 'annonce'
             && (!($this->pdo instanceof PDO)
                 || !RoleAccess::canPublishAnnouncement($this->pdo, $userId, $categorieId))) {
@@ -99,11 +100,11 @@ class PublicationController {
             array_map(static fn ($option): string => is_scalar($option) ? trim((string)$option) : '', $submittedOptions),
             static fn (string $option): bool => $option !== ''
         )));
-        if ($typePublication === 'question' && (count($pollOptions) < 2 || count($pollOptions) > 10)) {
+        if ($isPoll && (count($pollOptions) < 2 || count($pollOptions) > 10)) {
             $this->respondError('Un sondage doit contenir entre 2 et 10 choix.', $returnUrl);
             return;
         }
-        if ($typePublication === 'question'
+        if ($isPoll
             && count(array_filter($pollOptions, static fn (string $option): bool => mb_strlen($option) > 255)) > 0) {
             $this->respondError('Chaque choix du sondage doit contenir au maximum 255 caractères.', $returnUrl);
             return;
@@ -182,19 +183,34 @@ class PublicationController {
 
         // 2. Insertion en base de données
         try {
+            $zoneId = (int)($_POST['zone_id'] ?? 0);
+            if ($zoneId <= 0 && $categorieId > 0) {
+                $zStmt = $this->pdo->prepare('SELECT zone_id FROM categories WHERE id = ? LIMIT 1');
+                $zStmt->execute([$categorieId]);
+                $zoneId = (int)$zStmt->fetchColumn();
+            }
+            if ($zoneId <= 0) {
+                $zoneId = 1;
+            }
+
+            $commentairesFermes = in_array($typePublication, ['annonce', 'sondage', 'question'], true) ? 1 : 0;
+            $dbTypePub = in_array($typePublication, ['sondage', 'question'], true) ? 'sondage' : $typePublication;
+
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("
-            INSERT INTO publications (utilisateur_id, categorie_id, titre, contenu, type_publication, statut, est_signale, date_creation)
-            VALUES (:user_id, :cat_id, :titre, :contenu, :type_pub, 'ouvert', :est_signale, NOW())
+            INSERT INTO publications (utilisateur_id, zone_id, categorie_id, titre, contenu, type_publication, statut, commentaires_fermes, est_signale, date_creation)
+            VALUES (:user_id, :zone_id, :cat_id, :titre, :contenu, :type_pub, 'ouvert', :commentaires_fermes, :est_signale, NOW())
             ");
 
             $stmt->execute([
-            'user_id'     => $userId,
-            'cat_id'      => $categorieId,
-            'titre'       => $titreFinal,
-            'contenu'     => $contenuFinal,
-            'type_pub'    => $typePublication,
-            'est_signale' => $estSignale
+                'user_id'             => $userId,
+                'zone_id'             => $zoneId,
+                'cat_id'              => $categorieId > 0 ? $categorieId : null,
+                'titre'               => $titreFinal,
+                'contenu'             => $contenuFinal,
+                'type_pub'            => $dbTypePub,
+                'commentaires_fermes' => $commentairesFermes,
+                'est_signale'         => $estSignale
             ]);
 
             $pubId = (int)$this->pdo->lastInsertId();
@@ -206,7 +222,7 @@ class PublicationController {
                 $proposedTagNames
             );
 
-            if ($typePublication === 'question') {
+            if ($isPoll) {
                 $optionStatement = $this->pdo->prepare(
                     'INSERT INTO sondage_options (publication_id, texte, ordre) VALUES (:publication_id, :texte, :ordre)'
                 );
@@ -326,7 +342,7 @@ class PublicationController {
         }
 
         $publicationStatement = $this->pdo->prepare(
-            'SELECT utilisateur_id, categorie_id, titre, type_publication, commentaires_fermes, est_signale
+            'SELECT utilisateur_id, zone_id, categorie_id, titre, type_publication, commentaires_fermes, est_signale
              FROM publications WHERE id = :publication_id LIMIT 1'
         );
         $publicationStatement->execute(['publication_id' => $publicationId]);
@@ -339,10 +355,13 @@ class PublicationController {
             return;
         }
         $userRole = strtolower(trim($storedRole));
+        $canAccess = !empty($publication['categorie_id'])
+            ? $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)
+            : $this->salonModel->canAccessZone($userId, (int)$publication['zone_id'], $userRole);
         if ($publication['type_publication'] !== 'discussion'
             || (bool)$publication['commentaires_fermes']
             || (bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+            || !$canAccess) {
             $this->respondError('Les commentaires ne sont pas disponibles pour cette publication.');
             return;
         }
@@ -441,13 +460,13 @@ class PublicationController {
 
         $statement = $this->pdo->prepare("
             SELECT publication.id, publication.titre, publication.contenu, publication.date_creation,
-                   publication.categorie_id, publication.est_signale, publication.commentaires_fermes,
+                   publication.zone_id, publication.categorie_id, publication.est_signale, publication.commentaires_fermes,
                    author.id AS author_id, author.prenom, author.nom, author.role AS author_role,
                    category.nom AS category_name, zone.nom AS zone_name
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
-            JOIN categories category ON category.id = publication.categorie_id
-            JOIN zones zone ON zone.id = category.zone_id
+            JOIN zones zone ON zone.id = publication.zone_id
+            LEFT JOIN categories category ON category.id = publication.categorie_id
             WHERE publication.id = :publication_id
               AND publication.type_publication = 'discussion'
             LIMIT 1
@@ -463,8 +482,10 @@ class PublicationController {
             return;
         }
         $userRole = strtolower(trim($storedRole));
-        if ((bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+        $canAccess = !empty($publication['categorie_id'])
+            ? $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)
+            : $this->salonModel->canAccessZone($userId, (int)$publication['zone_id'], $userRole);
+        if ((bool)$publication['est_signale'] || !$canAccess) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Vous n’avez pas accès à cette discussion.'], JSON_UNESCAPED_UNICODE);
             return;
@@ -531,10 +552,10 @@ class PublicationController {
         try {
             $this->pdo->beginTransaction();
             $publicationStatement = $this->pdo->prepare("
-                SELECT publication.categorie_id, publication.est_signale
+                SELECT publication.zone_id, publication.categorie_id, publication.est_signale
                 FROM publications publication
                 WHERE publication.id = :publication_id
-                  AND publication.type_publication = 'question'
+                  AND publication.type_publication IN ('sondage', 'question')
                 FOR UPDATE
             ");
             $publicationStatement->execute(['publication_id' => $publicationId]);
@@ -542,8 +563,13 @@ class PublicationController {
             $roleStatement = $this->pdo->prepare('SELECT role FROM utilisateurs WHERE id = :user_id LIMIT 1');
             $roleStatement->execute(['user_id' => $userId]);
             $storedRole = $roleStatement->fetchColumn();
-            if (!$publication || (bool)$publication['est_signale'] || !is_string($storedRole)
-                || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], strtolower(trim($storedRole)))) {
+            $userRole = is_string($storedRole) ? strtolower(trim($storedRole)) : '';
+            $canAccess = $publication && $userRole !== '' && (
+                !empty($publication['categorie_id'])
+                    ? $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)
+                    : $this->salonModel->canAccessZone($userId, (int)$publication['zone_id'], $userRole)
+            );
+            if (!$publication || (bool)$publication['est_signale'] || !$canAccess) {
                 $this->pdo->rollBack();
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Ce sondage n’est pas accessible.'], JSON_UNESCAPED_UNICODE);
@@ -629,7 +655,7 @@ class PublicationController {
 
         $statement = $this->pdo->prepare("
             SELECT publication.id, publication.titre, publication.contenu, publication.date_creation,
-                   publication.categorie_id, publication.type_publication, publication.statut,
+                   publication.zone_id, publication.categorie_id, publication.type_publication, publication.statut,
                    publication.commentaires_fermes, publication.est_signale,
                    author.id AS author_id, author.prenom, author.nom, author.role AS author_role, author.avatar_url,
                    category.nom AS category_name, zone.id AS zone_id, zone.nom AS zone_name,
@@ -639,8 +665,8 @@ class PublicationController {
                    (SELECT id FROM publications_sauvegardees s WHERE s.utilisateur_id = :saved_user AND s.publication_id = publication.id LIMIT 1) AS saved_id
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
-            JOIN categories category ON category.id = publication.categorie_id
-            JOIN zones zone ON zone.id = category.zone_id
+            JOIN zones zone ON zone.id = publication.zone_id
+            LEFT JOIN categories category ON category.id = publication.categorie_id
             WHERE publication.id = :publication_id
             LIMIT 1
         ");
@@ -651,8 +677,12 @@ class PublicationController {
             'saved_user' => $userId,
         ]);
         $publication = $statement->fetch(PDO::FETCH_ASSOC);
-        if (!$publication || (bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+        $canAccess = $publication && (
+            !empty($publication['categorie_id'])
+                ? $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)
+                : $this->salonModel->canAccessZone($userId, (int)$publication['zone_id'], $userRole)
+        );
+        if (!$publication || (bool)$publication['est_signale'] || !$canAccess) {
             http_response_code(404);
             exit('Publication introuvable ou accès non autorisé.');
         }
