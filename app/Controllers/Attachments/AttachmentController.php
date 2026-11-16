@@ -49,7 +49,7 @@ class AttachmentController
                     category.est_active AS category_active,
                     COALESCE(publication.zone_id, zm.zone_id) AS zone_id,
                     COALESCE(zone.est_active, zm_zone.est_active) AS zone_active,
-                    mp.expediteur_id, c.utilisateur1_id, c.utilisateur2_id
+                    mp.expediteur_id, c.user1_id, c.user2_id
              FROM pieces_jointes attachment
              LEFT JOIN publications direct_publication
                ON attachment.type_cible = 'publication'
@@ -77,7 +77,7 @@ class AttachmentController
 
         $hasZoneAccess = false;
         if ($attachment['type_cible'] === 'message_prive') {
-            if ($userId === (int)$attachment['utilisateur1_id'] || $userId === (int)$attachment['utilisateur2_id']) {
+            if ($userId === (int)($attachment['user1_id'] ?? 0) || $userId === (int)($attachment['user2_id'] ?? 0)) {
                 $hasZoneAccess = true;
             }
         } elseif ($attachment['type_cible'] === 'message_zone') {

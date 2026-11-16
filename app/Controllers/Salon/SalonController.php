@@ -68,8 +68,10 @@ class SalonController {
         $roleStatement->execute(['user_id' => $userId]);
         $storedRole = $roleStatement->fetchColumn();
         if (!is_string($storedRole) || $storedRole === '') {
-            http_response_code(401);
-            exit('Votre compte n’est plus disponible. Veuillez vous reconnecter.');
+            $_SESSION = [];
+            session_destroy();
+            header('Location: ' . url('login'));
+            exit;
         }
 
         $userRole = strtolower(trim($storedRole));
