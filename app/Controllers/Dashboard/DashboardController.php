@@ -62,7 +62,8 @@ class DashboardController {
             return;
         }
 
-        $this->userDashboard();
+        header('Location: ' . url('salon'));
+        exit;
     }
 
     private function isAdministrator(): bool {

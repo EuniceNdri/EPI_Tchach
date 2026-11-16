@@ -50,7 +50,7 @@ class AuthController {
         // Si l'utilisateur est déjà connecté, rediriger selon son rôle
         if (!empty($_SESSION['user_id'])) {
             $currentRole = strtolower(trim($_SESSION['user_role'] ?? 'etudiant'));
-            $destination = ($currentRole === 'administrateur' || $currentRole === 'admin') ? url('admin') : url('profile');
+            $destination = ($currentRole === 'administrateur' || $currentRole === 'admin') ? url('admin') : url('salon');
             if (headers_sent()) {
                 echo "<script>window.location.href=" . json_encode($destination) . ";</script>";
                 exit;

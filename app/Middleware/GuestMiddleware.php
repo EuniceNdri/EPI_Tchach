@@ -9,7 +9,9 @@ final class GuestMiddleware
         }
 
         if (!empty($_SESSION['user_id'])) {
-            header('Location: ' . url('dashboard'));
+            $role = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
+            $destination = ($role === 'administrateur' || $role === 'admin') ? url('admin') : url('salon');
+            header('Location: ' . $destination);
             exit;
         }
     }
