@@ -130,6 +130,7 @@ CREATE TABLE commentaires (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     publication_id      INT UNSIGNED NOT NULL,
     utilisateur_id      INT UNSIGNED NOT NULL,
+    parent_comment_id   INT UNSIGNED DEFAULT NULL,
     contenu             TEXT NOT NULL,
     est_solution        BOOLEAN NOT NULL DEFAULT FALSE,
     est_epingle         BOOLEAN NOT NULL DEFAULT FALSE,
@@ -138,7 +139,8 @@ CREATE TABLE commentaires (
     date_creation       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification   DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (publication_id) REFERENCES publications(id) ON DELETE CASCADE,
-    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_comment_id) REFERENCES commentaires(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -394,9 +396,9 @@ INSERT INTO categories (zone_id, nom, slug, description, ordre) VALUES
 
 -- TAGS
 INSERT INTO tags_publication (nom, statut) VALUES
-('laravel'),('php'),('mysql'),('javascript'),('html-css'),
-('examen'),('tp'),('projet'),('stage'),('reseaux'),
-('python'),('fastapi'),('git'),('api'),('debug');
+('laravel', 'actif'),('php', 'actif'),('mysql', 'actif'),('javascript', 'actif'),('html-css', 'actif'),
+('examen', 'actif'),('tp', 'actif'),('projet', 'actif'),('stage', 'actif'),('reseaux', 'actif'),
+('python', 'actif'),('fastapi', 'actif'),('git', 'actif'),('api', 'actif'),('debug', 'actif');
 
 -- PUBLICATIONS (dans les salons)
 INSERT INTO publications (utilisateur_id, categorie_id, titre, contenu, type_publication, statut) VALUES

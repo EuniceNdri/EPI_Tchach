@@ -635,7 +635,7 @@ class PublicationController {
                    category.nom AS category_name, zone.id AS zone_id, zone.nom AS zone_name,
                    (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.type_reaction = 'like') AS likes_count,
                    (SELECT COUNT(*) FROM reactions r WHERE r.type_cible = 'publication' AND r.cible_id = publication.id AND r.type_reaction = 'like' AND r.utilisateur_id = :reaction_user) > 0 AS user_liked,
-                   (SELECT id FROM sauvegardes s WHERE s.utilisateur_id = :saved_user AND s.publication_id = publication.id LIMIT 1) AS saved_id
+                   (SELECT id FROM publications_sauvegardees s WHERE s.utilisateur_id = :saved_user AND s.publication_id = publication.id LIMIT 1) AS saved_id
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
             JOIN categories category ON category.id = publication.categorie_id

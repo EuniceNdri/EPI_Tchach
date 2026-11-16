@@ -81,7 +81,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->

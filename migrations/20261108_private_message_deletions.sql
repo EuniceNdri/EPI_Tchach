@@ -1,5 +1,18 @@
-ALTER TABLE private_messages
-    ADD COLUMN IF NOT EXISTS deleted_for_everyone_at DATETIME DEFAULT NULL;
+SET @deleted_for_everyone_exists = (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'private_messages'
+      AND COLUMN_NAME = 'deleted_for_everyone_at'
+);
+
+SET @migration_sql = IF(
+    @deleted_for_everyone_exists = 0,
+    'ALTER TABLE private_messages ADD COLUMN deleted_for_everyone_at DATETIME DEFAULT NULL',
+    'DO 0'
+);
+PREPARE migration_stmt FROM @migration_sql;
+EXECUTE migration_stmt;
+DEALLOCATE PREPARE migration_stmt;
 
 CREATE TABLE IF NOT EXISTS private_message_deletions (
     message_id BIGINT UNSIGNED NOT NULL,

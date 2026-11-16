@@ -61,7 +61,7 @@ $imageUrl = static function (?string $path) use ($asset): string {
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <?php include ROOT_PATH . '/resources/views/partials/feedback-toast.php'; ?>
   <div class="admin-wrapper">

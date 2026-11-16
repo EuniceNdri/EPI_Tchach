@@ -17,7 +17,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
