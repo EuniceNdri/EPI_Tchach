@@ -18,4 +18,10 @@ if (
     return false;
 }
 
+error_log(sprintf(
+    '[HTTP] %s %s',
+    $_SERVER['REQUEST_METHOD'] ?? 'GET',
+    $requestPath
+));
+
 require __DIR__ . '/index.php';

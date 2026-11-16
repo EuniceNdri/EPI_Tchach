@@ -14,7 +14,9 @@ if ! [[ "$PORT" =~ ^[0-9]{1,5}$ ]] || (( PORT < 1 || PORT > 65535 )); then
     exit 1
 fi
 
-LAN_IP="$(hostname -I 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i !~ /:/ && $i !~ /^127\./) {print $i; exit}}')"
+LAN_IP="$(hostname -I 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i !~ /:/ && $i !~ /^127\./) {print $i; exit}}' || true)"
+SESSION_DIR="$ROOT_DIR/.dev-sessions"
+mkdir -p "$SESSION_DIR"
 
 echo "Serveur de développement : http://localhost:${PORT}"
 if [[ -n "$LAN_IP" ]]; then
@@ -24,4 +26,4 @@ else
 fi
 echo "Arrêt du serveur : Ctrl+C"
 
-exec php -d upload_max_filesize=5M -d post_max_size=8M -S "0.0.0.0:${PORT}" -t "$ROOT_DIR" "$ROOT_DIR/dev-router.php"
+exec php -d upload_max_filesize=5M -d post_max_size=8M -d session.save_path="$SESSION_DIR" -S "0.0.0.0:${PORT}" -t "$ROOT_DIR" "$ROOT_DIR/dev-router.php"

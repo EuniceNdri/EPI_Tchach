@@ -4,6 +4,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Session logging for dev server (from ArMi branch)
+if (PHP_SAPI === 'cli-server') {
+    error_log(sprintf(
+        '[SESSION] %s %s cookie=%s active=%s user_id=%s',
+        $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/',
+        isset($_COOKIE[session_name()]) ? 'present' : 'absent',
+        session_status() === PHP_SESSION_ACTIVE ? 'yes' : 'no',
+        !empty($_SESSION['user_id']) ? 'set' : 'empty'
+    ));
+}
+
 if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__));
 }
