@@ -1,332 +1,154 @@
-/* ==============================================================
+/**
+ * ==============================================================
  * public/assets/css/desktop/friends.css
- * Page Liste d'amis - Design System EPI Tchach
- * ============================================================== */
+ * Styles modernisés pour Camarades & Réseau d'Entraide EPI Tchach
+ * Basé sur le Design System Campus (Teal #00685f, Amber #fea619)
+ * ==============================================================
+ */
 
-.epi-friends-header-card {
-  background: var(--community-surface);
-  border: 1px solid var(--community-line);
-  border-radius: var(--community-radius-lg);
-  padding: 1.5rem;
-  margin-bottom: 1.25rem;
+:root {
+  --friends-primary: #00685f;
+  --friends-primary-hover: #008378;
+  --friends-primary-container: rgba(0, 104, 95, 0.08);
+  --friends-secondary: #fea619;
+  --friends-card-bg: #ffffff;
+  --friends-surface-low: #f8fafc;
+  --friends-surface-high: #f1f5f9;
+  --friends-border: #e2e8f0;
+  --friends-text: #0f172a;
+  --friends-text-muted: #64748b;
+  --friends-radius-md: 12px;
+  --friends-radius-lg: 16px;
+  --friends-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --friends-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] {
+  --friends-primary: #2dd4bf;
+  --friends-primary-hover: #14b8a6;
+  --friends-primary-container: rgba(45, 212, 191, 0.12);
+  --friends-card-bg: #151e32;
+  --friends-surface-low: #1e293b;
+  --friends-surface-high: #334155;
+  --friends-border: #334155;
+  --friends-text: #f8fafc;
+  --friends-text-muted: #94a3b8;
+}
+
+/* ==============================================================
+ * 1. HERO CAMPUS NETWORK CARD
+ * ============================================================== */
+.campus-network-hero {
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  border-radius: var(--friends-radius-lg);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--friends-shadow-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.25rem;
-  flex-wrap: wrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.epi-friends-header-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.epi-friends-header-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--community-green), #10b981);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  font-weight: 800;
+  position: relative;
   overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
-.epi-friends-header-avatar img {
-  width: 100%;
+.campus-network-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
   height: 100%;
-  object-fit: cover;
+  background: linear-gradient(180deg, var(--friends-primary), var(--friends-secondary));
 }
 
-.epi-friends-header-text h1 {
+.campus-hero-content {
+  flex: 1;
+}
+
+.campus-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--friends-primary-container);
+  color: var(--friends-primary);
+  border-radius: 20px;
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.campus-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--friends-primary);
+}
+
+.campus-hero-title {
+  margin: 0 0 0.35rem;
   font-size: 1.45rem;
   font-weight: 800;
-  color: var(--community-text);
-  margin: 0 0 0.25rem;
-  line-height: 1.2;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--friends-text);
+  letter-spacing: -0.015em;
 }
 
-.epi-friends-header-text p {
-  font-size: 0.88rem;
-  color: var(--community-muted);
+.campus-hero-subtitle {
   margin: 0;
+  font-size: 0.88rem;
+  color: var(--friends-text-muted);
+  line-height: 1.45;
+  max-width: 580px;
 }
 
-.epi-friends-badge-count {
+.campus-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.campus-hero-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.9rem;
-  background: rgba(142, 211, 170, 0.15);
-  color: var(--community-green);
-  border-radius: 30px;
+  gap: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: var(--friends-radius-md);
   font-size: 0.85rem;
   font-weight: 700;
-}
-
-/* Tabs & Search Bar */
-.epi-friends-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-
-.epi-friends-tabs {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--community-surface);
-  border: 1px solid var(--community-line);
-  padding: 0.3rem;
-  border-radius: var(--community-radius-md);
-}
-
-.epi-friends-tab-btn {
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--community-radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--community-muted);
-  font-size: 0.86rem;
-  font-weight: 600;
-  cursor: pointer;
+  text-decoration: none;
   transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+  white-space: nowrap;
 }
 
-.epi-friends-tab-btn:hover {
-  color: var(--community-text);
-  background: var(--community-hover);
-}
-
-.epi-friends-tab-btn.is-active {
-  background: var(--community-green);
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.epi-friends-tab-count {
-  font-size: 0.72rem;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.epi-friends-tab-btn.is-active .epi-friends-tab-count {
-  background: rgba(255, 255, 255, 0.25);
+.campus-hero-btn.primary {
+  background: var(--friends-primary);
   color: #ffffff;
 }
 
-.epi-friends-search {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--community-surface);
-  border: 1px solid var(--community-line);
-  border-radius: var(--community-radius-md);
-  padding: 0.45rem 0.85rem;
-  flex: 1;
-  max-width: 320px;
-  transition: border-color 0.2s ease;
-}
-
-.epi-friends-search:focus-within {
-  border-color: var(--community-green);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-}
-
-.epi-friends-search svg {
-  color: var(--community-muted);
-  flex-shrink: 0;
-}
-
-.epi-friends-search input {
-  border: none;
-  background: transparent;
-  outline: none;
-  color: var(--community-text);
-  font-size: 0.88rem;
-  width: 100%;
-}
-
-/* Grille de cartes amis */
-.epi-friends-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.epi-friend-card {
-  background: var(--community-surface);
-  border: 1px solid var(--community-line);
-  border-radius: var(--community-radius-lg);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.epi-friend-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  border-color: var(--community-green);
-}
-
-.epi-friend-card-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0d9488, #10b981);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  font-weight: 800;
-  overflow: hidden;
-  margin-bottom: 0.85rem;
-  border: 3px solid var(--community-surface);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-}
-
-.epi-friend-card-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.epi-friend-card-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--community-text);
-  text-decoration: none;
-  margin-bottom: 0.35rem;
-  display: block;
-  transition: color 0.2s ease;
-}
-
-.epi-friend-card-name:hover {
-  color: var(--community-green);
-}
-
-.epi-friend-card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.epi-friend-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 12px;
-  background: var(--community-raised);
-  color: var(--community-muted);
-}
-
-.epi-friend-badge.role {
-  background: rgba(142, 211, 170, 0.18);
-  color: var(--community-green);
-}
-
-.epi-friend-card-actions {
-  display: flex;
-  gap: 0.5rem;
-  width: 100%;
-  margin-top: auto;
-}
-
-.epi-btn-chat {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.85rem;
-  border-radius: var(--community-radius-md);
-  background: #25d366;
-  color: #ffffff;
-  font-size: 0.84rem;
-  font-weight: 700;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
-}
-
-.epi-btn-chat:hover {
-  background: #20ba59;
+.campus-hero-btn.primary:hover {
+  background: var(--friends-primary-hover);
   transform: translateY(-1px);
 }
 
-.epi-btn-profile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--community-radius-md);
-  background: var(--community-raised);
-  color: var(--community-text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  text-decoration: none;
-  border: 1px solid var(--community-line);
-  transition: background 0.2s ease;
+.campus-hero-btn.secondary {
+  background: var(--friends-surface-low);
+  border: 1px solid var(--friends-border);
+  color: var(--friends-text);
 }
 
-.epi-btn-profile:hover {
-  background: var(--community-hover);
+.campus-hero-btn.secondary:hover {
+  background: var(--friends-surface-high);
+  color: var(--friends-primary);
 }
 
-.epi-btn-remove {
-  background: transparent;
-  border: none;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 0.55rem 0.6rem;
-  border-radius: var(--community-radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-}
-
-.epi-btn-remove:hover {
-  background: rgba(239, 68, 68, 0.12);
-}
-
-/* Demandes d'amis */
-.epi-requests-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  margin-bottom: 2rem;
-}
-
-.epi-request-card {
-  background: var(--community-surface);
-  border: 1px solid var(--community-line);
-  border-radius: var(--community-radius-lg);
-  padding: 1rem 1.25rem;
+/* ==============================================================
+ * 2. SEGMENTED NAVIGATION & TOOLBAR
+ * ============================================================== */
+.campus-nav-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -334,103 +156,433 @@
   flex-wrap: wrap;
 }
 
-.epi-request-user {
+.campus-tabs-segment {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.35rem;
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  padding: 0.35rem;
+  border-radius: var(--friends-radius-md);
+  box-shadow: var(--friends-shadow-sm);
 }
 
-.epi-request-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1.1rem;
-  overflow: hidden;
-}
-
-.epi-request-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.epi-request-actions {
-  display: flex;
+.campus-tab {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.epi-btn-accept {
-  padding: 0.5rem 1rem;
-  border-radius: var(--community-radius-md);
-  background: var(--community-green);
-  color: #ffffff;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--friends-radius-md);
   border: none;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.epi-btn-accept:hover {
-  background: #059669;
-}
-
-.epi-btn-decline {
-  padding: 0.5rem 1rem;
-  border-radius: var(--community-radius-md);
-  background: var(--community-raised);
-  color: var(--community-muted);
-  border: 1px solid var(--community-line);
+  background: transparent;
+  color: var(--friends-text-muted);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.epi-btn-decline:hover {
+.campus-tab:hover {
+  background: var(--friends-surface-low);
+  color: var(--friends-text);
+}
+
+.campus-tab.is-active {
+  background: var(--friends-primary);
+  color: #ffffff;
+}
+
+.campus-tab-badge {
+  padding: 1px 6px;
+  border-radius: 12px;
+  background: var(--friends-surface-high);
+  color: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.campus-tab.is-active .campus-tab-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.campus-tab-badge.is-urgent {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.campus-search-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--friends-radius-md);
+  min-width: 260px;
+  box-shadow: var(--friends-shadow-sm);
+  color: var(--friends-text-muted);
+}
+
+.campus-search-filter input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--friends-text);
+  width: 100%;
+}
+
+/* ==============================================================
+ * 3. FRIENDS GRID & CARDS
+ * ============================================================== */
+.campus-friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1rem;
+}
+
+.campus-friend-card {
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  border-radius: var(--friends-radius-lg);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--friends-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.campus-friend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--friends-shadow-md);
+  border-color: var(--friends-primary);
+}
+
+.campus-friend-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.campus-friend-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--friends-primary);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.campus-friend-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.campus-online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid var(--friends-card-bg);
+}
+
+.campus-friend-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.campus-friend-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--friends-text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.15rem;
+}
+
+.campus-friend-name:hover {
+  color: var(--friends-primary);
+}
+
+.campus-friend-role {
+  display: block;
+  font-size: 0.775rem;
+  color: var(--friends-text-muted);
+}
+
+.campus-compatibility {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--friends-secondary);
+  margin-top: 0.2rem;
+}
+
+.campus-friend-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-top: 1px solid var(--friends-border);
+  padding-top: 0.85rem;
+}
+
+.campus-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--friends-radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.campus-action-btn.primary {
+  flex: 1;
+  background: var(--friends-primary);
+  color: #ffffff;
+}
+
+.campus-action-btn.primary:hover {
+  background: var(--friends-primary-hover);
+}
+
+.campus-action-btn.secondary {
+  background: var(--friends-surface-low);
+  border: 1px solid var(--friends-border);
+  color: var(--friends-text);
+}
+
+.campus-action-btn.secondary:hover {
+  background: var(--friends-surface-high);
+  color: var(--friends-primary);
+}
+
+.campus-action-btn.danger {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--friends-text-muted);
+  border-radius: 50%;
+}
+
+.campus-action-btn.danger:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
 }
 
-/* Empty State */
-.epi-friends-empty {
-  background: var(--community-surface);
-  border: 1px dashed var(--community-line);
-  border-radius: var(--community-radius-lg);
+.w-full {
+  width: 100% !important;
+}
+
+/* ==============================================================
+ * 4. REQUESTS LIST
+ * ============================================================== */
+.campus-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.campus-request-card {
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  border-radius: var(--friends-radius-lg);
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: var(--friends-shadow-sm);
+  flex-wrap: wrap;
+}
+
+.campus-request-user {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.campus-request-info strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--friends-text);
+}
+
+.campus-request-info span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--friends-primary);
+  font-weight: 600;
+}
+
+.campus-request-info small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--friends-text-muted);
+}
+
+.campus-request-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.campus-btn-accept {
+  padding: 0.5rem 1.15rem;
+  border-radius: var(--friends-radius-md);
+  background: var(--friends-primary);
+  color: #ffffff;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.campus-btn-accept:hover {
+  background: var(--friends-primary-hover);
+  transform: translateY(-1px);
+}
+
+.campus-btn-decline {
+  padding: 0.5rem 1.15rem;
+  border-radius: var(--friends-radius-md);
+  background: var(--friends-surface-low);
+  border: 1px solid var(--friends-border);
+  color: var(--friends-text-muted);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.campus-btn-decline:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ==============================================================
+ * 5. RIGHT SIDEBAR WIDGETS
+ * ============================================================== */
+.campus-sidebar-card {
+  background: var(--friends-card-bg);
+  border: 1px solid var(--friends-border);
+  border-radius: var(--friends-radius-lg);
+  padding: 1.15rem;
+  box-shadow: var(--friends-shadow-sm);
+}
+
+.campus-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.campus-card-icon {
+  font-size: 1.25rem;
+}
+
+.campus-card-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--friends-text);
+}
+
+.campus-card-body {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--friends-text-muted);
+  line-height: 1.5;
+}
+
+.campus-card-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.825rem;
+  color: var(--friends-text-muted);
+  line-height: 1.6;
+}
+
+/* ==============================================================
+ * 6. EMPTY BOX
+ * ============================================================== */
+.campus-empty-box {
+  background: var(--friends-card-bg);
+  border: 1px dashed var(--friends-border);
+  border-radius: var(--friends-radius-lg);
   padding: 3rem 1.5rem;
   text-align: center;
 }
 
-.epi-friends-empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(142, 211, 170, 0.15);
-  color: var(--community-green);
+.campus-empty-icon {
+  font-size: 2.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.campus-empty-box h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--friends-text);
+}
+
+.campus-empty-box p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--friends-text-muted);
+  max-width: 440px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Flash alerts */
+.campus-alert {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.25rem;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--friends-radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.epi-friends-empty h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--community-text);
-  margin: 0 0 0.5rem;
+.campus-alert.is-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  color: #10b981;
 }
 
-.epi-friends-empty p {
-  font-size: 0.9rem;
-  color: var(--community-muted);
-  max-width: 420px;
-  margin: 0 auto 1.5rem;
-  line-height: 1.5;
+.campus-alert.is-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #ef4444;
 }
