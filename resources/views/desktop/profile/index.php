@@ -17,6 +17,8 @@
  * @var int|null $unreadMessagesCount
  * @var bool|null $isOwnProfile
  * @var string|null $socialCsrfToken
+ * @var array|null $loggedInUser
+ * @var array|null $friendshipStatus
  */
 $base = is_string($baseUrl ?? null) ? $baseUrl : '';
 $asset = is_string($assetBase ?? null)

@@ -5,6 +5,16 @@
  * Camarades & Réseau d'Entraide Universitaire · EPI Tchach
  * Design Campus Hub (Teal #00685f, Amber #fea619)
  * ==============================================================
+ *
+ * @var string|null $baseUrl
+ * @var string|null $assetBase
+ * @var array|null $targetUser
+ * @var array|null $friends
+ * @var array|null $pendingRequests
+ * @var array|null $suggestions
+ * @var bool|null $isOwnProfile
+ * @var int|null $unreadMessagesCount
+ * @var string|null $csrfToken
  */
 
 $base = is_string($baseUrl ?? null) ? $baseUrl : '';
@@ -19,6 +29,7 @@ $suggestions = is_array($suggestions ?? null) ? $suggestions : [];
 $isOwnProfile = (bool)($isOwnProfile ?? false);
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $unreadMessagesCount = max(0, (int)($unreadMessagesCount ?? 0));
+$csrfToken = is_string($csrfToken ?? null) ? $csrfToken : ($_SESSION['csrf_token'] ?? '');
 
 $targetName = trim(($targetUser['prenom'] ?? '') . ' ' . ($targetUser['nom'] ?? ''));
 $targetAvatar = !empty($targetUser['avatar_url'])

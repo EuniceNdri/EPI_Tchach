@@ -203,4 +203,90 @@ class FiliereGroups
 
         return (bool)$res['is_admin'] || $res['visibilite'] === 'public' || (bool)$res['is_member'];
     }
+
+    /**
+     * Récupère toutes les zones/groupes actifs pour l'administration.
+     */
+    public function getActiveGroups(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT z.id, z.nom AS name, z.type_zone, z.visibilite, z.description
+             FROM zones z
+             WHERE z.est_active = 1
+             ORDER BY z.nom ASC"
+        );
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupère la liste des professeurs actifs.
+     */
+    public function getActiveProfessors(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT u.id, u.nom, u.prenom, u.email, u.avatar_url
+             FROM utilisateurs u
+             WHERE u.role = 'professeur' AND u.est_actif = 1
+             ORDER BY u.nom ASC, u.prenom ASC"
+        );
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupère les assignations actuelles groupe-professeur sous forme [profId => [groupId, ...]].
+     */
+    public function getProfessorAssignments(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT az.utilisateur_id, az.zone_id
+             FROM appartenance_zones az
+             JOIN utilisateurs u ON u.id = az.utilisateur_id
+             WHERE u.role = 'professeur'"
+        );
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $assignments = [];
+        foreach ($rows as $row) {
+            $pId = (int)$row['utilisateur_id'];
+            $assignments[$pId][] = (int)$row['zone_id'];
+        }
+        return $assignments;
+    }
+
+    /**
+     * Remplace les groupes assignés à un professeur.
+     */
+    public function replaceProfessorGroups(int $professorId, array $groupIds, int $adminId = 0): void
+    {
+        if ($professorId <= 0) {
+            throw new InvalidArgumentException('Professeur spécifié invalide.');
+        }
+
+        $cleanGroupIds = array_values(array_unique(array_filter(
+            array_map('intval', $groupIds),
+            fn($id) => $id > 0
+        )));
+
+        $this->pdo->beginTransaction();
+        try {
+            $del = $this->pdo->prepare('DELETE FROM appartenance_zones WHERE utilisateur_id = ?');
+            $del->execute([$professorId]);
+
+            if (!empty($cleanGroupIds)) {
+                $ins = $this->pdo->prepare(
+                    "INSERT INTO appartenance_zones (utilisateur_id, zone_id, role_dans_zone, date_ajout)
+                     VALUES (?, ?, 'membre', NOW())"
+                );
+                foreach ($cleanGroupIds as $gId) {
+                    $ins->execute([$professorId, $gId]);
+                }
+            }
+
+            $this->pdo->commit();
+        } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
 }

@@ -1,8 +1,23 @@
 <?php
+/**
+ * Variables fournies par AdminController::dashboard() :
+ * @var array|null $kpis
+ * @var array|null $recentUsers
+ * @var array|null $filiereActivity
+ * @var array|null $recentReports
+ * @var array|null $zones
+ * @var string|null $baseUrl
+ * @var string|null $assetBase
+ */
 $activeAdminPage = 'dashboard';
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 
+$kpis = is_array($kpis ?? null) ? $kpis : [];
+$recentUsers = is_array($recentUsers ?? null) ? $recentUsers : [];
+$filiereActivity = is_array($filiereActivity ?? null) ? $filiereActivity : [];
+$recentReports = is_array($recentReports ?? null) ? $recentReports : [];
+$zones = is_array($zones ?? null) ? $zones : [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
