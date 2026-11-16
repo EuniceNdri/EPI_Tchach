@@ -23,60 +23,53 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       padding: 0.45rem 0.85rem;
       font-size: 0.8rem;
       font-weight: 700;
-      border-radius: var(--radius-sm, 6px);
+      border-radius: var(--radius-md, 8px);
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: var(--transition-smooth);
       font-family: inherit;
       text-decoration: none;
       line-height: 1.2;
     }
     .btn-mod-warn {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      color: #b45309;
+      background: var(--admin-warning-bg);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--admin-warning);
     }
     .btn-mod-warn:hover {
-      background: #fef3c7;
-      border-color: #f59e0b;
-      color: #92400e;
+      background: rgba(245, 158, 11, 0.25);
+      border-color: var(--admin-warning);
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(245, 158, 11, 0.15);
     }
     .btn-mod-lock {
-      background: #f5f3ff;
-      border: 1px solid #ddd6fe;
-      color: #6d28d9;
+      background: rgba(139, 92, 246, 0.12);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: #8b5cf6;
     }
     .btn-mod-lock:hover {
-      background: #ede9fe;
+      background: rgba(139, 92, 246, 0.22);
       border-color: #8b5cf6;
-      color: #5b21b6;
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(139, 92, 246, 0.15);
     }
     .btn-mod-delete {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
+      background: var(--admin-danger-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--admin-danger);
     }
     .btn-mod-delete:hover {
-      background: #fee2e2;
-      border-color: #ef4444;
-      color: #b91c1c;
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--admin-danger);
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(239, 68, 68, 0.15);
     }
     .btn-mod-reject {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      color: #475569;
+      background: var(--admin-bg);
+      border: 1px solid var(--admin-border);
+      color: var(--admin-muted);
     }
     .btn-mod-reject:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-      color: #0f172a;
+      background: var(--admin-card);
+      border-color: var(--admin-primary);
+      color: var(--admin-primary);
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(100, 116, 139, 0.12);
     }
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
@@ -91,29 +84,34 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       <!-- Topbar -->
       <header class="admin-topbar">
         <div class="topbar-left">
-          <h1 class="page-title">Centre de Modération des Salons</h1>
+          <div class="admin-command-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Arbitrage & Déontologie</span>
+          </div>
+          <h1 class="page-title">Centre de Modération Centralisée</h1>
         </div>
 
         <div class="topbar-right">
-          <span id="reportCounterBadge" style="font-size:0.875rem; color:var(--admin-muted); font-weight:700;">
-            <?= count($reports ?? []) ?> signalement(s) à traiter
+          <span id="reportCounterBadge" style="font-size:0.875rem; color:var(--admin-primary); font-weight:700; background:var(--admin-primary-container); padding:0.35rem 0.75rem; border-radius:var(--radius-full);">
+            <?= count($reports ?? []) ?> signalement(s) actif(s)
           </span>
+          <a href="<?= $base ?>/admin/dashboard" class="btn-table-action">Tableau de Bord</a>
         </div>
       </header>
 
       <div class="admin-content">
-        <!-- Bannière d'info charte -->
-        <div style="background:rgba(30,58,138,0.06); border:1px solid rgba(30,58,138,0.2); border-radius:var(--radius-md); padding:1.25rem 1.5rem; margin-bottom:2rem; display:flex; align-items:center; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div style="width:40px; height:40px; border-radius:8px; background:rgba(30,58,138,0.12); display:flex; align-items:center; justify-content:center; color:var(--admin-primary);">
+        <!-- Bannière d'info charte (d18) -->
+        <div style="background:var(--admin-card); border:1px solid var(--admin-border); border-left:4px solid var(--admin-primary); border-radius:var(--radius-lg); padding:1.25rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; box-shadow:var(--shadow-card);">
+          <div style="display:flex; align-items:center; gap:0.85rem;">
+            <div style="width:42px; height:42px; border-radius:var(--radius-md); background:var(--admin-primary-container); display:flex; align-items:center; justify-content:center; color:var(--admin-primary); flex-shrink:0;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
             </div>
             <div>
-              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Règles d'intervention des modérateurs</h3>
-              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">4 décisions disponibles : avertir l'auteur, bloquer la publication, supprimer le contenu (avec motif) ou rejeter le signalement.</p>
+              <h3 style="font-size:1.05rem; font-weight:800; color:var(--admin-text); margin:0 0 0.25rem 0;">Directives d'arbitrage & modération académique</h3>
+              <p style="font-size:0.875rem; color:var(--admin-muted); margin:0;">4 décisions disponibles : avertir l'auteur, bloquer la publication, supprimer le contenu (avec motif) ou classer le signalement.</p>
             </div>
           </div>
-          <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte</a>
+          <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte →</a>
         </div>
 
         <!-- Liste des Cartes de Signalement -->

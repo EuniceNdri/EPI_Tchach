@@ -29,11 +29,15 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       <!-- Topbar -->
       <header class="admin-topbar">
         <div class="topbar-left">
-          <h1 class="page-title">Tableau de Bord Général</h1>
+          <div class="admin-command-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Espace de Modération & Gouvernance</span>
+          </div>
+          <h1 class="page-title">Administration & Gouvernance Campus</h1>
         </div>
 
         <div class="topbar-right">
-          <button type="button" class="btn-table-action btn-open-create-channel" style="background:var(--admin-primary); color:#ffffff; padding:0.5rem 1.25rem; border-radius:9999px;">
+          <button type="button" class="btn-table-action btn-table-primary btn-open-create-channel" style="border-radius:var(--radius-full); padding:0.5rem 1.25rem;">
             + Nouveau Salon
           </button>
           <a href="<?= $base ?>/admin/moderation" class="btn-icon" title="Signalements urgents">
@@ -43,25 +47,43 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
           <a href="<?= $base ?>/profile" class="btn-icon" title="Voir mon profil">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </a>
-          <a href="<?= $base ?>/landing" class="btn-table-action" style="padding:0.5rem 1rem; border-radius:9999px;">Quitter vers l'accueil</a>
+          <a href="<?= $base ?>/salon" class="btn-table-action" style="border-radius:var(--radius-full); padding:0.5rem 1rem;">Retour au Salon</a>
         </div>
       </header>
 
       <!-- Contenu Dashboard -->
       <div class="admin-content">
-        <!-- 4 Cartes KPIs -->
+        <!-- Command Bar & Filtres Temporels (d18) -->
+        <div class="admin-command-bar">
+          <p style="font-size:0.9rem; color:var(--admin-muted); margin:0;">
+            Surveillance de l'éthique académique, gestion des espaces d'entraide et arbitrage en direct.
+          </p>
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <div class="admin-timeframe-pills">
+              <button type="button" class="timeframe-pill" onclick="this.parentElement.querySelectorAll('.timeframe-pill').forEach(b=>b.classList.remove('is-active')); this.classList.add('is-active');">7j</button>
+              <button type="button" class="timeframe-pill is-active" onclick="this.parentElement.querySelectorAll('.timeframe-pill').forEach(b=>b.classList.remove('is-active')); this.classList.add('is-active');">30 jours</button>
+              <button type="button" class="timeframe-pill" onclick="this.parentElement.querySelectorAll('.timeframe-pill').forEach(b=>b.classList.remove('is-active')); this.classList.add('is-active');">Année académique</button>
+            </div>
+            <a href="<?= $base ?>/admin/settings" class="btn-table-action" title="Consulter le journal d'audit">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>Audit</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 4 Cartes KPIs (d18) -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-title">Étudiants Inscrits</span>
-              <div class="kpi-icon-pill pill-blue">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              <div class="kpi-icon-pill pill-teal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
               </div>
             </div>
             <div class="kpi-value"><?= number_format($kpis['etudiants_count'] ?? 0, 0, ',', ' ') ?></div>
             <div class="kpi-trend trend-up">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-              <span>+14% ce mois</span>
+              <span>+12% ce semestre</span>
             </div>
           </div>
 
@@ -69,7 +91,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
             <div class="kpi-header">
               <span class="kpi-title">Professeurs & Délégués</span>
               <div class="kpi-icon-pill pill-amber">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
             </div>
             <div class="kpi-value"><?= number_format($kpis['professeurs_count'] ?? 0, 0, ',', ' ') ?></div>
