@@ -17,89 +17,106 @@ $defaultPostCategoryId = (int)($defaultPostCategoryId ?? $categoryId ?? $postCat
 $composerReturnView = is_string($feedView ?? null) ? $feedView : 'latest';
 $composerReturnZone = (int)($selectedZone['id'] ?? 0);
 $composerReturnCategory = (int)($categoryId ?? 0);
+$composerName = trim((string)($_SESSION['user_prenom'] ?? '') . ' ' . (string)($_SESSION['user_nom'] ?? ''));
+$composerAvatar = !empty($_SESSION['user_avatar'])
+  ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))
+  : '';
+$composerInitial = mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1, 'UTF-8');
 ?>
 <div id="epiPostModal" class="epi-modal-backdrop" hidden aria-hidden="true" style="display:none;">
-  <div class="epi-modal-container" role="dialog" aria-modal="true" aria-labelledby="modalComposerHeading">
-    <div class="epi-modal-header">
-      <div class="epi-modal-title-group">
-        <h2 id="modalComposerHeading">Créer une publication</h2>
-        <div style="font-size:0.78rem; color:var(--community-muted);">Partagez vos questions, ressources et idées avec l'école</div>
-      </div>
+  <div class="epi-modal-container epi-create-post-dialog" role="dialog" aria-modal="true" aria-labelledby="modalComposerHeading">
+    <div class="epi-modal-header epi-create-post-header">
+      <h2 id="modalComposerHeading">Créer une publication</h2>
       <button type="button" class="epi-modal-close" id="closeCreatePostModal" aria-label="Fermer la boîte de dialogue">&times;</button>
     </div>
 
-    <div class="epi-modal-type-tabs">
-      <button type="button" class="epi-type-tab is-active" data-type-target="discussion">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Discussion</span>
-      </button>
-      <button type="button" class="epi-type-tab" data-type-target="question">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>Question / Sondage</span>
-      </button>
-      <button type="button" class="epi-type-tab" data-type-target="annonce">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span>Annonce</span>
-      </button>
-    </div>
-
-    <form id="salonPostForm" action="<?= $base ?>/publication/create" method="post" enctype="multipart/form-data" class="epi-modal-form">
+    <form id="salonPostForm" action="<?= $base ?>/publication/create" method="post" enctype="multipart/form-data" class="epi-modal-form epi-create-post-form">
       <input type="hidden" name="ajax" value="1">
       <input type="hidden" name="return_view" value="<?= htmlspecialchars($composerReturnView, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="return_zone" value="<?= $composerReturnZone ?>">
       <input type="hidden" name="return_category" value="<?= $composerReturnCategory ?>">
-
-      <select class="epi-form-control" id="publicationType" name="type_publication" style="display:none;" aria-label="Type de publication">
+      <select id="publicationType" name="type_publication" aria-label="Type de publication" tabindex="-1" hidden>
         <option value="discussion" selected>Discussion</option>
         <option value="question">Question / sondage</option>
         <option value="annonce">Annonce</option>
       </select>
 
-      <div>
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:var(--community-muted); margin-bottom:0.35rem;" for="modalCategorySelect">Choisir un salon de destination</label>
-        <select class="epi-form-control" id="modalCategorySelect" name="categorie_id" required>
-          <?php foreach ($postCategories as $postCategory): ?>
-            <option value="<?= (int)$postCategory['id'] ?>" data-zone-id="<?= (int)$postCategory['zone_id'] ?>"
-              <?= (int)$postCategory['id'] === $defaultPostCategoryId ? 'selected' : '' ?>>
-              <?= htmlspecialchars($postCategory['zone_name'] . ' · ' . $postCategory['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+      <div class="epi-composer-author">
+        <span class="epi-composer-avatar" aria-hidden="true">
+          <span><?= htmlspecialchars($composerInitial, ENT_QUOTES, 'UTF-8') ?></span>
+          <?php if ($composerAvatar !== ''): ?>
+            <img src="<?= htmlspecialchars($composerAvatar, ENT_QUOTES, 'UTF-8') ?>" alt="">
+          <?php endif; ?>
+        </span>
+        <div class="epi-composer-author-info">
+          <strong><?= htmlspecialchars($composerName !== '' ? $composerName : 'Membre', ENT_QUOTES, 'UTF-8') ?></strong>
+          <label class="epi-composer-audience" for="modalCategorySelect" title="La publication sera visible par tous">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Fil public · visible par tous</span>
+          </label>
+        </div>
       </div>
 
-      <div>
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:var(--community-muted); margin-bottom:0.35rem;" for="salonPostTitle">Titre de la publication</label>
-        <input class="epi-form-control" id="salonPostTitle" name="titre" type="text" maxlength="255" required placeholder="Titre descriptif et clair">
+      <div class="epi-composer-fields">
+        <label class="sr-only" for="salonPostTitle">Titre de la publication</label>
+        <input class="epi-composer-title" id="salonPostTitle" name="titre" type="text" maxlength="255" required placeholder="Titre de votre publication">
+        <label class="sr-only" id="salonContentLabel" for="salonPostContent">Votre message</label>
+        <textarea class="epi-composer-content" id="salonPostContent" name="contenu" rows="5" required placeholder="Quoi de neuf<?= $composerName !== '' ? ', ' . htmlspecialchars(explode(' ', $composerName)[0], ENT_QUOTES, 'UTF-8') : '' ?> ?"></textarea>
       </div>
 
-      <div>
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:var(--community-muted); margin-bottom:0.35rem;" id="salonContentLabel" for="salonPostContent">Votre message</label>
-        <textarea class="epi-form-control" id="salonPostContent" name="contenu" rows="5" required placeholder="Partagez une question, une idée ou une ressource avec la communauté..."></textarea>
+      <div class="epi-modal-type-tabs epi-composer-type-tabs" role="group" aria-label="Type de publication">
+        <button type="button" class="epi-type-tab is-active" data-type-target="discussion">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Discussion</span>
+        </button>
+        <button type="button" class="epi-type-tab" data-type-target="question">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Sondage</span>
+        </button>
+        <button type="button" class="epi-type-tab" data-type-target="annonce">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Annonce</span>
+        </button>
       </div>
 
-      <div id="pollOptionsFields" class="poll-options-fields" hidden style="background:var(--community-raised); border:1px solid var(--community-line); padding:1rem; border-radius:var(--community-radius-md);">
-        <strong style="display:block; font-size:0.85rem; margin-bottom:0.5rem;">Choix du sondage</strong>
-        <div id="pollOptionsList" style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div id="pollOptionsFields" class="poll-options-fields epi-composer-poll" hidden>
+        <strong>Choix du sondage</strong>
+        <div id="pollOptionsList">
           <input class="epi-form-control" name="options[]" maxlength="255" placeholder="Choix 1" aria-label="Choix 1">
           <input class="epi-form-control" name="options[]" maxlength="255" placeholder="Choix 2" aria-label="Choix 2">
         </div>
-        <button class="epi-btn-cancel" type="button" id="addPollOption" style="margin-top:0.6rem; font-size:0.8rem; padding:0.35rem 0.85rem;">+ Ajouter un choix</button>
-        <div style="font-size:0.75rem; color:var(--community-muted); margin-top:0.4rem;">De 2 à 10 choix. Chaque membre vote une seule fois.</div>
+        <button class="epi-btn-cancel" type="button" id="addPollOption">+ Ajouter un choix</button>
+        <small>De 2 à 10 choix. Chaque membre vote une seule fois.</small>
       </div>
 
-      <div>
-        <label style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1rem; border-radius:var(--community-radius-pill); border:1px dashed var(--community-line); cursor:pointer; background:var(--community-raised); font-size:0.85rem;" for="salonPostAttachments">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          <span>Ajouter des fichiers ou des images (PDF, photos, etc.)</span>
-        </label>
-        <input id="salonPostAttachments" class="salon-attachment-input" type="file" name="pieces_jointes[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg,.gif" style="display:none;">
-        <div id="salonAttachmentPreview" class="salon-attachment-preview" aria-live="polite" hidden style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+      <div class="epi-composer-tools">
+        <strong>Ajouter à votre publication</strong>
+        <div class="epi-composer-tool-actions">
+          <label class="epi-composer-tool" for="salonPostAttachments" title="Ajouter des photos ou des fichiers">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <span>Photo ou fichier</span>
+          </label>
+          <label class="epi-composer-tool epi-composer-category" for="modalCategorySelect" title="Choisir une catégorie">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 11 3.83V3H4v7h.83l9.58 9.59a2 2 0 0 0 2.83 0l3.35-3.35a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="6.5" r=".5"/></svg>
+            <span>Catégorie</span>
+            <select id="modalCategorySelect" name="categorie_id" required aria-label="Catégorie de la publication">
+              <?php foreach ($postCategories as $postCategory): ?>
+                <option value="<?= (int)$postCategory['id'] ?>" data-zone-id="<?= (int)$postCategory['zone_id'] ?>"
+                  <?= (int)$postCategory['id'] === $defaultPostCategoryId ? 'selected' : '' ?>>
+                  <?= htmlspecialchars($postCategory['name'], ENT_QUOTES, 'UTF-8') ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
+        <input id="salonPostAttachments" class="salon-attachment-input sr-only" type="file" name="pieces_jointes[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg,.gif">
       </div>
+      <div id="salonAttachmentPreview" class="salon-attachment-preview epi-composer-attachment-preview" aria-live="polite" hidden></div>
+      <p id="salonPostFeedback" class="salon-composer-feedback epi-composer-feedback" role="status" aria-live="polite"></p>
 
-      <p id="salonPostFeedback" class="salon-composer-feedback" role="status" aria-live="polite" style="font-size:0.85rem; color:var(--community-orange); margin:0;"></p>
-      <div class="epi-modal-footer">
+      <div class="epi-modal-footer epi-composer-footer">
         <button type="button" class="epi-btn-cancel" id="cancelPostBtn">Annuler</button>
-        <button type="submit" class="epi-btn-submit" id="submitPostBtn">Publier</button>
+        <button type="submit" class="epi-btn-submit" id="submitPostBtn" disabled>Publier</button>
       </div>
     </form>
   </div>

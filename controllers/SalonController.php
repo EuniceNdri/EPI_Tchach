@@ -15,11 +15,13 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/User.php';
     require_once ROOT_PATH . '/models/Notification.php';
     require_once ROOT_PATH . '/models/Social.php';
+    require_once ROOT_PATH . '/models/FiliereGroups.php';
 } else {
     require_once dirname(__DIR__) . '/models/Salon.php';
     require_once dirname(__DIR__) . '/models/User.php';
     require_once dirname(__DIR__) . '/models/Notification.php';
     require_once dirname(__DIR__) . '/models/Social.php';
+    require_once dirname(__DIR__) . '/models/FiliereGroups.php';
 }
 
 class SalonController {
@@ -71,47 +73,22 @@ class SalonController {
         $userRole = strtolower(trim($storedRole));
         $_SESSION['user_role'] = $userRole;
         $this->salonModel->touchActivity($userId);
-        $zones = $this->salonModel->getAccessibleZones($userId, $userRole);
-        $requestedZoneId = isset($_GET['zone']) ? max(0, (int)$_GET['zone']) : 0;
+        $zones = [];
         $selectedZone = null;
-        if ($requestedZoneId > 0) {
-            foreach ($zones as $zone) {
-                if ((int)$zone['id'] === $requestedZoneId) {
-                    $selectedZone = $zone;
-                    break;
-                }
-            }
-            if ($selectedZone === null) {
-                http_response_code(403);
-                exit('Vous n’avez pas accès à ce salon.');
-            }
-        }
 
         $feedView = $_GET['view'] ?? 'latest';
         if (!in_array($feedView, ['latest', 'popular', 'saved', 'documents'], true)) {
             $feedView = 'latest';
         }
-        $categoryId = isset($_GET['category']) ? max(0, (int)$_GET['category']) : null;
-        if ($categoryId !== null && $categoryId > 0) {
-            $categoryIsInSelectedZone = $selectedZone === null
-                || in_array($categoryId, array_map(
-                    static fn (array $category): int => (int)$category['id'],
-                    $selectedZone['categories']
-                ), true);
-            if (!$categoryIsInSelectedZone
-                || !$this->salonModel->canAccessCategory($userId, $categoryId, $userRole)) {
-                http_response_code(403);
-                exit('Vous n’avez pas accès à cette catégorie.');
-            }
-        }
-        $composerZones = $selectedZone !== null ? [$selectedZone] : $zones;
+        $categoryId = null;
+        $composerCategories = $this->salonModel->getActiveCategories();
         $feedPosts = $feedView === 'documents' ? [] : $this->salonModel->getPublications(
             $userId,
             $userRole,
             $feedView,
-            $categoryId,
+            null,
             50,
-            $selectedZone === null ? null : (int)$selectedZone['id']
+            null
         );
         $pollOptions = $this->salonModel->getPublicationPolls(
             array_column($feedPosts, 'id'),
@@ -128,12 +105,14 @@ class SalonController {
             ? $this->salonModel->getSalonDocuments(
                 $userId,
                 $userRole,
-                $categoryId,
-                $selectedZone === null ? null : (int)$selectedZone['id']
+                null,
+                null
             )
             : [];
         $unreadCount = (new Notification($this->pdo))->countUnread($userId);
-        $unreadMessagesCount = (new Social($this->pdo))->getUnreadMessageCount($userId);
+        $unreadGroups = (new FiliereGroups($this->pdo))->getAccessibleGroups($userId);
+        $unreadMessagesCount = (new Social($this->pdo))->getUnreadMessageCount($userId)
+            + array_sum(array_map(static fn (array $group): int => (int)$group['unread_count'], $unreadGroups));
         $flashSuccess = $_SESSION['flash_success'] ?? '';
         $flashError = $_SESSION['flash_error'] ?? '';
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);

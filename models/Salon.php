@@ -135,6 +135,58 @@ class Salon {
         return (bool)$statement->fetchColumn();
     }
 
+    public function canViewCategory(int $categoryId): bool {
+        if (!$this->pdo || $categoryId <= 0) {
+            return false;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT 1
+             FROM categories category
+             JOIN zones zone ON zone.id = category.zone_id
+             WHERE category.id = ?
+             LIMIT 1'
+        );
+        $statement->execute([$categoryId]);
+
+        return (bool)$statement->fetchColumn();
+    }
+
+    public function canPublishCategory(int $categoryId): bool {
+        if (!$this->pdo || $categoryId <= 0) {
+            return false;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT 1
+             FROM categories category
+             JOIN zones zone ON zone.id = category.zone_id
+             WHERE category.id = ?
+               AND category.est_active = 1
+               AND zone.est_active = 1
+             LIMIT 1'
+        );
+        $statement->execute([$categoryId]);
+
+        return (bool)$statement->fetchColumn();
+    }
+
+    public function getActiveCategories(): array {
+        if (!$this->pdo) {
+            return [];
+        }
+
+        $statement = $this->pdo->query(
+            'SELECT category.id, category.nom, zone.id AS zone_id, zone.nom AS zone_name
+             FROM categories category
+             JOIN zones zone ON zone.id = category.zone_id
+             WHERE category.est_active = 1 AND zone.est_active = 1
+             ORDER BY zone.nom, category.ordre, category.nom'
+        );
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getPublications(
         int $userId,
         string $role,
@@ -148,7 +200,6 @@ class Salon {
         }
 
         $view = in_array($view, ['popular', 'saved'], true) ? $view : 'latest';
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
         $limit = max(1, min($limit, 100));
         $conditions = ["p.est_signale = 0"];
         $parameters = ['saved_user' => $userId, 'reaction_user' => $userId];
@@ -156,15 +207,6 @@ class Salon {
         if ($view === 'saved') {
             $conditions[] = 'saved.id IS NOT NULL';
         }
-        if (!$canViewAll) {
-            $conditions[] = "EXISTS (
-                SELECT 1 FROM appartenance_zones member_access
-                WHERE member_access.utilisateur_id = :access_user
-                  AND member_access.zone_id = z.id
-            )";
-            $parameters['access_user'] = $userId;
-        }
-
         if ($categoryId !== null && $categoryId > 0) {
             $conditions[] = 'c.id = :category_id';
             $parameters['category_id'] = $categoryId;
@@ -201,8 +243,8 @@ class Salon {
                    saved.id AS saved_id
             FROM publications p
             JOIN utilisateurs u ON u.id = p.utilisateur_id
-            JOIN categories c ON c.id = p.categorie_id AND c.est_active = 1
-            JOIN zones z ON z.id = c.zone_id AND z.est_active = 1
+            JOIN categories c ON c.id = p.categorie_id
+            JOIN zones z ON z.id = c.zone_id
             LEFT JOIN publications_sauvegardees saved
               ON saved.publication_id = p.id AND saved.utilisateur_id = :saved_user
             WHERE " . implode(' AND ', $conditions) . "
@@ -261,19 +303,10 @@ class Salon {
             return [];
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
         $limit = max(1, min($limit, 200));
         $conditions = ['publication.est_signale = 0', '(comment.id IS NULL OR comment.est_signale = 0)'];
         $parameters = [];
 
-        if (!$canViewAll) {
-            $conditions[] = 'EXISTS (
-                SELECT 1 FROM appartenance_zones membership
-                WHERE membership.utilisateur_id = :membership_user
-                  AND membership.zone_id = zone.id
-            )';
-            $parameters['membership_user'] = $userId;
-        }
         if ($categoryId !== null && $categoryId > 0) {
             $conditions[] = 'category.id = :category_id';
             $parameters['category_id'] = $categoryId;
@@ -299,8 +332,8 @@ class Salon {
              AND comment.id = attachment.cible_id
             JOIN publications publication
               ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-            JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-            JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+            JOIN categories category ON category.id = publication.categorie_id
+            JOIN zones zone ON zone.id = category.zone_id
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
             WHERE " . implode(' AND ', $conditions) . "
             ORDER BY attachment.date_upload DESC
@@ -378,7 +411,6 @@ class Salon {
             return [];
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
         $statement = $this->pdo->prepare("
             SELECT attachment.id, attachment.nom_fichier, attachment.chemin_fichier,
                    attachment.type_mime, attachment.taille,
@@ -397,17 +429,10 @@ class Salon {
             JOIN categories category ON category.id = publication.categorie_id
             JOIN zones zone ON zone.id = category.zone_id
             WHERE saved.utilisateur_id = :user_id
-              AND (:can_view_all = 1 OR EXISTS (
-                  SELECT 1 FROM appartenance_zones membership
-                  WHERE membership.utilisateur_id = :membership_user
-                    AND membership.zone_id = zone.id
-              ))
             ORDER BY saved.date_sauvegarde DESC
         ");
         $statement->execute([
             'user_id' => $userId,
-            'membership_user' => $userId,
-            'can_view_all' => $canViewAll ? 1 : 0,
         ]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -447,7 +472,6 @@ class Salon {
             return null;
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
         $check = $this->pdo->prepare("
             SELECT publication.id
             FROM publications publication
@@ -456,19 +480,12 @@ class Salon {
             WHERE publication.id = :publication_id
               AND (publication.utilisateur_id = :publication_owner OR (
                   publication.est_signale = 0
-                  AND (:can_view_all = 1 OR EXISTS (
-                  SELECT 1 FROM appartenance_zones membership
-                  WHERE membership.utilisateur_id = :user_id
-                    AND membership.zone_id = zone.id
-                  ))
               ))
             LIMIT 1
         ");
         $check->execute([
             'publication_id' => $publicationId,
             'publication_owner' => $userId,
-            'can_view_all' => $canViewAll ? 1 : 0,
-            'user_id' => $userId,
         ]);
         if (!$check->fetchColumn()) {
             return null;
@@ -502,7 +519,6 @@ class Salon {
             return false;
         }
 
-        $canViewAll = in_array($role, ['administrateur', 'admin', 'moderateur'], true);
         $check = $this->pdo->prepare("
             SELECT attachment.id
             FROM pieces_jointes attachment
@@ -522,19 +538,13 @@ class Salon {
                 OR (attachment.type_cible = 'commentaire' AND comment.utilisateur_id = :owner_user)
                 OR (publication.est_signale = 0
                     AND (comment.id IS NULL OR comment.est_signale = 0)
-                    AND (:can_view_all = 1 OR EXISTS (
-                  SELECT 1 FROM appartenance_zones membership
-                  WHERE membership.utilisateur_id = :user_id
-                    AND membership.zone_id = zone.id
-                    )))
+                    )
               )
             LIMIT 1
         ");
         $check->execute([
             'attachment_id' => $attachmentId,
             'owner_user' => $userId,
-            'can_view_all' => $canViewAll ? 1 : 0,
-            'user_id' => $userId,
         ]);
         if (!$check->fetchColumn()) {
             return null;

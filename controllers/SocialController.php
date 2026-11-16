@@ -1,12 +1,14 @@
 <?php
 
 require_once dirname(__DIR__) . '/models/Social.php';
+require_once dirname(__DIR__) . '/models/FiliereGroups.php';
 require_once dirname(__DIR__) . '/models/Notification.php';
 
 class SocialController
 {
     private PDO $pdo;
     private Social $social;
+    private FiliereGroups $filiereGroups;
 
     public function __construct()
     {
@@ -16,6 +18,7 @@ class SocialController
         }
         $this->pdo = $pdo;
         $this->social = new Social($pdo);
+        $this->filiereGroups = new FiliereGroups($pdo);
     }
 
     public function messages(): void
@@ -24,11 +27,35 @@ class SocialController
         global $baseUrl, $base, $assetBase, $asset;
         $friends = $this->social->getInbox($userId);
         $requests = $this->social->getPendingRequests($userId);
-        $selectedId = filter_var($_GET['user'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $groups = $this->filiereGroups->getAccessibleGroups($userId);
+        $selectedId = array_key_exists('user', $_GET)
+            ? filter_var($_GET['user'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
+        $selectedGroupId = array_key_exists('group', $_GET)
+            ? filter_var($_GET['group'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
         $selectedFriend = null;
+        $selectedGroup = null;
         $messages = [];
+        $groupMessages = [];
+        $groupMembers = [];
 
-        if ($selectedId !== false && $selectedId !== null) {
+        if ($selectedGroupId !== false && $selectedGroupId !== null) {
+            foreach ($groups as $group) {
+                if ((int)$group['id'] === (int)$selectedGroupId) {
+                    $selectedGroup = $group;
+                    break;
+                }
+            }
+            if ($selectedGroup !== null) {
+                $groupMessages = $this->filiereGroups->getMessages($userId, (int)$selectedGroupId);
+                $groupMembers = $this->filiereGroups->getGroupMembers($userId, (int)$selectedGroupId);
+            } else {
+                $_SESSION['flash_error'] = 'Vous n’avez pas accès à ce groupe.';
+            }
+        } elseif ($selectedGroupId === false) {
+            $_SESSION['flash_error'] = 'Groupe invalide.';
+        } elseif ($selectedId !== false && $selectedId !== null) {
             foreach ($friends as $friend) {
                 if ((int)$friend['id'] === (int)$selectedId) {
                     $selectedFriend = $friend;
@@ -40,9 +67,13 @@ class SocialController
             } else {
                 $_SESSION['flash_error'] = 'Vous pouvez discuter uniquement avec vos amis.';
             }
+        } elseif ($selectedId === false) {
+            $_SESSION['flash_error'] = 'Conversation invalide.';
         }
         $friends = $this->social->getInbox($userId);
-        $unreadMessagesCount = $this->social->getUnreadMessageCount($userId);
+        $groups = $this->filiereGroups->getAccessibleGroups($userId);
+        $unreadMessagesCount = $this->social->getUnreadMessageCount($userId)
+            + array_sum(array_map(static fn (array $group): int => (int)$group['unread_count'], $groups));
 
         if (empty($_SESSION['social_csrf'])) {
             $_SESSION['social_csrf'] = bin2hex(random_bytes(32));
@@ -52,6 +83,29 @@ class SocialController
         $flashError = (string)($_SESSION['flash_error'] ?? '');
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
         require ROOT_PATH . '/views/desktop/messages/index.php';
+    }
+
+    public function sendGroupMessage(): void
+    {
+        $userId = $this->requireAuthentication();
+        $this->requirePostAndCsrf();
+        $groupId = filter_var($_POST['group_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($groupId === false || $groupId === null) {
+            $this->redirectWithError('Groupe invalide.', 'messages');
+        }
+
+        try {
+            $this->filiereGroups->sendMessage($userId, (int)$groupId, (string)($_POST['contenu'] ?? ''));
+            $_SESSION['flash_success'] = 'Message envoyé au groupe.';
+        } catch (InvalidArgumentException|DomainException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Envoi du message de groupe impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'Le message n’a pas pu être envoyé.';
+        }
+
+        header('Location: ' . url('messages?group=' . (int)$groupId));
+        exit;
     }
 
     public function friendAction(): void

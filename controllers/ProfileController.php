@@ -257,8 +257,6 @@ class ProfileController {
             ];
 
             if ($isOwnProfile) {
-                $currentRole = strtolower(trim((string)($user['role'] ?? 'etudiant')));
-                $canViewAll = in_array($currentRole, ['administrateur', 'admin', 'moderateur'], true);
                 $savedPublicationsStatement = $pdo->prepare("
                     SELECT publication.id, publication.titre, publication.contenu,
                            publication.type_publication, publication.statut,
@@ -274,22 +272,15 @@ class ProfileController {
                               AND reaction.cible_id = publication.id) AS likes_count
                     FROM publications_sauvegardees saved
                     JOIN publications publication ON publication.id = saved.publication_id
-                    JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-                    JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+                    JOIN categories category ON category.id = publication.categorie_id
+                    JOIN zones zone ON zone.id = category.zone_id
                     WHERE saved.utilisateur_id = :user_id
                       AND (publication.est_signale = 0 OR publication.utilisateur_id = :owner_user)
-                      AND (:can_view_all = 1 OR EXISTS (
-                          SELECT 1 FROM appartenance_zones membership
-                          WHERE membership.utilisateur_id = :membership_user
-                            AND membership.zone_id = zone.id
-                      ))
                     ORDER BY saved.date_sauvegarde DESC
                 ");
                 $savedPublicationsStatement->execute([
                     'user_id' => (int)$currentUserId,
                     'owner_user' => (int)$currentUserId,
-                    'can_view_all' => $canViewAll ? 1 : 0,
-                    'membership_user' => (int)$currentUserId,
                 ]);
                 $savedPublications = $savedPublicationsStatement->fetchAll(PDO::FETCH_ASSOC);
 
@@ -309,18 +300,12 @@ class ProfileController {
                      AND comment.id = attachment.cible_id
                     JOIN publications publication
                       ON publication.id = COALESCE(direct_publication.id, comment.publication_id)
-                    JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-                    JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+                    JOIN categories category ON category.id = publication.categorie_id
+                    JOIN zones zone ON zone.id = category.zone_id
                     WHERE saved.utilisateur_id = :user_id
                       AND (publication.est_signale = 0 OR publication.utilisateur_id = :publication_owner
                            OR comment.utilisateur_id = :comment_report_owner)
                       AND (comment.id IS NULL OR comment.est_signale = 0 OR comment.utilisateur_id = :comment_owner)
-                      AND (:can_view_all = 1 OR publication.utilisateur_id = :publication_access_owner
-                           OR comment.utilisateur_id = :comment_access_owner OR EXISTS (
-                          SELECT 1 FROM appartenance_zones membership
-                          WHERE membership.utilisateur_id = :membership_user
-                            AND membership.zone_id = zone.id
-                      ))
                     ORDER BY saved.date_sauvegarde DESC
                 ");
                 $savedAttachmentsStatement->execute([
@@ -328,10 +313,6 @@ class ProfileController {
                     'publication_owner' => (int)$currentUserId,
                     'comment_report_owner' => (int)$currentUserId,
                     'comment_owner' => (int)$currentUserId,
-                    'publication_access_owner' => (int)$currentUserId,
-                    'comment_access_owner' => (int)$currentUserId,
-                    'can_view_all' => $canViewAll ? 1 : 0,
-                    'membership_user' => (int)$currentUserId,
                 ]);
                 $savedAttachments = $savedAttachmentsStatement->fetchAll(PDO::FETCH_ASSOC);
             }

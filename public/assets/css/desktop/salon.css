@@ -1760,3 +1760,332 @@ body.community-salon .discussion-comment.is-solution {
     padding: 0.15rem;
   }
 }
+
+  body.community-salon .sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  body.community-salon .epi-create-post-dialog {
+    max-width: 540px;
+    max-height: min(90vh, 760px);
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--community-line) 82%, white);
+    border-radius: 20px;
+  }
+
+  body.community-salon .epi-create-post-header {
+    justify-content: center;
+    position: relative;
+    min-height: 58px;
+    padding: 1rem 3.5rem;
+  }
+
+  body.community-salon .epi-create-post-header h2 {
+    text-align: center;
+    font-size: 1.12rem;
+  }
+
+  body.community-salon .epi-create-post-header .epi-modal-close {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: var(--community-raised);
+    font-size: 1.5rem;
+  }
+
+  body.community-salon .epi-create-post-form {
+    gap: 1rem;
+    padding: 1.1rem 1.25rem 1.25rem;
+  }
+
+  body.community-salon .epi-composer-author {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  body.community-salon .epi-composer-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--community-green), var(--community-blue));
+    color: #102018;
+    font-weight: 800;
+  }
+
+  body.community-salon .epi-composer-avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  body.community-salon .epi-composer-author-info {
+    display: grid;
+    justify-items: start;
+    gap: 0.25rem;
+  }
+
+  body.community-salon .epi-composer-author-info > strong {
+    color: var(--community-text);
+    font-size: 0.9rem;
+  }
+
+  body.community-salon .epi-composer-audience {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.5rem;
+    border: 1px solid var(--community-line);
+    border-radius: var(--community-radius-pill);
+    background: var(--community-raised);
+    color: var(--community-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  body.community-salon .epi-composer-audience svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  body.community-salon .epi-composer-fields {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  body.community-salon .epi-composer-title,
+  body.community-salon .epi-composer-content {
+    width: 100%;
+    box-sizing: border-box;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--community-text);
+    font: inherit;
+  }
+
+  body.community-salon .epi-composer-title {
+    padding: 0.35rem 0;
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+
+  body.community-salon .epi-composer-title::placeholder,
+  body.community-salon .epi-composer-content::placeholder {
+    color: var(--community-muted);
+    opacity: 0.85;
+  }
+
+  body.community-salon .epi-composer-content {
+    min-height: 130px;
+    max-height: 32vh;
+    padding: 0.25rem 0;
+    resize: vertical;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  body.community-salon .epi-composer-type-tabs {
+    gap: 0.35rem;
+    padding: 0;
+    border: 0;
+  }
+
+  body.community-salon .epi-composer-type-tabs .epi-type-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.55rem 0.4rem;
+    border: 1px solid var(--community-line);
+    border-radius: var(--community-radius-md);
+    font-size: 0.78rem;
+  }
+
+  body.community-salon .epi-composer-type-tabs .epi-type-tab.is-active {
+    border-color: color-mix(in srgb, var(--community-green) 50%, var(--community-line));
+    background: color-mix(in srgb, var(--community-green) 10%, var(--community-surface));
+  }
+
+  body.community-salon .epi-composer-poll {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.8rem;
+    border: 1px solid var(--community-line);
+    border-radius: var(--community-radius-md);
+    background: var(--community-raised);
+  }
+
+  body.community-salon .epi-composer-poll[hidden] {
+    display: none !important;
+  }
+
+  body.community-salon .epi-composer-poll > strong {
+    font-size: 0.82rem;
+  }
+
+  body.community-salon .epi-composer-poll #pollOptionsList {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  body.community-salon .epi-composer-poll #pollOptionsList .epi-form-control {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  body.community-salon .epi-composer-poll > button {
+    justify-self: start;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.76rem;
+  }
+
+  body.community-salon .epi-composer-poll > small {
+    color: var(--community-muted);
+    font-size: 0.72rem;
+  }
+
+  body.community-salon .epi-composer-tools {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--community-line);
+    border-radius: var(--community-radius-md);
+    background: var(--community-raised);
+  }
+
+  body.community-salon .epi-composer-tools > strong {
+    font-size: 0.78rem;
+  }
+
+  body.community-salon .epi-composer-tool-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  body.community-salon .epi-composer-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 0.5rem;
+    border-radius: var(--community-radius-sm);
+    color: var(--community-green);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  body.community-salon .epi-composer-tool:hover {
+    background: var(--community-hover);
+  }
+
+  body.community-salon .epi-composer-tool svg {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+  }
+
+  body.community-salon .epi-composer-category select {
+    width: min(150px, 30vw);
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--community-text);
+    font: inherit;
+    font-size: 0.72rem;
+  }
+
+  body.community-salon .epi-composer-category option {
+    background: var(--community-surface);
+    color: var(--community-text);
+  }
+
+  body.community-salon .epi-composer-attachment-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  body.community-salon .epi-composer-attachment-preview[hidden] {
+    display: none !important;
+  }
+
+  body.community-salon .epi-composer-feedback:empty {
+    display: none;
+  }
+
+  body.community-salon .epi-composer-footer {
+    padding-top: 0;
+    border: 0;
+  }
+
+  body.community-salon .epi-composer-footer .epi-btn-submit {
+    flex: 1;
+    min-height: 42px;
+  }
+
+  body.community-salon .epi-composer-footer .epi-btn-submit:disabled {
+    transform: none;
+    background: var(--community-line);
+    color: var(--community-muted);
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 560px) {
+    body.community-salon .epi-modal-backdrop {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    body.community-salon .epi-create-post-dialog {
+      width: 100%;
+      max-height: 94vh;
+      border-radius: 18px 18px 0 0;
+    }
+
+    body.community-salon .epi-create-post-header {
+      padding: 0.9rem 3rem;
+    }
+
+    body.community-salon .epi-create-post-form {
+      padding: 0.9rem 1rem max(1rem, env(safe-area-inset-bottom));
+    }
+
+    body.community-salon .epi-composer-content {
+      min-height: 110px;
+    }
+
+    body.community-salon .epi-composer-tools {
+      gap: 0.45rem;
+    }
+
+    body.community-salon .epi-composer-tool-actions {
+      width: 100%;
+    }
+  }

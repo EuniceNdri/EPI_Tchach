@@ -289,10 +289,10 @@ $roleLabels = [
     </section>
     <aside class="publication-detail-sidebar">
       <div class="publication-sidebar-card">
-        <span class="publication-sidebar-kicker">À propos du salon</span>
-        <h2><?= htmlspecialchars((string)$publication['zone_name']) ?></h2>
-        <p>Cette publication est partagée dans le salon <strong><?= htmlspecialchars((string)$publication['category_name']) ?></strong>.</p>
-        <a class="epi-pill-btn" href="<?= htmlspecialchars($base) ?>/salon?category=<?= (int)$publication['categorie_id'] ?>">Voir le salon</a>
+        <span class="publication-sidebar-kicker">Fil public</span>
+        <h2>Visible par tous</h2>
+        <p>Catégorie : <strong><?= htmlspecialchars((string)$publication['category_name']) ?></strong>.</p>
+        <a class="epi-pill-btn" href="<?= htmlspecialchars($base) ?>/salon">Retour au fil public</a>
       </div>
       <div class="publication-sidebar-card publication-sidebar-guidelines">
         <strong>Gardons la discussion constructive</strong>

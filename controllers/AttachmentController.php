@@ -38,17 +38,13 @@ class AttachmentController
             http_response_code(401);
             exit('Compte utilisateur introuvable.');
         }
-        $canViewAll = in_array(strtolower(trim($role)), ['administrateur', 'admin', 'moderateur'], true);
-
         $statement = $pdo->prepare(
             "SELECT attachment.type_cible, attachment.nom_fichier, attachment.chemin_fichier,
                     attachment.type_mime, attachment.taille,
                     publication.utilisateur_id AS publication_owner,
                     publication.est_signale AS publication_reported,
                     comment.utilisateur_id AS comment_owner,
-                    comment.est_signale AS comment_reported,
-                    category.est_active AS category_active,
-                    zone.id AS zone_id, zone.est_active AS zone_active
+                    comment.est_signale AS comment_reported
              FROM pieces_jointes attachment
              LEFT JOIN publications direct_publication
                ON attachment.type_cible = 'publication'
@@ -74,18 +70,9 @@ class AttachmentController
             ? (int)$attachment['publication_owner'] === $userId
             : (int)($attachment['comment_owner'] ?? 0) === $userId;
         if (!$isOwner) {
-            $hasZoneAccess = false;
-            if ($canViewAll && (int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1) {
-                $hasZoneAccess = true;
-            } elseif ((int)$attachment['zone_active'] === 1 && (int)$attachment['category_active'] === 1
-                && !(bool)$attachment['publication_reported'] && !(bool)($attachment['comment_reported'] ?? false)) {
-                $membership = $pdo->prepare(
-                    'SELECT 1 FROM appartenance_zones WHERE utilisateur_id = :user_id AND zone_id = :zone_id LIMIT 1'
-                );
-                $membership->execute(['user_id' => $userId, 'zone_id' => (int)$attachment['zone_id']]);
-                $hasZoneAccess = (bool)$membership->fetchColumn();
-            }
-            if (!$hasZoneAccess) {
+            $isPublic = !(bool)$attachment['publication_reported']
+                && !(bool)($attachment['comment_reported'] ?? false);
+            if (!$isPublic) {
                 http_response_code(403);
                 exit('Vous n’avez pas accès à ce fichier.');
             }

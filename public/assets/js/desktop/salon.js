@@ -126,6 +126,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const attachmentInput = document.getElementById("salonPostAttachments");
   const attachmentPreview = document.getElementById("salonAttachmentPreview");
   const publicationType = document.getElementById("publicationType");
+  const postTitle = document.getElementById("salonPostTitle");
+  const postContent = document.getElementById("salonPostContent");
+  const postCategory = document.getElementById("modalCategorySelect");
+  const submitPostButton = document.getElementById("submitPostBtn");
   const pollOptionsFields = document.getElementById("pollOptionsFields");
   const pollOptionsList = document.getElementById("pollOptionsList");
 
@@ -138,6 +142,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const quickAddMedia = document.getElementById("quickAddMedia");
   const quickAddFile = document.getElementById("quickAddFile");
   const quickAddPoll = document.getElementById("quickAddPoll");
+  let modalOpener = null;
+
+  const updatePostSubmitState = () => {
+    if (!submitPostButton || !postTitle || !postContent || !postCategory) return;
+    const pollChoices = Array.from(postForm?.querySelectorAll("input[name='options[]']:not(:disabled)") || [])
+      .filter((input) => input.value.trim() !== "");
+    const validPoll = publicationType?.value !== "question" || pollChoices.length >= 2;
+    submitPostButton.disabled = !postTitle.value.trim() || !postContent.value.trim()
+      || !postCategory.value || !validPoll;
+  };
+
+  postForm?.addEventListener("input", updatePostSubmitState);
+  postForm?.addEventListener("change", updatePostSubmitState);
 
   document.querySelectorAll(".epi-search-input").forEach((input) => {
     input.addEventListener("keydown", (event) => {
@@ -182,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fonctions de modale Composer EPI
   const openComposerModal = (mode = "discussion") => {
     if (!modal) return;
+    modalOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     modal.removeAttribute("hidden");
     modal.hidden = false;
     modal.style.display = "flex";
@@ -202,9 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
       attachmentInput?.click();
     }
 
-    setTimeout(() => {
-      document.getElementById("salonPostTitle")?.focus();
-    }, 80);
+    setTimeout(() => postTitle?.focus(), 80);
   };
 
   const closeComposerModal = () => {
@@ -214,6 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+    modalOpener?.focus();
+    modalOpener = null;
   };
 
   // Fermer impérativement au chargement initial
@@ -251,6 +269,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   modal?.addEventListener("click", (e) => {
     if (e.target === modal) closeComposerModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal && !modal.hidden) closeComposerModal();
   });
 
   // Délégation globale de fermeture pour parer à tout conflit
@@ -407,14 +428,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!response.ok || !result.success) {
           throw new Error(result.message || "La publication n'a pas pu être enregistrée.");
         }
-        const category = postForm.querySelector("select[name='categorie_id']");
-        const selectedOption = category?.selectedOptions[0];
-        const categoryId = Number(category?.value || 0);
-        const zoneId = Number(selectedOption?.dataset.zoneId || 0);
-
         postForm.reset();
         renderAttachmentPreview();
         updatePollComposer();
+        updatePostSubmitState();
         if (searchInput) searchInput.value = "";
         if (searchResults) {
           searchResults.hidden = true;
@@ -428,18 +445,15 @@ document.addEventListener("DOMContentLoaded", () => {
           window.showFeedback(result.message || "Publication créée avec succès.", "success");
         }
 
-        if (!result.moderationPending && categoryId > 0 && zoneId > 0
-          && document.getElementById("publicationList")) {
+        if (!result.moderationPending && document.getElementById("publicationList")) {
           const target = new URL(`${baseUrl}/salon`, window.location.origin);
           target.searchParams.set("view", "latest");
-          target.searchParams.set("zone", String(zoneId));
-          target.searchParams.set("category", String(categoryId));
           window.setTimeout(() => refreshPublicationList(target.toString()), 250);
         }
       } catch (error) {
         if (feedback) feedback.textContent = error.message || "Impossible de joindre le serveur.";
       } finally {
-        if (submitButton) submitButton.disabled = false;
+        updatePostSubmitState();
       }
     });
   }
@@ -457,6 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const contentLabel = document.getElementById("salonContentLabel");
     if (contentLabel) contentLabel.textContent = isPoll ? "Votre question" : "Votre message";
     if (content) content.placeholder = isPoll ? "Posez une question à la communauté..." : "Partagez une question, une idée ou une ressource...";
+    updatePostSubmitState();
   };
   publicationType?.addEventListener("change", updatePollComposer);
   updatePollComposer();
@@ -480,6 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
     input.setAttribute("aria-label", `Choix ${index}`);
     input.required = true;
     pollOptionsList.append(input);
+    updatePostSubmitState();
   });
 
   // Gestion des clics globaux (navigation, réactions, partage, etc.)

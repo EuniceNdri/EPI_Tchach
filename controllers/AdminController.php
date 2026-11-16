@@ -16,10 +16,12 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/models/Admin.php';
     require_once ROOT_PATH . '/models/Salon.php';
     require_once ROOT_PATH . '/models/LandingContent.php';
+    require_once ROOT_PATH . '/models/FiliereGroups.php';
 } else {
     require_once dirname(__DIR__) . '/models/Admin.php';
     require_once dirname(__DIR__) . '/models/Salon.php';
     require_once dirname(__DIR__) . '/models/LandingContent.php';
+    require_once dirname(__DIR__) . '/models/FiliereGroups.php';
 }
 
 class AdminController {
@@ -317,6 +319,74 @@ class AdminController {
         $zones = $this->salonModel->getZonesWithCategories();
 
         require_once ROOT_PATH . '/views/desktop/admin/categories.php';
+    }
+
+    public function messageGroups(): void {
+        global $baseUrl, $base, $assetBase, $asset;
+        $pdo = $this->adminModel->getPdo();
+        if (!$pdo instanceof PDO) {
+            http_response_code(503);
+            exit('La base de données est indisponible.');
+        }
+
+        if (empty($_SESSION['filiere_groups_csrf'])) {
+            $_SESSION['filiere_groups_csrf'] = bin2hex(random_bytes(32));
+        }
+        $csrfToken = $_SESSION['filiere_groups_csrf'];
+        $groupModel = new FiliereGroups($pdo);
+        $groups = $groupModel->getActiveGroups();
+        $professors = $groupModel->getActiveProfessors();
+        $professorAssignments = $groupModel->getProfessorAssignments();
+
+        require ROOT_PATH . '/views/desktop/admin/message-groups.php';
+    }
+
+    public function updateMessageGroups(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            http_response_code(405);
+            exit('Méthode non autorisée.');
+        }
+
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (empty($_SESSION['filiere_groups_csrf'])
+            || !hash_equals((string)$_SESSION['filiere_groups_csrf'], $token)) {
+            http_response_code(403);
+            $_SESSION['flash_error'] = 'Votre session a expiré. Rechargez la page puis réessayez.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+
+        $professorId = filter_var($_POST['professor_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $groupIds = $_POST['group_ids'] ?? [];
+        if ($professorId === false || $professorId === null || !is_array($groupIds)) {
+            $_SESSION['flash_error'] = 'Les données d’autorisation des groupes sont invalides.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+
+        $pdo = $this->adminModel->getPdo();
+        if (!$pdo instanceof PDO) {
+            $_SESSION['flash_error'] = 'La base de données est indisponible.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+        try {
+            (new FiliereGroups($pdo))->replaceProfessorGroups(
+                (int)$professorId,
+                $groupIds,
+                (int)($_SESSION['user_id'] ?? 0)
+            );
+            $_SESSION['flash_success'] = 'Les groupes autorisés du professeur ont été mis à jour.';
+        } catch (InvalidArgumentException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Mise à jour des accès aux groupes impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'Les autorisations n’ont pas pu être enregistrées.';
+        }
+
+        header('Location: ' . url('admin/message-groups'));
+        exit;
     }
 
     /**

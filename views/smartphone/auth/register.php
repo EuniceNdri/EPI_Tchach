@@ -155,27 +155,47 @@ $logoPath = $asset . '/images/logo.jpeg';
               <select id="filiere-select" name="filiere" class="form-select">
                 <option value="">-- Choisir une filière --</option>
                 <?php
-                // Liste de base avec filières existantes en BDD
-                $predefined = ['BTS IDA', 'Licence Informatique'];
-                if (!empty($availableFilieres)) {
-                    foreach ($availableFilieres as $zf) {
-                        $fName = str_ireplace('Filière ', '', $zf['nom']);
-                        if (!in_array($fName, $predefined)) {
-                            $predefined[] = $fName;
+                if (empty($availableFilieres)) {
+                    try {
+                        global $pdo;
+                        if (!$pdo instanceof PDO) {
+                            require_once ROOT_PATH . '/config/database.php';
                         }
-                    }
+                        if ($pdo instanceof PDO) {
+                            $stmt = $pdo->query("SELECT id, nom, code, description FROM filieres WHERE est_active = 1 ORDER BY code ASC, nom ASC");
+                            $availableFilieres = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+                        }
+                    } catch (Throwable $e) {}
                 }
-                // Ajout de filières représentatives
-                $autresSuggestions = ['Master MBDS', 'Génie Civil', 'Génie Électrique & Énergétique', 'Finance & Comptabilité', 'Gestion des Entreprises'];
-                foreach ($autresSuggestions as $asg) {
-                    if (!in_array($asg, $predefined)) $predefined[] = $asg;
-                }
-
                 $selectedFiliere = $_POST['filiere'] ?? '';
-                foreach ($predefined as $fil):
+                $filieresList = !empty($availableFilieres) ? $availableFilieres : [];
+                if (empty($filieresList)) {
+                    $filieresList = [
+                        ['code' => 'ATPA', 'nom' => 'Agriculture Tropicale option Production Animale'],
+                        ['code' => 'ATPV', 'nom' => 'Agriculture Tropicale option Production Végétale'],
+                        ['code' => 'GERNA', 'nom' => 'Gestion de l\'Environnement et des Ressources Naturelles'],
+                        ['code' => 'GBAT', 'nom' => 'Génie Civil option Bâtiment'],
+                        ['code' => 'GTP', 'nom' => 'Génie Civil option Travaux Publics'],
+                        ['code' => 'GGT', 'nom' => 'Génie Civil option Géomètre Topographe'],
+                        ['code' => 'IDA', 'nom' => 'Informatique Développeur d\'Applications'],
+                        ['code' => 'RIT', 'nom' => 'Réseaux Informatiques et Télécommunications'],
+                        ['code' => 'ELT', 'nom' => 'Électrotechnique'],
+                        ['code' => 'MSP', 'nom' => 'Maintenance des Systèmes de Production'],
+                        ['code' => 'RHCOM', 'nom' => 'Ressources Humaines et Communication'],
+                        ['code' => 'AD', 'nom' => 'Assistanat de Direction'],
+                        ['code' => 'TH', 'nom' => 'Tourisme - Hôtellerie'],
+                        ['code' => 'LOG', 'nom' => 'Logistique'],
+                        ['code' => 'FCGE', 'nom' => 'Finances Comptabilité et Gestion des Entreprises'],
+                        ['code' => 'GEC', 'nom' => 'Gestion Commerciale'],
+                    ];
+                }
+                foreach ($filieresList as $fItem):
+                    $fNom = is_array($fItem) ? ($fItem['nom'] ?? '') : (string)$fItem;
+                    $fCode = is_array($fItem) ? ($fItem['code'] ?? '') : '';
+                    $fLabel = $fCode ? ($fCode . ' — ' . $fNom) : $fNom;
                 ?>
-                  <option value="<?= htmlspecialchars($fil) ?>" <?= ($selectedFiliere === $fil) ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($fil) ?>
+                  <option value="<?= htmlspecialchars($fNom) ?>" <?= ($selectedFiliere === $fNom || $selectedFiliere === $fCode) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($fLabel) ?>
                   </option>
                 <?php endforeach; ?>
                 <option value="autre" <?= ($selectedFiliere === 'autre') ? 'selected' : '' ?>>Autre filière (Non listée)...</option>
@@ -212,14 +232,17 @@ $logoPath = $asset . '/images/logo.jpeg';
             <label class="form-label" style="font-size: 0.85rem;">Filières dans lesquelles vous dispensez des cours :</label>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem; margin-top: 0.35rem;">
               <?php
-              $profFilieresDispo = ['BTS IDA', 'Licence Informatique', 'Master MBDS', 'Génie Civil', 'Finance & Comptabilité'];
+              $profFilieresDispo = !empty($availableFilieres) ? $availableFilieres : [];
               $postProfFilieres = $_POST['prof_filieres'] ?? [];
               foreach ($profFilieresDispo as $pfil):
-                  $checked = in_array($pfil, $postProfFilieres) ? 'checked' : '';
+                  $pNom = is_array($pfil) ? ($pfil['nom'] ?? '') : (string)$pfil;
+                  $pCode = is_array($pfil) ? ($pfil['code'] ?? '') : '';
+                  $pLabel = $pCode ? ($pCode . ' — ' . $pNom) : $pNom;
+                  $checked = (in_array($pNom, $postProfFilieres, true) || in_array($pCode, $postProfFilieres, true)) ? 'checked' : '';
               ?>
                 <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; background: #fff; padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid #e2e8f0;">
-                  <input type="checkbox" name="prof_filieres[]" value="<?= htmlspecialchars($pfil) ?>" <?= $checked ?> />
-                  <span><?= htmlspecialchars($pfil) ?></span>
+                  <input type="checkbox" name="prof_filieres[]" value="<?= htmlspecialchars($pNom) ?>" <?= $checked ?> />
+                  <span><?= htmlspecialchars($pLabel) ?></span>
                 </label>
               <?php endforeach; ?>
             </div>

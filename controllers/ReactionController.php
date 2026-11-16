@@ -112,7 +112,7 @@ class ReactionController {
 
         $isAllowed = is_string($storedRole) && $storedRole !== '' && $target
             && !(bool)$target['est_signale']
-            && $this->salonModel->canAccessCategory($userId, (int)$target['categorie_id'], strtolower(trim($storedRole)));
+            && $this->salonModel->canViewCategory((int)$target['categorie_id']);
         if ($typeCible === 'publication') {
             $isAllowed = $isAllowed && in_array($target['type_publication'], ['discussion', 'question', 'annonce'], true);
             if ($target && $target['type_publication'] === 'annonce' && $typeReaction !== 'like') {

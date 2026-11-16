@@ -258,9 +258,12 @@ mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_filieres
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261102_add_forum_features.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261105_add_salon_interactions.sql
 mysql -u nom_utilisateur -p nom_base < database/migrations/20261107_add_landing_management.sql
+mysql -u nom_utilisateur -p nom_base < migrations/20261115_filiere_message_groups.sql
 ```
 
-Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions des salons, puis les champs d'images et de slogans des filières ainsi que les réglages de la landing administrables. Les migrations vérifient les éléments déjà présents. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+Sauvegardez la base avant toute migration. La première migration crée `filieres`, ajoute `utilisateurs.filiere_id` et relie les inscriptions étudiantes existantes sans supprimer la colonne historique `filiere`. Les migrations suivantes ajoutent les fonctionnalités du forum, les interactions du fil public, les réglages de la landing, puis les groupes de messagerie par filière et les autorisations individuelles des professeurs. Les migrations vérifient les éléments déjà présents. Ne pas utiliser `database.sql` pour mettre à jour une base existante : ce script initialise une base et commence par la supprimer.
+
+Le fil public affiche les publications à tous les utilisateurs. Les salons ne sont plus proposés dans sa navigation ; les discussions collectives se font dans la messagerie, avec un groupe par filière et sans séparation par année. Les étudiants accèdent au groupe lié à leur filière. Un administrateur attribue les groupes accessibles à chaque professeur depuis **Administration → Groupes de messagerie**.
 
 ---
 

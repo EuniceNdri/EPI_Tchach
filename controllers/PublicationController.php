@@ -110,12 +110,8 @@ class PublicationController {
         $userRole = strtolower(trim($userRole));
         $_SESSION['user_role'] = $userRole;
 
-        if (!$this->salonModel->canAccessCategory(
-            $userId,
-            $categorieId,
-            $userRole
-        )) {
-            $this->respondError("Vous n'avez pas accès au salon sélectionné.", $returnUrl);
+        if (!$this->salonModel->canPublishCategory($categorieId)) {
+            $this->respondError("La catégorie sélectionnée n’est plus disponible.", $returnUrl);
             return;
         }
 
@@ -254,7 +250,7 @@ class PublicationController {
         $userRole = strtolower(trim($storedRole));
         if ((bool)$publication['commentaires_fermes']
             || (bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+            || !$this->salonModel->canViewCategory((int)$publication['categorie_id'])) {
             $this->respondError('Les commentaires ne sont pas disponibles pour cette publication.');
             return;
         }
@@ -395,7 +391,7 @@ class PublicationController {
         $visiblePublicationIds = [];
         foreach ($publicationStatement->fetchAll(PDO::FETCH_ASSOC) as $publication) {
             if (!(bool)$publication['est_signale']
-                && $this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+                && $this->salonModel->canViewCategory((int)$publication['categorie_id'])) {
                 $visiblePublicationIds[] = (int)$publication['id'];
             }
         }
@@ -533,7 +529,7 @@ class PublicationController {
         }
         $userRole = strtolower(trim($storedRole));
         if ((bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+            || !$this->salonModel->canViewCategory((int)$publication['categorie_id'])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Vous n’avez pas accès à cette discussion.'], JSON_UNESCAPED_UNICODE);
             return;
@@ -624,8 +620,8 @@ class PublicationController {
                     LIMIT 1) AS saved_id
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
-            JOIN categories category ON category.id = publication.categorie_id AND category.est_active = 1
-            JOIN zones zone ON zone.id = category.zone_id AND zone.est_active = 1
+            JOIN categories category ON category.id = publication.categorie_id
+            JOIN zones zone ON zone.id = category.zone_id
             WHERE publication.id = :publication_id
             LIMIT 1
         ");
@@ -636,7 +632,7 @@ class PublicationController {
         ]);
         $publication = $statement->fetch(PDO::FETCH_ASSOC);
         if (!$publication || (bool)$publication['est_signale']
-            || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], $userRole)) {
+            || !$this->salonModel->canViewCategory((int)$publication['categorie_id'])) {
             http_response_code(404);
             exit('Publication introuvable.');
         }
@@ -761,7 +757,7 @@ class PublicationController {
             $roleStatement->execute(['user_id' => $userId]);
             $storedRole = $roleStatement->fetchColumn();
             if (!$publication || (bool)$publication['est_signale'] || !is_string($storedRole)
-                || !$this->salonModel->canAccessCategory($userId, (int)$publication['categorie_id'], strtolower(trim($storedRole)))) {
+                || !$this->salonModel->canViewCategory((int)$publication['categorie_id'])) {
                 $this->pdo->rollBack();
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Ce sondage n’est pas accessible.'], JSON_UNESCAPED_UNICODE);

@@ -415,6 +415,11 @@ switch ($fullRoute) {
         (new SocialController())->sendMessage();
         break;
 
+    case 'messages/groups/send':
+        require_once ROOT_PATH . '/controllers/SocialController.php';
+        (new SocialController())->sendGroupMessage();
+        break;
+
     case 'messages/delete':
         require_once ROOT_PATH . '/controllers/SocialController.php';
         (new SocialController())->deleteMessage();
@@ -485,6 +490,16 @@ switch ($fullRoute) {
     case 'admin/filieres':
         require_once ROOT_PATH . '/controllers/AdminController.php';
         (new AdminController())->categories();
+        break;
+
+    case 'admin/message-groups':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->messageGroups();
+        break;
+
+    case 'admin/message-groups/update':
+        require_once ROOT_PATH . '/controllers/AdminController.php';
+        (new AdminController())->updateMessageGroups();
         break;
 
     case 'admin/categories/create-zone':

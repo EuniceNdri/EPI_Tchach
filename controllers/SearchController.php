@@ -31,11 +31,6 @@ class SearchController
         }
 
         $salonModel = new Salon($pdo);
-        $accessibleZones = $salonModel->getAccessibleZones($userId, strtolower(trim($role)));
-        $accessibleZoneIds = array_map(
-            static fn (array $zone): int => (int)$zone['id'],
-            $accessibleZones
-        );
         $parseIdFilter = static function (string $key): int|false|null {
             if (!isset($_GET[$key])) {
                 return null;
@@ -53,15 +48,7 @@ class SearchController
             $this->respond(['success' => false, 'message' => 'Filtre de salon invalide.'], 400);
             return;
         }
-        if ($zoneId !== null && !in_array($zoneId, $accessibleZoneIds, true)) {
-            $this->respond(['success' => false, 'message' => 'Vous n’avez pas accès à ce salon.'], 403);
-            return;
-        }
-        if ($categoryId !== null && !$salonModel->canAccessCategory(
-            $userId,
-            $categoryId,
-            strtolower(trim($role))
-        )) {
+        if ($categoryId !== null && !$salonModel->canViewCategory($categoryId)) {
             $this->respond(['success' => false, 'message' => 'Vous n’avez pas accès à cette catégorie.'], 403);
             return;
         }
@@ -96,14 +83,8 @@ class SearchController
             );
         }
 
-        $conditions = ['p.est_signale = 0', 'c.est_active = 1', 'z.est_active = 1'];
+        $conditions = ['p.est_signale = 0'];
         $parameters = [];
-        if ($accessibleZoneIds) {
-            $conditions[] = 'z.id IN (' . implode(',', array_fill(0, count($accessibleZoneIds), '?')) . ')';
-            $parameters = array_merge($parameters, $accessibleZoneIds);
-        } else {
-            $conditions[] = '1 = 0';
-        }
         if ($zoneId !== null) {
             $conditions[] = 'z.id = ?';
             $parameters[] = $zoneId;

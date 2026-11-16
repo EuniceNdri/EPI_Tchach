@@ -198,9 +198,29 @@ class User {
         // 3. Hachage sécurisé du mot de passe
         $hashedPassword = password_hash($mot_de_passe, PASSWORD_DEFAULT);
 
+        // Résolution de la filière ID
+        $filiereId = null;
+        if (!empty($filiere)) {
+            $stmtF = $this->pdo->prepare("
+                SELECT id FROM filieres
+                WHERE nom = :filiere
+                   OR code = :filiere
+                   OR CONCAT('BTS ', code) = :filiere
+                   OR :filiere LIKE CONCAT('%', code, '%')
+                   OR :filiere LIKE CONCAT('%', nom, '%')
+                ORDER BY (nom = :filiere) DESC, (code = :filiere) DESC
+                LIMIT 1
+            ");
+            $stmtF->execute(['filiere' => $filiere]);
+            $foundFiliereId = $stmtF->fetchColumn();
+            if ($foundFiliereId) {
+                $filiereId = (int)$foundFiliereId;
+            }
+        }
+
         // 4. Insertion dans la table `utilisateurs`
-        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, modules_enseignes, avatar_url)
-                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :modules_enseignes, :avatar_url)";
+        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere, filiere_id, modules_enseignes, avatar_url)
+                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere, :filiere_id, :modules_enseignes, :avatar_url)";
         
         $stmt = $this->pdo->prepare($sql);
         $success = $stmt->execute([
@@ -210,6 +230,7 @@ class User {
             'mot_de_passe'      => $hashedPassword,
             'role'              => $role,
             'filiere'           => $filiere,
+            'filiere_id'        => $filiereId,
             'modules_enseignes' => $modules_enseignes,
             'avatar_url'        => $avatar_url
         ]);
@@ -369,6 +390,14 @@ class User {
      */
     public function getAvailableFiliereZones(): array {
         if (!$this->pdo) return [];
+
+        try {
+            $stmt = $this->pdo->query("SELECT id, nom, code, description FROM filieres WHERE est_active = 1 ORDER BY nom ASC");
+            $filieres = $stmt ? $stmt->fetchAll() : [];
+            if (!empty($filieres)) {
+                return $filieres;
+            }
+        } catch (Throwable $e) {}
 
         $stmt = $this->pdo->query("SELECT id, nom, description FROM zones WHERE type_zone = 'filiere' ORDER BY nom ASC");
         return $stmt ? $stmt->fetchAll() : [];

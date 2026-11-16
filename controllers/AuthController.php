@@ -27,15 +27,16 @@ class AuthController {
         $this->userModel = new User();
     }
 
-    private function renderAuthView(string $view): void {
+    private function renderAuthView(string $view, array $data = []): void {
         global $baseUrl, $base, $assetBase, $asset;
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         $device = preg_match('/(?:iphone|ipod|windows phone|blackberry|opera mini|mobile|android.*mobile)/i', $userAgent)
             ? 'smartphone'
             : 'desktop';
 
+        extract($data, EXTR_SKIP);
         header('Vary: User-Agent');
-        require_once ROOT_PATH . '/views/' . $device . '/auth/' . $view . '.php';
+        require ROOT_PATH . '/views/' . $device . '/auth/' . $view . '.php';
     }
 
     /**
@@ -116,7 +117,7 @@ class AuthController {
             }
         }
 
-        $this->renderAuthView('login');
+        $this->renderAuthView('login', compact('error', 'success'));
     }
 
     /**
@@ -285,7 +286,7 @@ class AuthController {
             }
         }
 
-        $this->renderAuthView('register');
+        $this->renderAuthView('register', compact('error', 'success', 'registerStep', 'availableFilieres'));
     }
 
     /**
@@ -320,7 +321,7 @@ class AuthController {
             }
         }
 
-        $this->renderAuthView('forgot-password');
+        $this->renderAuthView('forgot-password', compact('error', 'success'));
     }
 
     /**
@@ -350,6 +351,6 @@ class AuthController {
             }
         }
 
-        $this->renderAuthView('reset-password');
+        $this->renderAuthView('reset-password', compact('error', 'success'));
     }
 }

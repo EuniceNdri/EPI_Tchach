@@ -42,6 +42,10 @@ $dashboardUrl = $showAdminLinks ? $base . '/admin' : $base . '/dashboard';
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Filières & Salons</span>
     </a>
+    <a href="<?= $base ?>/admin/message-groups" class="sidebar-link <?= $currentPage === 'message-groups' ? 'active' : '' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Groupes de messagerie</span>
+    </a>
 
     <div class="nav-section-title">Plateforme</div>
     <a href="<?= $base ?>/admin/settings" class="sidebar-link <?= $currentPage === 'settings' ? 'active' : '' ?>">
