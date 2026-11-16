@@ -1,15 +1,7 @@
 <?php
-/**
- * @var array<int, array<string, mixed>>|null $filieres
- * @var array<string, mixed>|null $landingSettings
- * @var string|null $baseUrl
- * @var string|null $assetBase
- */
 $activeAdminPage = 'settings';
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
-$filieres = is_array($filieres ?? null) ? $filieres : [];
-$landingSettings = is_array($landingSettings ?? null) ? $landingSettings : [];
 $heroSlides = $landingSettings['hero_slides'] ?? LandingContent::defaultHeroSlides();
 $stats = $landingSettings['stats'] ?? LandingContent::defaultStats();
 $filiereImages = [
@@ -61,7 +53,7 @@ $imageUrl = static function (?string $path) use ($asset): string {
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <?php include ROOT_PATH . '/resources/views/partials/feedback-toast.php'; ?>
   <div class="admin-wrapper">

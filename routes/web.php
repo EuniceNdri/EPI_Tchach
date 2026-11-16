@@ -42,6 +42,7 @@ $routes = [
     'messagerie' => ['controller' => 'SocialController', 'method' => 'messages'],
     'friends/action' => ['controller' => 'SocialController', 'method' => 'friendAction'],
     'messages/send' => ['controller' => 'SocialController', 'method' => 'sendMessage'],
+    'messages/group/send' => ['controller' => 'SocialController', 'method' => 'sendGroupMessage'],
     'messages/delete' => ['controller' => 'SocialController', 'method' => 'deleteMessage'],
     'dashboard' => ['controller' => 'DashboardController', 'method' => 'index'],
     'dashboard/index' => ['controller' => 'DashboardController', 'method' => 'index'],
@@ -59,6 +60,8 @@ $routes = [
     'admin/moderation/action' => ['controller' => 'ModerationController', 'method' => 'decision'],
     'admin/categories' => ['controller' => 'AdminController', 'method' => 'categories'],
     'admin/filieres' => ['controller' => 'AdminController', 'method' => 'categories'],
+    'admin/message-groups' => ['controller' => 'AdminController', 'method' => 'messageGroups'],
+    'admin/message-groups/update' => ['controller' => 'AdminController', 'method' => 'updateMessageGroups'],
     'admin/categories/create-zone' => ['controller' => 'AdminController', 'method' => 'createZone'],
     'admin/categories/create-category' => ['controller' => 'AdminController', 'method' => 'createCategory'],
     'admin/tags/action' => ['controller' => 'AdminController', 'method' => 'tagAction'],
@@ -73,7 +76,8 @@ $guestRoutes = ['login', 'register', 'forgot-password', 'reset-password'];
 $adminRoutes = [
     'admin', 'admin/dashboard', 'admin/users', 'admin/users/json', 'admin/users/edit',
     'admin/users/delete', 'admin/moderation', 'admin/moderation/action', 'admin/categories',
-    'admin/filieres', 'admin/categories/create-zone', 'admin/categories/create-category',
+    'admin/filieres', 'admin/message-groups', 'admin/message-groups/update',
+    'admin/categories/create-zone', 'admin/categories/create-category',
     'admin/tags/action', 'admin/settings',
 ];
 $roleRoutes = [

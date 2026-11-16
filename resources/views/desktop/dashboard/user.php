@@ -11,7 +11,7 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/resources/views/desktop/partials/admin-sidebar.php'; ?>

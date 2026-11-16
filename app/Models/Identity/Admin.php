@@ -260,6 +260,7 @@ class Admin extends User {
 
         $counts = [
             'etudiant'       => 0,
+            'delegue'        => 0,
             'professeur'     => 0,
             'administrateur' => 0,
             'total'          => 0
@@ -271,6 +272,14 @@ class Admin extends User {
                 $counts['total'] += (int) $row['total'];
             }
         }
+
+        $delegueCountStmt = $this->pdo->query("
+            SELECT COUNT(DISTINCT utilisateur_id) FROM appartenance_zones
+            WHERE role_dans_zone IN ('delegue_de_classe', 'delegue_general')
+        ");
+        $delegueCount = $delegueCountStmt ? (int)$delegueCountStmt->fetchColumn() : 0;
+        $counts['delegue'] = $delegueCount;
+        $counts['etudiant'] = max(0, ($counts['etudiant'] ?? 0) - $delegueCount);
 
         return $counts;
     }

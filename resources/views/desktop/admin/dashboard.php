@@ -1,15 +1,8 @@
 <?php
-/**
- * @var array<int, array<string, mixed>>|null $filiereActivity
- * @var array<int, array<string, mixed>>|null $recentUsers
- * @var string|null $baseUrl
- * @var string|null $assetBase
- */
 $activeAdminPage = 'dashboard';
 $base = isset($baseUrl) ? $baseUrl : '';
 $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
-$filiereActivity = is_array($filiereActivity ?? null) ? $filiereActivity : [];
-$recentUsers = is_array($recentUsers ?? null) ? $recentUsers : [];
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -25,7 +18,7 @@ $recentUsers = is_array($recentUsers ?? null) ? $recentUsers : [];
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->

@@ -1,12 +1,14 @@
 <?php
 
-require_once dirname(__DIR__, 2) . '/Models/Social/Social.php';
-require_once dirname(__DIR__, 2) . '/Models/Notifications/Notification.php';
+require_once ROOT_PATH . '/app/Models/Social/Social.php';
+require_once ROOT_PATH . '/app/Models/Social/FiliereGroups.php';
+require_once ROOT_PATH . '/app/Models/Notifications/Notification.php';
 
 class SocialController
 {
     private PDO $pdo;
     private Social $social;
+    private FiliereGroups $filiereGroups;
 
     public function __construct()
     {
@@ -16,6 +18,7 @@ class SocialController
         }
         $this->pdo = $pdo;
         $this->social = new Social($pdo);
+        $this->filiereGroups = new FiliereGroups($pdo);
     }
 
     public function messages(): void
@@ -24,11 +27,35 @@ class SocialController
         global $baseUrl, $base, $assetBase, $asset;
         $friends = $this->social->getInbox($userId);
         $requests = $this->social->getPendingRequests($userId);
-        $selectedId = filter_var($_GET['user'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $groups = $this->filiereGroups->getAccessibleGroups($userId);
+        $selectedId = array_key_exists('user', $_GET)
+            ? filter_var($_GET['user'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
+        $selectedGroupId = array_key_exists('group', $_GET)
+            ? filter_var($_GET['group'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
         $selectedFriend = null;
+        $selectedGroup = null;
         $messages = [];
+        $groupMessages = [];
+        $groupMembers = [];
 
-        if ($selectedId !== false && $selectedId !== null) {
+        if ($selectedGroupId !== false && $selectedGroupId !== null) {
+            foreach ($groups as $group) {
+                if ((int)$group['id'] === (int)$selectedGroupId) {
+                    $selectedGroup = $group;
+                    break;
+                }
+            }
+            if ($selectedGroup !== null) {
+                $groupMessages = $this->filiereGroups->getMessages($userId, (int)$selectedGroupId);
+                $groupMembers = $this->filiereGroups->getGroupMembers($userId, (int)$selectedGroupId);
+            } else {
+                $_SESSION['flash_error'] = 'Vous n’avez pas accès à ce groupe.';
+            }
+        } elseif ($selectedGroupId === false) {
+            $_SESSION['flash_error'] = 'Groupe invalide.';
+        } elseif ($selectedId !== false && $selectedId !== null) {
             foreach ($friends as $friend) {
                 if ((int)$friend['id'] === (int)$selectedId) {
                     $selectedFriend = $friend;
@@ -40,9 +67,13 @@ class SocialController
             } else {
                 $_SESSION['flash_error'] = 'Vous pouvez discuter uniquement avec vos amis.';
             }
+        } elseif ($selectedId === false) {
+            $_SESSION['flash_error'] = 'Conversation invalide.';
         }
         $friends = $this->social->getInbox($userId);
-        $unreadMessagesCount = $this->social->getUnreadMessageCount($userId);
+        $groups = $this->filiereGroups->getAccessibleGroups($userId);
+        $unreadMessagesCount = $this->social->getUnreadMessageCount($userId)
+            + array_sum(array_map(static fn (array $group): int => (int)$group['unread_count'], $groups));
 
         if (empty($_SESSION['social_csrf'])) {
             $_SESSION['social_csrf'] = bin2hex(random_bytes(32));
@@ -54,73 +85,86 @@ class SocialController
         require ROOT_PATH . '/resources/views/desktop/messages/index.php';
     }
 
+    public function sendGroupMessage(): void
+    {
+        $userId = $this->requireAuthentication();
+        $this->requirePostAndCsrf();
+        $groupId = filter_var($_POST['group_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($groupId === false || $groupId === null) {
+            $this->redirectWithError('Groupe invalide.', 'messages');
+        }
+
+        try {
+            $this->filiereGroups->sendMessage($userId, (int)$groupId, (string)($_POST['contenu'] ?? ''));
+            $_SESSION['flash_success'] = 'Message envoyé au groupe.';
+        } catch (InvalidArgumentException|DomainException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Envoi du message de groupe impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'Le message n’a pas pu être envoyé.';
+        }
+
+        header('Location: ' . url('messages?group=' . (int)$groupId));
+        exit;
+    }
+
     public function friendAction(): void
     {
         $userId = $this->requireAuthentication();
         $this->requirePostAndCsrf();
-        $otherUserId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if ($otherUserId === false || $otherUserId === null || $otherUserId === $userId) {
-            $this->redirectWithError('Profil utilisateur invalide.', 'profile');
-        }
-
-        $otherUser = $this->pdo->prepare('SELECT id, prenom, nom FROM utilisateurs WHERE id = ? AND est_actif = 1 LIMIT 1');
-        $otherUser->execute([$otherUserId]);
-        $target = $otherUser->fetch(PDO::FETCH_ASSOC);
-        if (!$target) {
-            $this->redirectWithError('Utilisateur introuvable.', 'profile');
-        }
-
+        $targetId = filter_var($_POST['target_user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $action = (string)($_POST['action'] ?? '');
+        $returnUrl = (string)($_POST['return_url'] ?? 'messages');
+
+        if ($targetId === false || $targetId === null) {
+            $this->redirectWithError('Utilisateur cible invalide.', $returnUrl);
+        }
+
         try {
-            if ($action === 'request') {
-                $result = $this->social->requestFriend($userId, (int)$otherUserId);
-                if ($result === 'sent') {
+            switch ($action) {
+                case 'request':
+                    $this->social->sendFriendRequest($userId, (int)$targetId);
                     $this->notifySafely(
-                        (int)$otherUserId,
+                        (int)$targetId,
                         'friend_request',
-                        trim((string)($_SESSION['user_prenom'] ?? '') . ' ' . (string)($_SESSION['user_nom'] ?? '')) . ' vous a envoyé une demande d’ami.',
+                        ($_SESSION['user_prenom'] ?? 'Un membre') . ' vous a envoyé une demande d’ami.',
                         url('messages')
                     );
                     $_SESSION['flash_success'] = 'Demande d’ami envoyée.';
-                } elseif ($result === 'incoming_request') {
-                    $_SESSION['flash_error'] = 'Cette personne vous a déjà envoyé une demande. Consultez vos demandes reçues.';
-                } else {
-                    $_SESSION['flash_error'] = $result === 'already_friends'
-                        ? 'Vous êtes déjà amis.'
-                        : 'Une demande est déjà en attente.';
-                }
-            } elseif (in_array($action, ['accept', 'decline', 'cancel'], true)) {
-                $changed = $this->social->respondToRequest($userId, (int)$otherUserId, $action);
-                if (!$changed) {
-                    $_SESSION['flash_error'] = 'Cette demande n’est plus disponible.';
-                } elseif ($action === 'accept') {
+                    break;
+                case 'accept':
+                    $this->social->acceptFriendRequest($userId, (int)$targetId);
                     $this->notifySafely(
-                        (int)$otherUserId,
-                        'friend_accepted',
-                        trim((string)($_SESSION['user_prenom'] ?? '') . ' ' . (string)($_SESSION['user_nom'] ?? '')) . ' a accepté votre demande d’ami.',
+                        (int)$targetId,
+                        'friend_accept',
+                        ($_SESSION['user_prenom'] ?? 'Un membre') . ' a accepté votre demande d’ami.',
                         url('messages?user=' . $userId)
                     );
-                    $_SESSION['flash_success'] = 'Demande acceptée. Vous pouvez maintenant discuter.';
-                } else {
-                    $_SESSION['flash_success'] = $action === 'cancel'
-                        ? 'Demande d’ami annulée.'
-                        : 'Demande refusée.';
-                }
-            } elseif ($action === 'remove') {
-                $_SESSION['flash_success'] = $this->social->removeFriend($userId, (int)$otherUserId)
-                    ? 'Amitié supprimée.'
-                    : 'Cette personne ne figure pas dans vos amis.';
-            } else {
-                $_SESSION['flash_error'] = 'Action non reconnue.';
+                    $_SESSION['flash_success'] = 'Demande d’ami acceptée.';
+                    break;
+                case 'reject':
+                    $this->social->rejectFriendRequest($userId, (int)$targetId);
+                    $_SESSION['flash_success'] = 'Demande d’ami refusée.';
+                    break;
+                case 'cancel':
+                    $this->social->cancelFriendRequest($userId, (int)$targetId);
+                    $_SESSION['flash_success'] = 'Demande d’ami annulée.';
+                    break;
+                case 'remove':
+                    $this->social->removeFriend($userId, (int)$targetId);
+                    $_SESSION['flash_success'] = 'Ami retiré de vos contacts.';
+                    break;
+                default:
+                    $this->redirectWithError('Action sociale non reconnue.', $returnUrl);
             }
-        } catch (PDOException $exception) {
-            error_log('Mise à jour d’une relation sociale impossible : ' . $exception->getMessage());
-            $_SESSION['flash_error'] = 'La demande n’a pas pu être traitée. Vérifiez que la mise à jour de la base de données est appliquée.';
-        } catch (InvalidArgumentException $exception) {
+        } catch (DomainException $exception) {
             $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Action relationnelle impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'L’opération a échoué. Veuillez réessayer.';
         }
 
-        header('Location: ' . url('profile?id=' . (int)$otherUserId));
+        header('Location: ' . url($returnUrl));
         exit;
     }
 
@@ -128,25 +172,24 @@ class SocialController
     {
         $userId = $this->requireAuthentication();
         $this->requirePostAndCsrf();
-        $recipientId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if ($recipientId === false || $recipientId === null || $recipientId === $userId) {
+        $recipientId = filter_var($_POST['recipient_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $content = (string)($_POST['contenu'] ?? '');
+        $attachments = $_FILES['attachments'] ?? null;
+
+        if ($recipientId === false || $recipientId === null) {
             $this->redirectWithError('Destinataire invalide.', 'messages');
         }
 
         try {
-            $this->social->sendMessage(
-                $userId,
-                (int)$recipientId,
-                (string)($_POST['contenu'] ?? ''),
-                $_FILES['pieces_jointes'] ?? []
-            );
-            $senderName = trim((string)($_SESSION['user_prenom'] ?? '') . ' ' . (string)($_SESSION['user_nom'] ?? ''));
-            $this->notifySafely(
-                (int)$recipientId,
-                'private_message',
-                $senderName . ' vous a envoyé un message privé.',
-                url('messages?user=' . $userId)
-            );
+            $messageId = $this->social->sendMessage($userId, (int)$recipientId, $content, $attachments);
+            if ($messageId > 0) {
+                $this->notifySafely(
+                    (int)$recipientId,
+                    'message',
+                    ($_SESSION['user_prenom'] ?? 'Un membre') . ' vous a envoyé un message privé.',
+                    url('messages?user=' . $userId)
+                );
+            }
             $_SESSION['flash_success'] = 'Message envoyé.';
         } catch (InvalidArgumentException|DomainException $exception) {
             $_SESSION['flash_error'] = $exception->getMessage();
@@ -154,8 +197,8 @@ class SocialController
             error_log('Envoi du message privé impossible : ' . $exception->getMessage());
             $_SESSION['flash_error'] = 'Le message n’a pas pu être envoyé.';
         } catch (RuntimeException $exception) {
-            error_log('Stockage du message privé impossible : ' . $exception->getMessage());
-            $_SESSION['flash_error'] = 'Le message ou ses pièces jointes n’ont pas pu être envoyés.';
+            error_log('Erreur de fichier lors de l’envoi de message privé : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = $exception->getMessage();
         }
 
         header('Location: ' . url('messages?user=' . (int)$recipientId));
@@ -166,30 +209,20 @@ class SocialController
     {
         $userId = $this->requireAuthentication();
         $this->requirePostAndCsrf();
-        $friendId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $messageId = filter_var($_POST['message_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $action = (string)($_POST['delete_action'] ?? '');
-        if ($friendId === false || $friendId === null || $friendId === $userId
-            || $messageId === false || $messageId === null) {
-            $this->redirectWithError('Message ou conversation invalide.', 'messages');
+        $friendId = filter_var($_POST['friend_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        if ($messageId === false || $messageId === null) {
+            $this->redirectWithError('Message introuvable.', 'messages');
         }
 
         try {
-            if ($action === 'me') {
-                $deleted = $this->social->deleteMessageForMe($userId, (int)$messageId, (int)$friendId);
-                $_SESSION[$deleted ? 'flash_success' : 'flash_error'] = $deleted
-                    ? 'Message supprimé pour vous.'
-                    : 'Ce message n’est plus disponible dans cette conversation.';
-            } elseif ($action === 'everyone') {
-                $deleted = $this->social->deleteMessageForEveryone($userId, (int)$messageId, (int)$friendId);
-                $_SESSION[$deleted ? 'flash_success' : 'flash_error'] = $deleted
-                    ? 'Message supprimé pour tout le monde.'
-                    : 'Seuls vos messages non supprimés peuvent être retirés pour tout le monde.';
-            } else {
-                $_SESSION['flash_error'] = 'Action de suppression inconnue.';
-            }
+            $this->social->deleteMessageForUser($userId, (int)$messageId);
+            $_SESSION['flash_success'] = 'Message supprimé.';
+        } catch (DomainException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
         } catch (PDOException $exception) {
-            error_log('Suppression d’un message privé impossible : ' . $exception->getMessage());
+            error_log('Suppression du message privé impossible : ' . $exception->getMessage());
             $_SESSION['flash_error'] = 'Le message n’a pas pu être supprimé.';
         } catch (RuntimeException $exception) {
             error_log('Suppression des pièces jointes d’un message privé impossible : ' . $exception->getMessage());

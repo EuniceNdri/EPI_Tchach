@@ -1,46 +1,43 @@
 <?php
 /**
  * =============================================================
- * resources/views/desktop/notifications.php
- * Centre de Notifications – EPI Tchach (École Polytechnique Internationale)
+ * views/desktop/notifications.php – Centre de Notifications
  * =============================================================
- *
- * @var string|null $baseUrl
- * @var string|null $assetBase
- * @var array|null  $notifications
- * @var int|null    $unreadCount
- * @var bool|null   $canModerateReports
+ * Style unifié EPI Tchach · Design inspiré de Reddit
+ * =============================================================
  */
 
-$base = is_string($baseUrl ?? null) ? $baseUrl : '';
-$asset = is_string($assetBase ?? null)
-  ? $assetBase
-  : ($base !== '' ? $base . '/public/assets' : '/public/assets');
+$base = isset($baseUrl) ? $baseUrl : '';
+$asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public/assets' : '/public/assets');
 $logoFile = $asset . '/images/logo.jpeg';
 
-$notifications = is_array($notifications ?? null) ? $notifications : [];
+$notifications = $notifications ?? [];
 $unreadCount = max(0, (int)($unreadCount ?? 0));
-$canModerateReports = !empty($canModerateReports);
+$userRole = strtolower($_SESSION['user_role'] ?? 'etudiant');
+$sessionAvatarUrl = !empty($_SESSION['user_avatar'])
+    ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))
+    : '';
 
-if (!isset($_SESSION) || !is_array($_SESSION)) {
-  $_SESSION = [];
-}
-$currentUserRole = strtolower(trim((string)($_SESSION['user_role'] ?? 'etudiant')));
+if (!function_exists('formatDateNotif')) {
+    function formatDateNotif(string $dateStr): string {
+        try {
+            $date = new DateTime($dateStr);
+            $now = new DateTime();
+            $diff = $now->diff($date);
 
-if (!function_exists('formatNotificationDate')) {
-  function formatNotificationDate(string $dateStr): string {
-    try {
-      $date = new DateTimeImmutable($dateStr);
-      $seconds = max(0, time() - $date->getTimestamp());
-      if ($seconds < 60) return "À l'instant";
-      if ($seconds < 3600) return 'Il y a ' . (int)floor($seconds / 60) . ' min';
-      if ($seconds < 86400) return 'Il y a ' . (int)floor($seconds / 3600) . ' h';
-      if ($seconds < 604800) return 'Il y a ' . (int)floor($seconds / 86400) . ' j';
-      return $date->format('d/m/Y à H:i');
-    } catch (Exception $e) {
-      return $dateStr;
+            if ($diff->y > 0) return "Il y a " . $diff->y . " an" . ($diff->y > 1 ? 's' : '');
+            if ($diff->m > 0) return "Il y a " . $diff->m . " mois";
+            if ($diff->d > 0) {
+                if ($diff->d === 1) return "Hier à " . $date->format('H:i');
+                return "Il y a " . $diff->d . " jours";
+            }
+            if ($diff->h > 0) return "Il y a " . $diff->h . " h";
+            if ($diff->i > 0) return "Il y a " . $diff->i . " min";
+            return "À l'instant";
+        } catch (Exception $e) {
+            return $dateStr;
+        }
     }
-  }
 }
 ?>
 <!DOCTYPE html>
@@ -48,251 +45,506 @@ if (!function_exists('formatNotificationDate')) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notifications <?= $unreadCount > 0 ? '(' . $unreadCount . ')' : '' ?> · EPI Tchach</title>
+  <title>Notifications (<?= (int)$unreadCount ?>) · EPI Tchach</title>
   <link rel="icon" type="image/svg+xml" href="<?= $asset ?>/images/logo_epi.svg" />
   <link rel="apple-touch-icon" href="<?= $asset ?>/images/logo.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/community-shell.css" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/salon.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/salon.css') ?>" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/notifications.css" />
   <link rel="stylesheet" href="<?= $asset ?>/css/feedback.css" />
+  <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
+<body class="community-shell community-salon community-notifications" data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
+  <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <?php include ROOT_PATH . '/resources/views/partials/feedback-toast.php'; ?>
+  
+  <!-- Bande tricolore signature EPI -->
+  <div class="tricolor-bar"></div>
 
-  <!-- Barre tricolore officielle Yamoussoukro -->
-  <div class="tricolor-bar" aria-hidden="true"></div>
+  <!-- ==============================================================
+   * BARRE SUPÉRIEURE (EPI STYLE TOPBAR)
+   * ============================================================== -->
+  <header class="epi-topbar">
+    <div class="epi-topbar-inner">
+      
+      <!-- GAUCHE : Logo & Brand -->
+      <div class="epi-topbar-left">
+        <a class="epi-brand" href="<?= $base ?>/salon" aria-label="Accueil EPI Tchach">
+          <div class="epi-brand-icon">
+            <img src="<?= htmlspecialchars($logoFile, ENT_QUOTES, 'UTF-8') ?>" alt="EPI" onerror="this.style.display='none'" />
+          </div>
+          <span class="epi-brand-title">EPI <span class="accent">Tchach</span></span>
+        </a>
 
-  <!-- Barre de navigation supérieure -->
-  <header class="notif-topbar">
-    <div class="topbar-container">
-      <a href="<?= $base ?>/salon" class="topbar-brand" title="Retourner au Salon">
-        <img src="<?= htmlspecialchars($logoFile) ?>" alt="EPI Logo" class="topbar-logo" onerror="this.style.display='none'" />
-        <div class="topbar-text">
-          <span class="topbar-title">EPI <span class="brand-accent">Tchach</span></span>
-          <span class="topbar-subtitle">Centre de Notifications</span>
+        <a class="epi-community-pill" href="<?= $base ?>/notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Notifications</span>
+        </a>
+      </div>
+
+      <!-- CENTRE : Barre de Recherche -->
+      <div class="epi-topbar-center">
+        <div class="epi-search-box">
+          <span class="epi-search-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="search" class="epi-search-input" placeholder="Rechercher des publications ou des profils..." autocomplete="off">
         </div>
-      </a>
+      </div>
 
-      <nav class="topbar-nav" aria-label="Liens rapides">
-        <a href="<?= $base ?>/salon" class="btn-topbar-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Salon Général</span>
+      <!-- DROITE : Messagerie, + Créer, Notifications, Profil -->
+      <div class="epi-topbar-right">
+        
+        <!-- Messagerie -->
+        <a href="<?= $base ?>/messages" class="epi-icon-action" title="Messagerie" aria-label="Messagerie">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <?php if ($unreadMessagesCount > 0): ?><span class="epi-badge-count"><?= $unreadMessagesCount > 99 ? '99+' : (int)$unreadMessagesCount ?></span><?php endif; ?>
         </a>
-        <a href="<?= $base ?>/profile" class="btn-topbar-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Mon Profil</span>
+
+        <!-- Bouton + Créer une publication -->
+        <button type="button" class="epi-create-post-btn" data-open-create-post-modal aria-label="Créer une publication">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Créer</span>
+        </button>
+
+        <!-- Notifications (actif) -->
+        <a href="<?= $base ?>/notifications" class="epi-icon-action" style="color:var(--community-green); background:var(--community-raised);" title="Notifications" aria-label="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <?php if ($unreadCount > 0): ?>
+            <span class="epi-badge-count"><?= $unreadCount ?></span>
+          <?php endif; ?>
         </a>
-        <?php if ($canModerateReports): ?>
-          <a href="<?= $base ?>/moderation" class="btn-topbar-link is-moderation-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Modération</span>
-          </a>
+
+        <!-- Profil Utilisateur -->
+        <?php if (!empty($_SESSION['user_id'])): ?>
+          <div class="epi-user-menu-wrapper">
+            <button type="button" class="epi-profile-pill" id="userMenuToggle" aria-label="Menu du profil utilisateur" aria-haspopup="true" aria-expanded="false">
+              <div class="epi-avatar-bubble">
+                <span class="epi-avatar-fallback"><?= htmlspecialchars(strtoupper(mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1))) ?></span>
+                <img class="epi-avatar-image" src="<?= htmlspecialchars($sessionAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" <?= $sessionAvatarUrl === '' ? 'hidden' : '' ?> />
+                <span class="epi-status-dot" aria-label="En ligne"></span>
+              </div>
+              <div class="epi-profile-info">
+                <span class="epi-profile-name"><?= htmlspecialchars($_SESSION['user_prenom'] ?? 'Membre') ?></span>
+                <span class="epi-profile-role"><?= htmlspecialchars(ucfirst((string)($_SESSION['user_role'] ?? 'etudiant'))) ?></span>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="epi-user-dropdown" id="userMenuDropdown" hidden>
+              <div class="epi-dropdown-header">
+                <strong><?= htmlspecialchars(($_SESSION['user_prenom'] ?? '') . ' ' . ($_SESSION['user_nom'] ?? '')) ?></strong>
+                <small><?= htmlspecialchars($_SESSION['user_email'] ?? '') ?></small>
+              </div>
+              <a href="<?= $base ?>/profile" class="epi-dropdown-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Mon profil</span>
+              </a>
+              <a href="<?= $base ?>/salon?view=saved" class="epi-dropdown-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                <span>Mes sauvegardes</span>
+              </a>
+              <?php if ($userRole === 'administrateur'): ?>
+                <a href="<?= $base ?>/admin" class="epi-dropdown-item" style="color:var(--community-orange);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <span>Panneau Admin</span>
+                </a>
+              <?php endif; ?>
+              <div class="epi-dropdown-divider"></div>
+              <a href="<?= $base ?>/logout" class="epi-dropdown-item epi-logout-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Déconnexion</span>
+              </a>
+            </div>
+          </div>
+        <?php else: ?>
+          <a href="<?= $base ?>/login" class="epi-auth-pill">Connexion</a>
         <?php endif; ?>
-        <?php if (in_array($currentUserRole, ['administrateur', 'admin'], true)): ?>
-          <a href="<?= $base ?>/admin" class="btn-topbar-link is-admin-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span>Admin</span>
-          </a>
-        <?php endif; ?>
-      </nav>
+
+      </div>
     </div>
   </header>
 
-  <!-- Contenu Principal sous forme de Fenêtre Popup / Dialogue Élégant -->
-  <main class="notif-wrapper">
+  <!-- ==============================================================
+   * LAYOUT PRINCIPAL (GRID POINT TEMPLATE SCOPÉ SALON & NOTIFICATIONS)
+   * ============================================================== -->
+  <div class="epi-salon-grid">
 
-    <div class="notif-popup-window">
-      <!-- En-tête de la fenêtre popup -->
-      <div class="popup-window-header">
-        <div class="popup-header-title-box">
-          <div class="popup-header-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+    <!-- ========== SIDEBAR GAUCHE (grid-area: sidebar) ========== -->
+    <aside class="epi-sidebar-left">
+      <div class="epi-sidebar-box">
+        <div class="epi-nav-heading">Navigation</div>
+        <a href="<?= $base ?>/salon" class="epi-nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Fil public</span>
+        </a>
+        <a href="<?= $base ?>/salon?view=popular" class="epi-nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          <span>Populaires</span>
+        </a>
+        <a href="<?= $base ?>/profile" class="epi-nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Mon profil</span>
+        </a>
+        <a href="<?= $base ?>/notifications" class="epi-nav-item is-active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Notifications</span>
+        </a>
+
+        <?php if ($userRole === 'administrateur' || $userRole === 'moderateur'): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Gestion</div>
+            <a href="<?= $base ?>/admin/moderation" class="epi-nav-item" style="color:var(--community-orange);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Modération</span>
+            </a>
           </div>
-          <div>
-            <h1 class="popup-title">
-              <span>Notifications</span>
-              <span class="notif-unread-counter" id="badgeTotalUnread" style="<?= $unreadCount > 0 ? '' : 'display:none;' ?>">
-                <?= (int)$unreadCount ?>
-              </span>
-            </h1>
-            <p class="popup-subtitle">Vos alertes, mentions et interactions de l'EPI en temps réel</p>
-          </div>
+        <?php endif; ?>
+      </div>
+    </aside>
+
+    <!-- ========== CONTENU PRINCIPAL (grid-area: main) ========== -->
+    <main class="epi-main-feed">
+
+      <!-- En-tête de la page Notifications -->
+      <div class="notif-heading-row">
+        <div class="notif-heading-title">
+          <h1>Notifications</h1>
+          <span class="notif-heading-badge" id="badgeTotalUnread" style="<?= $unreadCount > 0 ? '' : 'display:none;' ?>">
+            <?= (int)$unreadCount ?> non lue<?= $unreadCount > 1 ? 's' : '' ?>
+          </span>
         </div>
 
-        <div class="popup-header-actions">
-          <?php if (!empty($notifications) && $unreadCount > 0): ?>
-            <button type="button" class="btn-mark-all-read" id="btnMarkAllRead" title="Marquer tout comme lu">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Tout marquer lu</span>
-            </button>
-          <?php endif; ?>
-          <a href="<?= $base ?>/salon" class="btn-popup-close-window" title="Retourner au Salon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </a>
-        </div>
+        <?php if (!empty($notifications) && $unreadCount > 0): ?>
+          <button type="button" class="btn-mark-all-read" id="btnMarkAllRead">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Tout marquer comme lu</span>
+          </button>
+        <?php endif; ?>
       </div>
 
-      <!-- Barre d'onglets de filtrage -->
-      <div class="notif-filter-bar" role="tablist" aria-label="Filtrer les notifications">
-        <div class="filter-tabs-scroll">
-          <button type="button" class="filter-tab is-active" data-filter="all" role="tab" aria-selected="true">
-            <span>Toutes</span>
-            <span class="tab-badge-count" id="countAll"><?= count($notifications) ?></span>
-          </button>
-          <button type="button" class="filter-tab" data-filter="unread" role="tab" aria-selected="false">
-            <span>Non lues</span>
-            <span class="tab-badge-count is-unread-badge" id="countUnreadTab" style="<?= $unreadCount > 0 ? '' : 'display:none;' ?>">
-              <?= (int)$unreadCount ?>
-            </span>
-          </button>
-          <button type="button" class="filter-tab" data-filter="reponse" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>Commentaires</span>
-          </button>
-          <button type="button" class="filter-tab" data-filter="reaction" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span>J’aime</span>
-          </button>
-          <button type="button" class="filter-tab" data-filter="mention" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
-            <span>Mentions</span>
-          </button>
-          <button type="button" class="filter-tab" data-filter="moderation" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Modération</span>
-          </button>
-        </div>
+      <!-- Onglets de filtrage -->
+      <div class="notif-tabs-bar">
+        <button type="button" class="notif-tab active" data-filter="all">
+          <span>Toutes</span>
+          <span class="notif-tab-count" id="countAll"><?= count($notifications) ?></span>
+        </button>
+        <button type="button" class="notif-tab" data-filter="unread">
+          <span>Non lues</span>
+          <span class="notif-tab-count" id="countUnreadTab"><?= (int)$unreadCount ?></span>
+        </button>
+        <button type="button" class="notif-tab" data-filter="reaction">
+          <span>Réactions</span>
+        </button>
+        <button type="button" class="notif-tab" data-filter="moderation">
+          <span>Modération & Alertes</span>
+        </button>
       </div>
 
-      <!-- Corps défilable de la popup -->
-      <div class="popup-window-scroll-body">
-        <div class="notif-cards-stack" id="notifListContainer">
-      <?php if (empty($notifications)): ?>
-        <div class="notif-empty-state-box">
-          <div class="empty-icon-circle">
-            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.75">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </div>
-          <h2>Vous êtes parfaitement à jour !</h2>
-          <p>Aucune notification pour l’instant. Vous recevrez une alerte dès qu’un camarade réagit ou répond à l’un de vos sujets.</p>
-          <a href="<?= $base ?>/salon" class="btn-empty-return">Explorer le Salon Général</a>
-        </div>
-      <?php else: ?>
-        <?php foreach ($notifications as $n):
-          $isUnread = empty($n['lu']) || $n['lu'] == 0;
-          $type = htmlspecialchars($n['type_notification'] ?? 'systeme');
-          $notifId = (int)$n['id'];
-
-          // Catégorisation pour filtrage
-          $filterGroup = 'systeme';
-          if ($type === 'reaction') {
-            $filterGroup = 'reaction';
-          } elseif ($type === 'reponse' || $type === 'comment') {
-            $filterGroup = 'reponse';
-          } elseif ($type === 'mention') {
-            $filterGroup = 'mention';
-          } elseif (in_array($type, ['moderation', 'avertissement', 'blocage'], true)) {
-            $filterGroup = 'moderation';
-          }
-
-          // Libellé en français
-          $labelMap = [
-            'reaction'        => 'J’aime',
-            'reponse'         => 'Commentaire',
-            'comment'         => 'Commentaire',
-            'publication'     => 'Publication',
-            'mention'         => 'Mention',
-            'solution'        => 'Solution validée',
-            'avertissement'   => 'Avertissement',
-            'moderation'      => 'Modération',
-            'friend_request'  => 'Demande d’ami',
-            'friend_accepted' => 'Ami accepté',
-            'private_message' => 'Message privé',
-            'systeme'         => 'Système',
-          ];
-          $typeLabel = $labelMap[$type] ?? ucfirst($type);
-        ?>
-          <article class="notif-card <?= $isUnread ? 'is-unread' : 'is-read' ?> notif-type-<?= $type ?>"
-                   data-notif-id="<?= $notifId ?>"
-                   data-type="<?= $type ?>"
-                   data-group="<?= $filterGroup ?>"
-                   data-unread="<?= $isUnread ? '1' : '0' ?>">
-
-            <!-- Icône vectorielle SVG selon le type -->
-            <div class="notif-icon-circle icon-<?= $type ?>" aria-hidden="true">
-              <?php if ($type === 'reaction'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              <?php elseif ($type === 'reponse' || $type === 'comment'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <?php elseif ($type === 'mention'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
-              <?php elseif ($type === 'solution'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <?php elseif (in_array($type, ['avertissement', 'moderation', 'blocage'], true)): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <?php elseif ($type === 'friend_request' || $type === 'friend_accepted'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <?php elseif ($type === 'private_message'): ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <?php else: ?>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <?php endif; ?>
+      <!-- Liste des Cartes de Notification -->
+      <div class="notif-list" id="notifListContainer">
+        <?php if (empty($notifications)): ?>
+          <div class="notif-empty-state">
+            <div class="notif-empty-mascot">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
             </div>
+            <h3>Aucune activité pour l'instant</h3>
+            <p>Ce n'est pas grave, vous recevrez une alerte dès qu'un membre réagit ou répond à l'une de vos publications dans les salons.</p>
+            <a href="<?= $base ?>/salon" class="notif-empty-btn">Explorer les salons</a>
+          </div>
+        <?php else: ?>
+          <?php foreach ($notifications as $n): 
+            $isUnread = empty($n['lu']) || $n['lu'] == 0;
+            $type = htmlspecialchars($n['type_notification'] ?? 'systeme');
+            $notifId = (int)$n['id'];
 
-            <!-- Contenu textuel et détails -->
-            <div class="notif-body">
-              <div class="notif-meta-row">
-                <span class="notif-badge badge-<?= $type ?>"><?= htmlspecialchars($typeLabel) ?></span>
-                <time class="notif-date" datetime="<?= htmlspecialchars($n['date_creation'] ?? '') ?>">
-                  <?= formatNotificationDate($n['date_creation'] ?? 'now') ?>
-                </time>
+            $iconMap = [
+              'reaction'      => '❤️',
+              'avertissement' => '⚠️',
+              'moderation'    => '🛑',
+              'reponse'       => '💬',
+              'solution'      => '✅',
+              'systeme'       => 'ℹ️',
+              'mention'       => '@'
+            ];
+            $iconChar = $iconMap[$type] ?? '🔔';
+
+            $categoryFilter = 'systeme';
+            if ($type === 'reaction') {
+                $categoryFilter = 'reaction';
+            } elseif (in_array($type, ['moderation', 'avertissement', 'blocage'], true)) {
+                $categoryFilter = 'moderation';
+            }
+          ?>
+            <article class="notif-card <?= $isUnread ? 'unread' : 'read' ?>" 
+                 data-notif-id="<?= $notifId ?>" 
+                 data-type="<?= $type ?>" 
+                 data-group="<?= $categoryFilter ?>" 
+                 data-unread="<?= $isUnread ? '1' : '0' ?>">
+              
+              <div class="notif-type-icon <?= $type ?>">
+                <?= $iconChar ?>
               </div>
 
-              <div class="notif-message">
-                <?= htmlspecialchars($n['contenu'] ?? '') ?>
-              </div>
+              <div class="notif-content-area">
+                <div class="notif-card-header">
+                  <span class="notif-type-badge <?= $type ?>"><?= ucfirst($type) ?></span>
+                  <span class="notif-time"><?= formatDateNotif($n['date_creation'] ?? 'now') ?></span>
+                </div>
 
-              <div class="notif-actions-row">
-                <?php if (!empty($n['lien'])): ?>
-                  <a href="<?= htmlspecialchars($n['lien']) ?>" class="btn-notif-action is-link">
-                    <span>Accéder au contenu</span>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                  </a>
-                <?php endif; ?>
+                <div class="notif-message-text">
+                  <?= htmlspecialchars($n['contenu'] ?? '') ?>
+                </div>
 
-                <?php if ($isUnread): ?>
-                  <button type="button" class="btn-notif-action btn-mark-one-read" data-id="<?= $notifId ?>">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Marquer comme lu</span>
+                <div class="notif-card-footer">
+                  <?php if (!empty($n['lien'])): ?>
+                    <a href="<?= htmlspecialchars($n['lien']) ?>" class="notif-action-link">
+                      <span>Accéder au contenu</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </a>
+                  <?php endif; ?>
+
+                  <?php if ($isUnread): ?>
+                    <button type="button" class="btn-mark-one-read" data-id="<?= $notifId ?>">
+                      Marquer comme lu
+                    </button>
+                  <?php endif; ?>
+
+                  <button type="button" class="btn-delete-notif" data-id="<?= $notifId ?>" title="Supprimer cette notification">
+                    Supprimer
                   </button>
-                <?php endif; ?>
-
-                <button type="button" class="btn-notif-delete btn-delete-notif" data-id="<?= $notifId ?>" title="Supprimer cette alerte">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
+                </div>
               </div>
-            </div>
 
-            <!-- Point indicateur non-lu -->
-            <?php if ($isUnread): ?>
-              <span class="notif-unread-glow" title="Non lue" aria-hidden="true"></span>
-            <?php endif; ?>
-
-          </article>
-        <?php endforeach; ?>
-      <?php endif; ?>
-        </div>
+              <?php if ($isUnread): ?>
+                <div class="notif-unread-dot" title="Non lu"></div>
+              <?php endif; ?>
+            </article>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
-    </div>
 
-  </main>
+    </main>
 
-  <script src="<?= $asset ?>/js/desktop/notification-badge.js"></script>
-  <script src="<?= $asset ?>/js/desktop/notifications.js"></script>
-  <script src="<?= $asset ?>/js/feedback.js" defer></script>
+    <!-- ========== SIDEBAR DROITE (grid-area: rightbar) ========== -->
+    <aside class="epi-sidebar-right">
+      <div class="epi-widget-card">
+        <div class="epi-widget-banner"></div>
+        <div class="epi-widget-title">
+          <span>Centre d'activité</span>
+        </div>
+        <p class="epi-about-text">
+          Restez informé de toutes vos interactions, questions résolues et actualités de la communauté de l'École Polytechnique Internationale.
+        </p>
+        <div class="epi-widget-stats">
+          <div class="epi-stat-block">
+            <span class="epi-stat-value"><?= count($notifications) ?></span>
+            <span class="epi-stat-label">Total reçues</span>
+          </div>
+          <div class="epi-stat-block">
+            <span class="epi-stat-value"><?= (int)$unreadCount ?></span>
+            <span class="epi-stat-label">Non lues</span>
+          </div>
+        </div>
+        <a href="<?= $base ?>/salon" class="epi-btn-submit" style="display:block; text-align:center; text-decoration:none;">
+          Explorer les salons
+        </a>
+      </div>
+
+      <div class="epi-widget-card">
+        <div class="epi-widget-title">
+          <span>Règles d'EPI Tchach</span>
+        </div>
+        <ol style="padding-left:1.2rem; font-size:0.82rem; color:var(--community-muted); line-height:1.6; margin:0;">
+          <li>Notifications générées en temps réel.</li>
+          <li>Les alertes de modération doivent être consultées en priorité.</li>
+          <li>Nettoyez régulièrement vos notifications archivées.</li>
+        </ol>
+      </div>
+    </aside>
+
+  </div>
+
+  <?php include ROOT_PATH . '/resources/views/desktop/partials/post-composer-modal.php'; ?>
+
+  <!-- Centre de toast dynamique -->
+  <div class="notif-toast-center" id="toastCenter"></div>
+
+  <!-- Script interactif AJAX -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const baseUrl = "<?= $base ?>";
+
+      const showToast = (message) => {
+        const center = document.getElementById("toastCenter");
+        if (!center) return;
+        const toast = document.createElement("div");
+        toast.className = "notif-toast";
+        toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>${message}</span>`;
+        center.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(10px)";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      };
+
+      const updateBadges = (newCount) => {
+        const badge = document.getElementById("badgeTotalUnread");
+        const countTab = document.getElementById("countUnreadTab");
+        if (badge) {
+          badge.textContent = `${newCount} non lue${newCount > 1 ? 's' : ''}`;
+          badge.style.display = newCount > 0 ? "inline-flex" : "none";
+        }
+        if (countTab) {
+          countTab.textContent = newCount;
+        }
+        const btnAll = document.getElementById("btnMarkAllRead");
+        if (btnAll && newCount <= 0) {
+          btnAll.style.display = "none";
+        }
+      };
+
+      // 1. Marquer une notification comme lue
+      document.querySelectorAll(".btn-mark-one-read").forEach(btn => {
+        btn.addEventListener("click", async function(e) {
+          e.preventDefault();
+          const card = this.closest(".notif-card");
+          const notifId = this.getAttribute("data-id") || card?.getAttribute("data-notif-id");
+          if (!notifId) return;
+
+          try {
+            const formData = new FormData();
+            formData.append("notification_id", notifId);
+
+            const res = await fetch(`${baseUrl}/notifications/mark-read`, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              card.classList.remove("unread");
+              card.classList.add("read");
+              card.setAttribute("data-unread", "0");
+              const dot = card.querySelector(".notif-unread-dot");
+              if (dot) dot.remove();
+              this.remove();
+
+              updateBadges(data.unread_count ?? 0);
+              showToast("Notification marquée comme lue.");
+            }
+          } catch (err) {
+            console.error("Erreur mark-read:", err);
+          }
+        });
+      });
+
+      // 2. Tout marquer comme lu
+      const btnAll = document.getElementById("btnMarkAllRead");
+      if (btnAll) {
+        btnAll.addEventListener("click", async function() {
+          try {
+            const res = await fetch(`${baseUrl}/notifications/mark-all-read`, {
+              method: "POST",
+              headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              document.querySelectorAll(".notif-card.unread").forEach(card => {
+                card.classList.remove("unread");
+                card.classList.add("read");
+                card.setAttribute("data-unread", "0");
+                const dot = card.querySelector(".notif-unread-dot");
+                if (dot) dot.remove();
+                const readBtn = card.querySelector(".btn-mark-one-read");
+                if (readBtn) readBtn.remove();
+              });
+
+              updateBadges(0);
+              showToast("Toutes les notifications sont marquées comme lues.");
+            }
+          } catch (err) {
+            console.error("Erreur mark-all-read:", err);
+          }
+        });
+      }
+
+      // 3. Supprimer une notification
+      document.querySelectorAll(".btn-delete-notif").forEach(btn => {
+        btn.addEventListener("click", async function(e) {
+          e.preventDefault();
+          const card = this.closest(".notif-card");
+          const notifId = this.getAttribute("data-id") || card?.getAttribute("data-notif-id");
+          if (!notifId) return;
+
+          try {
+            const formData = new FormData();
+            formData.append("notification_id", notifId);
+
+            const res = await fetch(`${baseUrl}/notifications/delete`, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              card.style.transition = "all 0.3s ease";
+              card.style.opacity = "0";
+              card.style.transform = "scale(0.96)";
+              setTimeout(() => card.remove(), 300);
+
+              updateBadges(data.unread_count ?? 0);
+              showToast("Notification supprimée.");
+            }
+          } catch (err) {
+            console.error("Erreur delete notif:", err);
+          }
+        });
+      });
+
+      // 4. Filtrage dynamique par onglet
+      const filterTabs = document.querySelectorAll(".notif-tab");
+      const cards = document.querySelectorAll(".notif-card");
+
+      filterTabs.forEach(tab => {
+        tab.addEventListener("click", function() {
+          filterTabs.forEach(t => t.classList.remove("active"));
+          this.classList.add("active");
+
+          const filter = this.getAttribute("data-filter");
+
+          cards.forEach(card => {
+            const isUnread = card.getAttribute("data-unread") === "1";
+            const group = card.getAttribute("data-group");
+            const type = card.getAttribute("data-type");
+
+            let visible = true;
+            if (filter === "unread") {
+              visible = isUnread;
+            } else if (filter === "reaction") {
+              visible = (type === "reaction");
+            } else if (filter === "moderation") {
+              visible = (group === "moderation");
+            }
+
+            card.style.display = visible ? "flex" : "none";
+          });
+        });
+      });
+    });
+  </script>
+  <script src="<?= $asset ?>/js/desktop/salon.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/salon.js') ?>"></script>
 </body>
 </html>

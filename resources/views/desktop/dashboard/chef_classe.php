@@ -7,11 +7,11 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><?= htmlspecialchars($title ?? 'Dashboard Délégué de classe') ?> · EPI Tchach</title>
+  <title><?= htmlspecialchars($title ?? 'Dashboard Chef de classe') ?> · EPI Tchach</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/resources/views/desktop/partials/admin-sidebar.php'; ?>
@@ -19,39 +19,27 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
     <main class="admin-main-area">
       <header class="admin-topbar">
         <div>
-          <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard Délégué de classe') ?></h1>
+          <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard Chef de classe') ?></h1>
           <p style="margin:0.25rem 0 0; color:var(--admin-muted);">Zone suivie : <?= htmlspecialchars($scopeLabel ?? 'Non renseignée') ?></p>
         </div>
       </header>
 
       <div class="admin-content">
-        <p>Vous pouvez consulter et traiter uniquement les signalements concernant votre zone.</p>
-        <p><a class="btn-table-action" href="<?= htmlspecialchars($base) ?>/moderation">Traiter les signalements de ma zone</a></p>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Membres de ma zone</span>
-              <div class="kpi-icon-pill pill-blue" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Membres de la filière</span></div>
             <div class="kpi-value"><?= number_format(count($filteredUsers ?? []), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Signalements en attente</span>
-              <div class="kpi-icon-pill pill-red" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Signalements en attente</span></div>
             <div class="kpi-value" style="color:var(--admin-accent);"><?= number_format(count($recentReports ?? []), 0, ',', ' ') ?></div>
           </div>
         </div>
 
         <div class="admin-card">
           <div class="card-header-flex">
-            <h2 class="card-title">Membres de ma zone</h2>
-            <span style="color:var(--admin-muted); font-size:0.85rem;">Rôle : <?= htmlspecialchars($roleLabel ?? 'Délégué de classe') ?></span>
+            <h2 class="card-title">Membres de la filière</h2>
+            <span style="color:var(--admin-muted); font-size:0.85rem;">Rôle : <?= htmlspecialchars($roleLabel ?? 'Chef de classe') ?></span>
           </div>
           <div class="table-responsive">
             <table class="admin-table">
@@ -73,6 +61,31 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
                       <td><?= htmlspecialchars((string)($user['email'] ?? '')) ?></td>
                       <td><?= htmlspecialchars((string)($user['filiere'] ?? 'Non renseignée')) ?></td>
                       <td><?= htmlspecialchars((string)($user['role'] ?? '')) ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+        <div class="admin-card">
+          <div class="card-header-flex">
+            <h2 class="card-title">Signalements récents dans ma filière</h2>
+            <a href="<?= $base ?>/moderation" class="epi-btn-primary" style="font-size:0.85rem; padding:0.4rem 0.8rem; border-radius:6px; text-decoration:none; color:#fff; background:var(--admin-accent, #e67e22);">Accéder à la modération</a>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead><tr><th>Date</th><th>Contenu signalé</th><th>Motif</th><th>Statut</th><th>Action</th></tr></thead>
+              <tbody>
+                <?php if (empty($recentReports)): ?>
+                  <tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--admin-muted);">Aucun signalement en attente dans votre filière.</td></tr>
+                <?php else: ?>
+                  <?php foreach ($recentReports as $report): ?>
+                    <tr>
+                      <td><?= htmlspecialchars((string)($report['date_signalement'] ?? '')) ?></td>
+                      <td><?= htmlspecialchars((string)($report['cible_titre'] ?? 'Contenu')) ?></td>
+                      <td><?= htmlspecialchars((string)($report['motif'] ?? '')) ?></td>
+                      <td><span class="badge badge-warning"><?= htmlspecialchars(ucfirst(str_replace('_', ' ', (string)($report['statut'] ?? 'en attente')))) ?></span></td>
+                      <td><a href="<?= $base ?>/moderation" style="color:var(--admin-accent); font-weight:600;">Traiter</a></td>
                     </tr>
                   <?php endforeach; ?>
                 <?php endif; ?>

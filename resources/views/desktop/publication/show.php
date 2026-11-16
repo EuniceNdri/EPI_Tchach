@@ -1,24 +1,7 @@
 <?php
-/**
- * @var string|null $pageBase
- * @var string|null $pageAsset
- * @var array<string, mixed>|null $publication
- * @var array<int, array<string, mixed>>|null $comments
- * @var array<int, array<string, mixed>>|null $publicationAttachments
- * @var array<int, array<string, mixed>>|null $pollOptions
- * @var int|null $unreadMessagesCount
- * @var int|null $unreadCount
- */
 $base = is_string($pageBase ?? null) ? $pageBase : '';
 $asset = is_string($pageAsset ?? null) ? $pageAsset : ($base . '/public/assets');
-$publication = is_array($publication ?? null) ? $publication : [];
-$comments = is_array($comments ?? null) ? $comments : [];
-$publicationAttachments = is_array($publicationAttachments ?? null) ? $publicationAttachments : [];
-$pollOptions = is_array($pollOptions ?? null) ? $pollOptions : [];
-$unreadMessagesCount = (int)($unreadMessagesCount ?? 0);
-$unreadCount = (int)($unreadCount ?? 0);
-
-$authorName = trim((string)($publication['prenom'] ?? '') . ' ' . (string)($publication['nom'] ?? ''));
+$authorName = trim((string)$publication['prenom'] . ' ' . (string)$publication['nom']);
 $authorAvatar = !empty($publication['avatar_url'])
     ? url('public/' . ltrim((string)$publication['avatar_url'], '/'))
     : '';
@@ -39,7 +22,7 @@ $roleLabels = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars((string)($publication['titre'] ?? 'Publication')) ?> · EPI Tchach</title>
+  <title><?= htmlspecialchars((string)$publication['titre']) ?> · EPI Tchach</title>
   <link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($asset) ?>/images/logo_epi.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -202,6 +185,9 @@ $roleLabels = [
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
             </button>
             <span class="epi-vote-count publication-like-count" data-live-likes><?= (int)$publication['likes_count'] ?></span>
+            <button type="button" class="epi-vote-btn downvote" aria-label="Vote bas">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
           </div>
           <a class="epi-pill-btn post-discussion-button publication-comment-count" href="#publicationCommentsTitle" aria-label="Commentaires" title="Commentaires">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-.9 1.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg>
@@ -306,10 +292,10 @@ $roleLabels = [
     </section>
     <aside class="publication-detail-sidebar">
       <div class="publication-sidebar-card">
-        <span class="publication-sidebar-kicker">À propos du salon</span>
-        <h2><?= htmlspecialchars((string)$publication['zone_name']) ?></h2>
-        <p>Cette publication est partagée dans le salon <strong><?= htmlspecialchars((string)$publication['category_name']) ?></strong>.</p>
-        <a class="epi-pill-btn" href="<?= htmlspecialchars($base) ?>/salon?category=<?= (int)$publication['categorie_id'] ?>">Voir le salon</a>
+        <span class="publication-sidebar-kicker">Fil public</span>
+        <h2>Visible par tous</h2>
+        <p>Catégorie : <strong><?= htmlspecialchars((string)$publication['category_name']) ?></strong>.</p>
+        <a class="epi-pill-btn" href="<?= htmlspecialchars($base) ?>/salon">Retour au fil public</a>
       </div>
       <div class="publication-sidebar-card publication-sidebar-guidelines">
         <strong>Gardons la discussion constructive</strong>

@@ -81,7 +81,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body data-base-url="<?= htmlspecialchars($base ?? '') ?>">
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <!-- Barre Latérale Commune -->
@@ -109,8 +109,8 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
             </div>
             <div>
-              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Traitement des signalements</h3>
-              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">L’administration traite les signalements de toute l’école. Le délégué de classe ne voit et ne traite que ceux de sa zone.</p>
+              <h3 style="font-size:1rem; font-weight:800; color:var(--admin-primary); margin:0 0 0.25rem 0;">Règles d'intervention des modérateurs</h3>
+              <p style="font-size:0.85rem; color:var(--admin-muted); margin:0;">4 décisions disponibles : avertir l'auteur, bloquer la publication, supprimer le contenu (avec motif) ou rejeter le signalement.</p>
             </div>
           </div>
           <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte</a>
@@ -122,7 +122,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
             <div id="noReportsCard" class="admin-card" style="text-align:center; padding:3rem 1.5rem; color:var(--admin-muted);">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 0.75rem; display:block; opacity:0.6;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
               <h3 style="font-size:1.1rem; font-weight:800; color:var(--admin-dark); margin:0 0 0.5rem 0;">Aucun signalement en attente</h3>
-              <p style="font-size:0.9rem; margin:0;">Tous les salons respectent actuellement la charte de modération du campus.</p>
+              <p style="font-size:0.9rem; margin:0;">Aucun contenu ne nécessite actuellement une intervention de modération.</p>
             </div>
           <?php else: ?>
             <?php foreach ($reports as $r): 
@@ -243,7 +243,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               <thead>
                 <tr>
                   <th>Date & Heure</th>
-                  <th>Responsable</th>
+                  <th>Modérateur</th>
                   <th>Action Réalisée</th>
                   <th>Cible</th>
                   <th>Motif</th>
@@ -280,7 +280,7 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
     </main>
   </div>
 
-  <!-- Modale de décision sur un signalement -->
+  <!-- Modale Interactive de Prise de Décision Modérateur -->
   <div id="moderationDecisionModal" class="admin-modal-overlay" style="display:none;">
     <div class="admin-modal-container" style="max-width:540px; padding:1.75rem;">
       <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.25rem;">

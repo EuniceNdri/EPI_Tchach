@@ -14,11 +14,22 @@ $landingImageUrl = static function (string $path) use ($asset): string {
   return rtrim($base, '/') . '/' . $path;
 };
 $filiereImages = [
+  'ATPA' => 'filiere-industrielle.jpg',
+  'ATPV' => 'filiere-industrielle.jpg',
+  'GERNA' => 'filiere-industrielle.jpg',
+  'GBAT' => 'filiere-industrielle.jpg',
+  'GTP' => 'filiere-industrielle.jpg',
+  'GGT' => 'filiere-industrielle.jpg',
   'IDA' => 'filiere-industrielle.jpg',
-  'LIC-INFO' => 'filiere-industrielle.jpg',
-  'GM' => 'filiere-industrielle.jpg',
-  'GC' => 'filiere-industrielle.jpg',
+  'RIT' => 'filiere-industrielle.jpg',
+  'ELT' => 'filiere-industrielle.jpg',
+  'MSP' => 'filiere-industrielle.jpg',
+  'RHCOM' => 'filiere-tertiaire.jpg',
+  'AD' => 'filiere-tertiaire.jpg',
+  'TH' => 'filiere-tertiaire.jpg',
+  'LOG' => 'filiere-tertiaire.jpg',
   'FCGE' => 'filiere-tertiaire.jpg',
+  'GEC' => 'filiere-tertiaire.jpg',
 ];
 ?>
 <!DOCTYPE html>
@@ -183,7 +194,7 @@ $filiereImages = [
         <details><summary>Qui peut rejoindre EPI Tchach ?</summary><p>Les étudiants, professeurs et délégués de l'École Polytechnique Internationale de Yamoussoukro.</p></details>
         <details><summary>L'inscription est-elle gratuite ?</summary><p>Oui, la création d'un compte et l'accès à la communauté sont gratuits.</p></details>
         <details><summary>Comment accéder aux ressources de ma filière ?</summary><p>Après inscription et connexion, vous pourrez rejoindre les espaces de discussion correspondant à votre filière.</p></details>
-        <details><summary>Comment les échanges sont-ils modérés ?</summary><p>L’administration et les délégués de classe veillent au respect de la charte et au bon déroulement des échanges dans leur périmètre.</p></details>
+        <details><summary>Comment les échanges sont-ils modérés ?</summary><p>Des modérateurs, délégués et enseignants veillent au respect de la charte et au bon déroulement des échanges.</p></details>
       </div>
     </section>
 

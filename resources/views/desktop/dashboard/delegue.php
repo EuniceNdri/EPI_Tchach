@@ -11,7 +11,7 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/resources/views/desktop/partials/admin-sidebar.php'; ?>
@@ -20,55 +20,30 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
       <header class="admin-topbar">
         <div>
           <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard Délégué') ?></h1>
-          <p style="margin:0.25rem 0 0; color:var(--admin-muted);">Vue globale de l’activité de l’établissement — consultation uniquement.</p>
+          <p style="margin:0.25rem 0 0; color:var(--admin-muted);">Vue globale de l'activité de l'établissement — consultation uniquement.</p>
         </div>
       </header>
 
       <div class="admin-content">
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Utilisateurs</span>
-              <div class="kpi-icon-pill pill-blue" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Utilisateurs</span></div>
             <div class="kpi-value"><?= number_format((int)($globalKPIs['total_users'] ?? 0), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Étudiants</span>
-              <div class="kpi-icon-pill pill-green" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Étudiants</span></div>
             <div class="kpi-value"><?= number_format((int)($globalKPIs['etudiants_count'] ?? 0), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Professeurs</span>
-              <div class="kpi-icon-pill pill-amber" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Professeurs</span></div>
             <div class="kpi-value"><?= number_format((int)($globalKPIs['professeurs_count'] ?? 0), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Publications</span>
-              <div class="kpi-icon-pill pill-blue" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Publications</span></div>
             <div class="kpi-value"><?= number_format((int)($globalKPIs['publications_count'] ?? 0), 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Signalements en attente</span>
-              <div class="kpi-icon-pill pill-red" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Signalements en attente</span></div>
             <div class="kpi-value" style="color:var(--admin-accent);"><?= number_format((int)($globalKPIs['signalements_count'] ?? 0), 0, ',', ' ') ?></div>
           </div>
         </div>
@@ -104,7 +79,7 @@ $asset = $asset ?? (isset($assetBase) ? $assetBase : '/public/assets');
         <div class="admin-card">
           <div class="card-header-flex">
             <h2 class="card-title">Signalements récents</h2>
-            <span style="color:var(--admin-muted); font-size:0.85rem;">Lecture seule — transmettez les situations à l’administration.</span>
+            <span style="color:var(--admin-muted); font-size:0.85rem;">Lecture seule — transmettez les situations à l'administration.</span>
           </div>
           <div class="table-responsive">
             <table class="admin-table">

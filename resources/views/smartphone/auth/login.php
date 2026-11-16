@@ -64,7 +64,7 @@ $logoPath = $asset . '/images/logo.jpeg';
       </div>
 
       <?php if (!empty($error)): ?>
-        <div class="alert alert-error" role="alert" aria-live="assertive">
+        <div class="alert alert-error">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span><?= htmlspecialchars($error) ?></span>
         </div>
@@ -83,9 +83,8 @@ $logoPath = $asset . '/images/logo.jpeg';
           <label for="email" class="form-label">Adresse email</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <input type="email" id="email" name="email" class="form-input" placeholder="exemple@gmail.com" required autocomplete="email" aria-invalid="<?= isset($fieldErrors['email']) ? 'true' : 'false' ?>" aria-describedby="email-error" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
+            <input type="email" id="email" name="email" class="form-input" placeholder="exemple@gmail.com" required autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" />
           </div>
-          <?php if (!empty($fieldErrors['email'])): ?><small class="field-error" id="email-error"><?= htmlspecialchars($fieldErrors['email']) ?></small><?php endif; ?>
         </div>
 
         <!-- Champ Mot de Passe -->
@@ -93,13 +92,12 @@ $logoPath = $asset . '/images/logo.jpeg';
           <label for="mot_de_passe" class="form-label">Mot de passe</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input type="password" id="mot_de_passe" name="mot_de_passe" class="form-input" placeholder="••••••••" required autocomplete="current-password" aria-invalid="<?= isset($fieldErrors['mot_de_passe']) ? 'true' : 'false' ?>" aria-describedby="mot-de-passe-error" />
+            <input type="password" id="mot_de_passe" name="mot_de_passe" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
             <button type="button" class="toggle-password" data-target="mot_de_passe" aria-label="Afficher ou masquer">
               <svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
             </button>
           </div>
-          <?php if (!empty($fieldErrors['mot_de_passe'])): ?><small class="field-error" id="mot-de-passe-error"><?= htmlspecialchars($fieldErrors['mot_de_passe']) ?></small><?php endif; ?>
         </div>
 
         <!-- Options du formulaire -->

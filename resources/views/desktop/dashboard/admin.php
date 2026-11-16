@@ -16,7 +16,7 @@ $topReports = array_slice($recentReports, 0, 4);
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/admin.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body>
+<body data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <div class="admin-wrapper">
     <?php include ROOT_PATH . '/resources/views/desktop/partials/admin-sidebar.php'; ?>
@@ -32,39 +32,19 @@ $topReports = array_slice($recentReports, 0, 4);
       <div class="admin-content">
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Utilisateurs inscrits</span>
-              <div class="kpi-icon-pill pill-blue" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Utilisateurs</span></div>
             <div class="kpi-value"><?= number_format($kpis['total_users'] ?? 0, 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Filières actives</span>
-              <div class="kpi-icon-pill pill-green" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Filières</span></div>
             <div class="kpi-value"><?= number_format($kpis['zones_count'] ?? 0, 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Signalements urgents</span>
-              <div class="kpi-icon-pill pill-red" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Signalements</span></div>
             <div class="kpi-value" style="color:var(--admin-accent);"><?= number_format($kpis['signalements_count'] ?? 0, 0, ',', ' ') ?></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Publications partagées</span>
-              <div class="kpi-icon-pill pill-amber" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-            </div>
+            <div class="kpi-header"><span class="kpi-title">Publications</span></div>
             <div class="kpi-value"><?= number_format($kpis['publications_count'] ?? 0, 0, ',', ' ') ?></div>
           </div>
         </div>

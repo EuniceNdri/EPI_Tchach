@@ -14,11 +14,22 @@ $landingImageUrl = static function (string $path) use ($asset): string {
   return rtrim($base, '/') . '/' . $path;
 };
 $filiereImages = [
+  'ATPA' => 'filiere-industrielle.jpg',
+  'ATPV' => 'filiere-industrielle.jpg',
+  'GERNA' => 'filiere-industrielle.jpg',
+  'GBAT' => 'filiere-industrielle.jpg',
+  'GTP' => 'filiere-industrielle.jpg',
+  'GGT' => 'filiere-industrielle.jpg',
   'IDA' => 'filiere-industrielle.jpg',
-  'LIC-INFO' => 'filiere-industrielle.jpg',
-  'GM' => 'filiere-industrielle.jpg',
-  'GC' => 'filiere-industrielle.jpg',
+  'RIT' => 'filiere-industrielle.jpg',
+  'ELT' => 'filiere-industrielle.jpg',
+  'MSP' => 'filiere-industrielle.jpg',
+  'RHCOM' => 'filiere-tertiaire.jpg',
+  'AD' => 'filiere-tertiaire.jpg',
+  'TH' => 'filiere-tertiaire.jpg',
+  'LOG' => 'filiere-tertiaire.jpg',
   'FCGE' => 'filiere-tertiaire.jpg',
+  'GEC' => 'filiere-tertiaire.jpg',
 ];
 ?>
 <!DOCTYPE html>
@@ -465,7 +476,7 @@ $filiereImages = [
               <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="faq-answer">
-              <p>Absolument. L’administration et les délégués de classe veillent au respect de la charte de bonne conduite pour garantir un espace bienveillant, constructif et sécurisé pour chacun.</p>
+              <p>Absolument. Des modérateurs, délégués et enseignants veillent au respect de la charte de bonne conduite pour garantir un espace bienveillant, constructif et sécurisé pour chacun.</p>
             </div>
           </div>
         </div>

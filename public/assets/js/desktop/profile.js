@@ -1,78 +1,41 @@
 /**
  * ============================================================
  * EPI TCHACH – Script JavaScript Desktop Profil (profile.js)
- * Navigation fluide par onglets horizontaux, Modale d'édition AJAX,
- * Publication instantanée avec retour optimiste et toasts.
+ * Navigation par onglets, Modale Popup d'édition,
+ * Mises à jour AJAX dynamiques sans rechargement de page
  * ============================================================
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Fonction utilitaire d'envoi AJAX avec progression
-  const sendFormWithProgress = (url, formData, onProgress) => new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("POST", url);
-    request.setRequestHeader("Accept", "application/json");
-    request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-    request.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable && onProgress) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    });
-    request.addEventListener("load", () => {
-      if (!(request.getResponseHeader("content-type") || "").includes("application/json")) {
-        reject(new Error(request.responseURL.includes("/login")
-          ? "Votre session a expiré. Veuillez vous reconnecter."
-          : "Le serveur a renvoyé une réponse inattendue."));
-        return;
-      }
-      let result;
-      try {
-        result = JSON.parse(request.responseText);
-      } catch {
-        reject(new Error("La réponse du serveur est invalide."));
-        return;
-      }
-      if (request.status < 200 || request.status >= 300 || !result.success) {
-        reject(new Error(result.message || "L’envoi n’a pas pu être effectué."));
-        return;
-      }
-      resolve(result);
-    });
-    request.addEventListener("error", () => reject(new Error("Impossible de joindre le serveur. Réessayez.")));
-    request.send(formData);
-  });
-
   // ============================================================
-  // 1. GESTION DES ONGLETS DU PROFIL (Généraux & Spécifiques rôles)
+  // 1. GESTION DES ONGLETS DU PROFIL (Navigation fluide)
   // ============================================================
-  const tabNavButtons = document.querySelectorAll(".profile-nav-tab, .sidebar-tab-link");
+  const tabButtons = document.querySelectorAll(".tab-btn, .sidebar-tab-link");
   const tabContents = document.querySelectorAll(".tab-content");
 
-  tabNavButtons.forEach((btn) => {
+  tabButtons.forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const targetId = btn.getAttribute("data-tab");
       if (!targetId) return;
       e.preventDefault();
 
-      // Mettre à jour l'état actif sur les boutons d'onglets
-      tabNavButtons.forEach((b) => {
-        if (b.getAttribute("data-tab") === targetId) {
-          b.classList.add("active");
-        } else {
-          b.classList.remove("active");
+      // Mettre à jour l'état actif sur tous les déclencheurs
+      tabButtons.forEach((b) => {
+        const isActive = b.getAttribute("data-tab") === targetId;
+        b.classList.toggle("active", isActive);
+        b.classList.toggle("is-active", isActive);
+      });
+
+      // Basculer l'affichage du contenu sans rechargement
+      tabContents.forEach((c) => {
+        const isActive = c.id === targetId;
+        c.classList.toggle("active", isActive);
+        c.classList.toggle("is-active", isActive);
+        if (isActive) {
+          c.style.animation = "fadeInTab 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
         }
       });
 
-      // Basculer l'affichage du contenu d'onglet correspondant
-      tabContents.forEach((content) => {
-        if (content.id === targetId) {
-          content.classList.add("active");
-        } else {
-          content.classList.remove("active");
-        }
-      });
-
-      // Synchroniser le paramètre d'URL sans rechargement de page
       const tabName = targetId.replace("tab-", "");
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set("tab", tabName);
@@ -80,11 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Filtres de recherche/filtrage dans l'onglet des publications
   const postCategoryFilter = document.getElementById("profilePostCategoryFilter");
   const postStatusFilter = document.getElementById("profilePostStatusFilter");
   const documentCategoryFilter = document.getElementById("profileDocumentCategoryFilter");
-
   const filterProfilePosts = () => {
     document.querySelectorAll("[data-profile-post]").forEach((post) => {
       const categoryMatches = !postCategoryFilter
@@ -96,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
       post.hidden = !(categoryMatches && statusMatches);
     });
   };
-
   const filterProfileDocuments = () => {
     document.querySelectorAll("[data-profile-document]").forEach((documentRow) => {
       documentRow.hidden = Boolean(documentCategoryFilter)
@@ -104,13 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
         && documentRow.dataset.categoryId !== documentCategoryFilter.value;
     });
   };
-
   postCategoryFilter?.addEventListener("change", filterProfilePosts);
   postStatusFilter?.addEventListener("change", filterProfilePosts);
   documentCategoryFilter?.addEventListener("change", filterProfileDocuments);
 
   // ============================================================
-  // 2. MODALE POPUP D'ÉDITION DU PROFIL (Fluidité complète)
+  // 2. MODALE POPUP D'ÉDITION DU PROFIL
   // ============================================================
   const editModal = document.getElementById("profileEditModal");
 
@@ -120,7 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (typeof e.stopPropagation === "function") e.stopPropagation();
     }
     if (!editModal) return;
+    editModal.hidden = false;
+    editModal.removeAttribute("hidden");
     editModal.classList.add("show");
+    editModal.style.display = "flex";
     editModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
   };
@@ -131,28 +93,34 @@ document.addEventListener("DOMContentLoaded", () => {
       document.activeElement.blur();
     }
     editModal.classList.remove("show");
+    editModal.style.display = "none";
+    editModal.hidden = true;
     editModal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   };
 
   if (editModal) {
-    const closeBtns = editModal.querySelectorAll(".btn-close-modal, #cancelEditModalBtn");
+    // Boutons de fermeture
+    const closeBtns = editModal.querySelectorAll(".btn-close-modal, #closeEditModalBtn, #cancelEditModalBtn");
     closeBtns.forEach((btn) => btn.addEventListener("click", window.closeProfileEditModal));
 
+    // Clic sur l'arrière-plan pour fermer
     editModal.addEventListener("click", (e) => {
       if (e.target === editModal) {
         window.closeProfileEditModal();
       }
     });
 
+    // Touche Échap
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && editModal.classList.contains("show")) {
         window.closeProfileEditModal();
       }
     });
 
+    // Déclencheurs globaux (boutons "Modifier mon profil")
     document.addEventListener("click", (e) => {
-      const trigger = e.target.closest(".open-profile-edit-modal, [data-open-modal='profileEditModal']");
+      const trigger = e.target.closest(".open-profile-edit-modal, [data-open-modal='profileEditModal'], a[href*='profile/edit']");
       if (trigger) {
         e.preventDefault();
         window.openProfileEditModal(e);
@@ -161,76 +129,205 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 3. MISE À JOUR DU PROFIL EN AJAX (Sans rechargement)
+  // 3. MISE À JOUR DYNAMIQUE SANS RECHARGEMENT DE PAGE (AJAX)
   // ============================================================
   const profileEditForm = document.getElementById("ajaxProfileEditForm");
 
   if (profileEditForm) {
     const avatarInput = profileEditForm.querySelector("[data-profile-avatar-input]");
-    const progressFeedback = profileEditForm.querySelector("[data-profile-upload-feedback]");
     const avatarPreview = document.getElementById("editAvatarPreview");
-    const removeAvatarInput = profileEditForm.querySelector("[data-remove-profile-avatar]");
-    const clearAvatarButton = profileEditForm.querySelector("[data-clear-profile-avatar]");
+    const cropModal = document.getElementById("avatarCropModal");
+    const cropViewport = document.getElementById("avatarCropViewport");
+    const cropImage = document.getElementById("avatarCropImage");
+    const cropZoom = document.getElementById("avatarCropZoom");
+    const applyCropButton = document.getElementById("applyAvatarCropBtn");
+    let cropImageUrl = null;
     let avatarPreviewUrl = null;
+    let acceptedAvatarFile = null;
+    let cropDimensions = null;
+    let cropOffset = { x: 0, y: 0 };
+    let dragPosition = null;
+
+    const setCropImagePosition = () => {
+      if (!cropDimensions || !cropImage || !cropViewport) return;
+      const { width, height, baseScale } = cropDimensions;
+      const scale = baseScale * Number(cropZoom?.value || 1);
+      const imageWidth = width * scale;
+      const imageHeight = height * scale;
+      const viewportSize = cropViewport.clientWidth;
+      cropOffset.x = Math.min(0, Math.max(viewportSize - imageWidth, cropOffset.x));
+      cropOffset.y = Math.min(0, Math.max(viewportSize - imageHeight, cropOffset.y));
+      cropImage.style.width = `${imageWidth}px`;
+      cropImage.style.height = `${imageHeight}px`;
+      cropImage.style.left = `${cropOffset.x}px`;
+      cropImage.style.top = `${cropOffset.y}px`;
+    };
+
+    const closeCropModal = (restorePreviousFile) => {
+      if (!cropModal) return;
+      cropModal.classList.remove("show");
+      cropModal.hidden = true;
+      cropModal.setAttribute("aria-hidden", "true");
+      if (restorePreviousFile && avatarInput) {
+        const transfer = new DataTransfer();
+        if (acceptedAvatarFile) transfer.items.add(acceptedAvatarFile);
+        avatarInput.files = transfer.files;
+      }
+      if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+      cropImageUrl = null;
+      cropImage?.removeAttribute("src");
+    };
 
     avatarInput?.addEventListener("change", () => {
-      if (avatarInput.files?.[0] && removeAvatarInput) removeAvatarInput.value = "0";
-      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
       const file = avatarInput.files?.[0];
-      if (!file || !avatarPreview) return;
-      avatarPreviewUrl = URL.createObjectURL(file);
-      avatarPreview.src = avatarPreviewUrl;
-      avatarPreview.hidden = false;
+      if (!file || !cropModal || !cropImage || !cropViewport) return;
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        window.showToast("Choisissez une image JPG, PNG ou WEBP.", "error");
+        closeCropModal(true);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        window.showToast("La photo de profil doit peser au maximum 5 Mo.", "error");
+        closeCropModal(true);
+        return;
+      }
+
+      if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+      cropImageUrl = URL.createObjectURL(file);
+      cropModal.hidden = false;
+      cropModal.classList.add("show");
+      cropModal.setAttribute("aria-hidden", "false");
+      cropImage.onload = () => {
+        const viewportSize = cropViewport.clientWidth;
+        const baseScale = Math.max(viewportSize / cropImage.naturalWidth, viewportSize / cropImage.naturalHeight);
+        cropDimensions = { width: cropImage.naturalWidth, height: cropImage.naturalHeight, baseScale };
+        cropOffset = {
+          x: (viewportSize - cropImage.naturalWidth * baseScale) / 2,
+          y: (viewportSize - cropImage.naturalHeight * baseScale) / 2,
+        };
+        if (cropZoom) cropZoom.value = "1";
+        setCropImagePosition();
+        document.getElementById("cancelAvatarCropBtn")?.focus();
+      };
+      cropImage.onerror = () => {
+        closeCropModal(true);
+        window.showToast("Cette image ne peut pas être ouverte. Essayez un autre fichier.", "error");
+      };
+      cropImage.src = cropImageUrl;
     });
 
-    clearAvatarButton?.addEventListener("click", () => {
-      if (avatarInput) avatarInput.value = "";
-      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-      avatarPreviewUrl = null;
-      if (avatarPreview) {
-        avatarPreview.removeAttribute("src");
-        avatarPreview.hidden = true;
+    cropZoom?.addEventListener("input", setCropImagePosition);
+    cropViewport?.addEventListener("pointerdown", (event) => {
+      if (!cropDimensions) return;
+      dragPosition = { x: event.clientX - cropOffset.x, y: event.clientY - cropOffset.y };
+      cropViewport.classList.add("is-dragging");
+      cropViewport.setPointerCapture(event.pointerId);
+    });
+    cropViewport?.addEventListener("pointermove", (event) => {
+      if (!dragPosition) return;
+      cropOffset = { x: event.clientX - dragPosition.x, y: event.clientY - dragPosition.y };
+      setCropImagePosition();
+    });
+    const stopCropDrag = () => {
+      dragPosition = null;
+      cropViewport?.classList.remove("is-dragging");
+    };
+    cropViewport?.addEventListener("pointerup", stopCropDrag);
+    cropViewport?.addEventListener("pointercancel", stopCropDrag);
+    document.getElementById("cancelAvatarCropBtn")?.addEventListener("click", () => closeCropModal(true));
+    document.getElementById("closeAvatarCropBtn")?.addEventListener("click", () => closeCropModal(true));
+    cropModal?.addEventListener("click", (event) => {
+      if (event.target === cropModal) closeCropModal(true);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && cropModal?.classList.contains("show")) {
+        closeCropModal(true);
       }
-      if (removeAvatarInput) removeAvatarInput.value = "1";
+    });
+
+    applyCropButton?.addEventListener("click", () => {
+      if (!cropDimensions || !cropImage || !avatarInput || !avatarPreview || !cropViewport) return;
+      const outputSize = 512;
+      const scale = cropDimensions.baseScale * Number(cropZoom?.value || 1);
+      const cropSize = cropViewport.clientWidth / scale;
+      const sourceX = -cropOffset.x / scale;
+      const sourceY = -cropOffset.y / scale;
+      const canvas = document.createElement("canvas");
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        window.showToast("Le recadrage de cette photo est impossible sur cet appareil.", "error");
+        return;
+      }
+      context.drawImage(cropImage, sourceX, sourceY, cropSize, cropSize, 0, 0, outputSize, outputSize);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          window.showToast("La photo recadrée n’a pas pu être préparée.", "error");
+          return;
+        }
+        acceptedAvatarFile = new File([blob], "avatar.jpg", { type: "image/jpeg", lastModified: Date.now() });
+        const transfer = new DataTransfer();
+        transfer.items.add(acceptedAvatarFile);
+        avatarInput.files = transfer.files;
+        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+        avatarPreviewUrl = URL.createObjectURL(acceptedAvatarFile);
+        avatarPreview.src = avatarPreviewUrl;
+        avatarPreview.hidden = false;
+        const initials = avatarPreview.parentElement?.querySelector(".profile-dynamic-initials");
+        if (initials) initials.hidden = true;
+        closeCropModal(false);
+      }, "image/jpeg", 0.92);
     });
 
     profileEditForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const submitBtn = profileEditForm.querySelector("button[type='submit']");
-      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "<span>Enregistrer</span>";
+      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "Enregistrer";
 
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          <span>Enregistrement…</span>
+          <svg class="spin-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <span>Enregistrement en direct...</span>
         `;
       }
 
       const formData = new FormData(profileEditForm);
       formData.append("ajax", "1");
+
       const targetAction = profileEditForm.getAttribute("action") || window.location.pathname.replace(/\/edit\/?$/, "") + "/update";
 
       try {
-        const data = await sendFormWithProgress(targetAction, formData, avatarInput?.files?.length
-          ? (percent) => {
-            if (progressFeedback) progressFeedback.textContent = `Envoi de la photo… ${percent} %`;
-          }
-          : null);
+        const response = await fetch(targetAction, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
 
         if (data.success && data.user) {
+          // 1. Mise à jour instantanée du DOM sans clignotement
           const newFullName = data.user.fullname || `${data.user.prenom} ${data.user.nom}`;
           const newInitials = data.user.initials || "EPI";
           const newBio = data.user.biographie || "";
 
-          // Mettre à jour instantanément les éléments dans la page
+          // Mettre à jour les noms affichés
           document.querySelectorAll(".profile-dynamic-name").forEach((el) => {
             el.textContent = newFullName;
           });
+
+          // Mettre à jour les initiales avatar
           document.querySelectorAll(".profile-dynamic-initials").forEach((el) => {
             el.textContent = newInitials;
           });
-          document.querySelectorAll(".profile-avatar-image").forEach((image) => {
+
+          document.querySelectorAll(".profile-avatar-image, .epi-avatar-image").forEach((image) => {
             if (data.user.avatar_url) {
               image.src = data.user.avatar_url;
               image.hidden = false;
@@ -238,20 +335,26 @@ document.addEventListener("DOMContentLoaded", () => {
               image.removeAttribute("src");
               image.hidden = true;
             }
-          });
-          document.querySelectorAll(".profile-dynamic-bio").forEach((el) => {
-            el.textContent = newBio || "Aucune biographie renseignée.";
+            const fallback = image.parentElement?.querySelector(".profile-dynamic-initials, .epi-avatar-fallback");
+            if (fallback) fallback.hidden = Boolean(data.user.avatar_url);
           });
 
+          // Mettre à jour la biographie
+          document.querySelectorAll(".profile-dynamic-bio").forEach((el) => {
+            el.textContent = newBio || "Aucune biographie renseignée pour l'instant.";
+          });
+
+          // 2. Fermer la modale
           window.closeProfileEditModal();
-          window.showToast("Vos informations ont été mises à jour avec succès !", "success");
+
+          // 3. Afficher notification toast élégante
+          window.showToast("✓ Vos informations ont été mises à jour avec succès !", "success");
         } else {
           window.showToast(data.message || "Erreur lors de la mise à jour.", "error");
         }
       } catch (error) {
         window.showToast(error.message || "Impossible de joindre le serveur. Réessayez.", "error");
       } finally {
-        if (progressFeedback) progressFeedback.textContent = "";
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalBtnHtml;
@@ -261,29 +364,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 4. PUBLICATION RAPIDE AVEC RETOUR EN DIRECT
+  // 4. PUBLICATION RAPIDE SANS RECHARGEMENT (Flux de discussion)
   // ============================================================
   const quickPostForm = document.getElementById("quickPostForm");
   const postsFeedContainer = document.getElementById("postsFeedList");
-  const postAttachments = document.getElementById("postAttachments");
-  const selectedFilesBadge = document.getElementById("selectedFilesBadge");
-
-  postAttachments?.addEventListener("change", () => {
-    const count = postAttachments.files?.length || 0;
-    if (selectedFilesBadge) {
-      if (count > 0) {
-        selectedFilesBadge.textContent = `${count} fichier(s) sélectionné(s)`;
-        selectedFilesBadge.hidden = false;
-      } else {
-        selectedFilesBadge.hidden = true;
-      }
-    }
-  });
 
   if (quickPostForm && postsFeedContainer) {
     quickPostForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const progressFeedback = document.getElementById("quickPostFeedback");
       const textarea = quickPostForm.querySelector("textarea[name='contenu']");
       const titleInput = quickPostForm.querySelector("input[name='titre']");
       const categorySelect = quickPostForm.querySelector("select[name='categorie_id']");
@@ -295,146 +383,199 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!titre || !contenu) return;
 
-      const submitButton = quickPostForm.querySelector("button[type='submit']");
-      const origBtnHtml = submitButton ? submitButton.innerHTML : "<span>Publier le sujet</span>";
+      const appendProfileDocuments = (uploadedAttachments) => {
+        if (!uploadedAttachments.length) return;
 
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 0.8s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          <span>Publication…</span>
-        `;
-      }
+        const documentTab = document.getElementById("tab-docs");
+        if (!documentTab) return;
+
+        let documentList = documentTab.querySelector(".profile-documents-list");
+        if (!documentList) {
+          documentList = document.createElement("div");
+          documentList.className = "profile-documents-list";
+          documentTab.querySelector(".profile-empty")?.remove();
+          documentTab.append(documentList);
+        }
+
+        if (documentCategoryFilter && categoryId
+          && !Array.from(documentCategoryFilter.options).some((option) => option.value === categoryId)) {
+          const option = document.createElement("option");
+          option.value = categoryId;
+          option.textContent = categoryLabel;
+          documentCategoryFilter.append(option);
+        }
+
+        const routeBase = new URL(quickPostForm.action, window.location.href)
+          .pathname.replace(/\/publication\/create\/?$/, "");
+        uploadedAttachments.forEach((attachment) => {
+          const row = document.createElement("div");
+          row.className = "profile-document-row";
+          row.dataset.profileDocument = "";
+          row.dataset.categoryId = categoryId;
+
+          const details = document.createElement("div");
+          const name = document.createElement("strong");
+          name.textContent = attachment.name;
+          const metadata = document.createElement("span");
+          metadata.textContent = `${result.title || titre} · ${categoryLabel} · ${(attachment.size / 1048576).toFixed(2)} Mo`;
+          details.append(name, metadata);
+          if (result.moderationPending) {
+            const moderation = document.createElement("small");
+            moderation.className = "profile-status-badge is-warning";
+            moderation.textContent = "Publication en modération";
+            details.append(moderation);
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "profile-file-actions";
+          if (String(attachment.type || "").startsWith("image/")) {
+            const preview = document.createElement("a");
+            preview.className = "btn btn-outline btn-sm";
+            preview.href = attachment.download_url.replace("/attachment/download/", "/attachment/view/");
+            preview.target = "_blank";
+            preview.rel = "noopener";
+            preview.textContent = "Voir la photo";
+            actions.append(preview);
+          }
+          const download = document.createElement("a");
+          download.className = "btn btn-outline btn-sm";
+          download.href = attachment.download_url;
+          download.textContent = "Télécharger";
+          actions.append(download);
+
+          const saveForm = document.createElement("form");
+          saveForm.action = `${routeBase}/salon/save`;
+          saveForm.method = "post";
+          [["target_type", "attachment"], ["target_id", attachment.id],
+            ["return_page", "profile"], ["return_tab", "docs"]].forEach(([name, value]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = name;
+            input.value = String(value);
+            saveForm.append(input);
+          });
+          const saveButton = document.createElement("button");
+          saveButton.className = "btn btn-outline btn-sm";
+          saveButton.type = "submit";
+          saveButton.textContent = "☆ Ajouter aux favoris";
+          saveForm.append(saveButton);
+          actions.append(saveForm);
+          row.append(details, actions);
+          documentList.prepend(row);
+        });
+        filterProfileDocuments();
+      };
+
+      const submitButton = quickPostForm.querySelector("button[type='submit']");
+      if (submitButton) submitButton.disabled = true;
 
       const formData = new FormData(quickPostForm);
       formData.set("ajax", "1");
-
       try {
-        const attachmentInput = quickPostForm.querySelector("input[type='file']");
-        const result = await sendFormWithProgress(quickPostForm.action, formData, attachmentInput?.files?.length
-          ? (percent) => {
-            if (progressFeedback) progressFeedback.textContent = `Envoi des fichiers… ${percent} %`;
-          }
-          : null);
+        const response = await fetch(quickPostForm.action, {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          body: formData,
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error(response.redirected || response.url.includes("/login")
+            ? "Votre session a expiré. Veuillez vous reconnecter."
+            : "Le serveur a renvoyé une réponse inattendue.");
+        }
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "La publication n'a pas pu être enregistrée.");
+        }
 
         const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
           "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
         }[character]));
+        const userName = escapeHtml(document.querySelector(".profile-dynamic-name")?.textContent || "");
+        const userInitials = escapeHtml(document.querySelector(".profile-dynamic-initials")?.textContent || "");
+        const attachments = (result.attachments || []).map((attachment) =>
+          `<a href="${escapeHtml(attachment.download_url)}" class="btn-post-action">📎 ${escapeHtml(attachment.name)}</a>`
+        ).join("");
 
-        const userName = escapeHtml(document.querySelector(".profile-dynamic-name")?.textContent || "Moi");
-        const userInitials = escapeHtml(document.querySelector(".profile-dynamic-initials")?.textContent || "EPI");
-
-        // Retirer l'état vide si présent
-        postsFeedContainer.querySelector(".profile-empty-state")?.remove();
-
-        // Insérer la nouvelle carte de publication dans le feed
+        // Création de la carte dans le DOM avec animation
         const postCard = document.createElement("article");
-        postCard.className = "post-card";
+        postCard.className = "post-card animated-entry";
         postCard.dataset.profilePost = "";
         postCard.dataset.categoryId = categoryId;
         postCard.dataset.postStatus = result.moderationPending ? "reported" : "visible";
         postCard.innerHTML = `
-          <div class="post-header-flex">
-            <div class="post-author-box">
-              <div class="post-avatar-mini">${userInitials}</div>
-              <div>
-                <div class="post-author-name">${userName}</div>
-                <div class="post-time">À l'instant · ${escapeHtml(categoryLabel)}</div>
-              </div>
-            </div>
-            <div class="profile-post-badges">
-              <span class="post-tag-pill">${escapeHtml(categoryLabel)}</span>
-              <span class="profile-status-badge ${result.moderationPending ? "is-warning" : "is-active"}">${result.moderationPending ? "En modération" : "Visible"}</span>
+        <div class="post-header-flex">
+          <div class="post-author-box">
+            <div class="post-avatar-mini">${userInitials}</div>
+            <div>
+              <div class="post-author-name">${userName}</div>
+              <div class="post-time">À l'instant · ${escapeHtml(categoryLabel)}</div>
             </div>
           </div>
-          <h4 class="post-title">
-            <a href="${result.publication_id ? window.location.origin + '/publication/' + result.publication_id : '#'}" class="profile-post-title-link">${escapeHtml(result.title || titre)}</a>
-          </h4>
-          <p class="post-excerpt">${escapeHtml(result.content || contenu)}</p>
-          ${result.moderationPending ? '<p class="profile-moderation-note">Cette publication est en cours d’examen par la modération.</p>' : ""}
-          <div class="post-footer-actions">
-            <span class="profile-post-stat">♥ 0 likes</span>
-            <span class="profile-post-stat">💬 0 réponses</span>
+          <div class="profile-post-badges">
+            <span class="post-tag-pill">${escapeHtml(categoryLabel)}</span>
+            <span class="profile-status-badge ${result.moderationPending ? "is-warning" : "is-active"}">${result.moderationPending ? "En modération" : "Visible"}</span>
           </div>
-        `;
+        </div>
+        <h4 class="post-title">${escapeHtml(result.title || titre)}</h4>
+        <p class="post-excerpt">${escapeHtml(result.content || contenu)}</p>
+        ${result.moderationPending ? '<p class="profile-moderation-note">Cette publication est conservée dans votre historique, mais n’est pas affichée dans le salon pendant son examen.</p>' : ""}
+        <div class="post-footer-actions">
+          ${attachments}
+          <span class="profile-post-stat">♥ 0 likes</span>
+          <span class="profile-post-stat">💬 0 réponses</span>
+        </div>
+      `;
 
         postsFeedContainer.prepend(postCard);
+        filterProfilePosts();
+        appendProfileDocuments(result.attachments || []);
 
         // Réinitialiser le formulaire
         quickPostForm.reset();
-        if (selectedFilesBadge) selectedFilesBadge.hidden = true;
 
-        // Mettre à jour le compteur de publications
+        // Incrémenter le compteur de sujets
         const statCounter = document.getElementById("statSubjectsCount");
         if (statCounter) {
           const currentCount = parseInt(statCounter.textContent, 10) || 0;
           statCounter.textContent = currentCount + 1;
         }
+        const documentCounter = document.getElementById("statDocumentsCount");
+        if (documentCounter && attachments) {
+          const currentCount = parseInt(documentCounter.textContent, 10) || 0;
+          documentCounter.textContent = currentCount + (result.attachments || []).length;
+        }
 
-        window.showToast("Votre sujet a été publié avec succès !", "success");
+        window.showToast("✓ Votre question a été publiée avec succès !", "success");
       } catch (error) {
+        const attachmentInput = quickPostForm.querySelector("input[type='file']");
+        if (attachmentInput) attachmentInput.value = "";
         window.showToast(error.message, "error");
       } finally {
-        if (progressFeedback) progressFeedback.textContent = "";
-        if (submitButton) {
-          submitButton.disabled = false;
-          submitButton.innerHTML = origBtnHtml;
-        }
+        if (submitButton) submitButton.disabled = false;
       }
     });
   }
 
   // ============================================================
-  // 5. TOAST NOTIFICATIONS UNIVERSELLES
+  // 5. SYSTÈME DE NOTIFICATION TOAST UNIVERSEL
   // ============================================================
   window.showToast = function (message, type = "success") {
     let toast = document.getElementById("profileToast");
     if (!toast) {
       toast = document.createElement("div");
       toast.id = "profileToast";
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 1.5rem;
-        right: 1.5rem;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0.8rem 1.25rem;
-        border-radius: 12px;
-        font-family: inherit;
-        font-size: 0.88rem;
-        font-weight: 750;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-        opacity: 0;
-        transform: translateY(12px);
-        transition: opacity 0.22s ease, transform 0.22s ease;
-      `;
+      toast.className = "profile-toast";
       document.body.appendChild(toast);
     }
 
-    if (type === "success") {
-      toast.style.background = "#14251e";
-      toast.style.border = "1px solid rgba(142, 211, 170, 0.4)";
-      toast.style.color = "#8ed3aa";
-    } else if (type === "error") {
-      toast.style.background = "#2a1515";
-      toast.style.border = "1px solid rgba(248, 113, 113, 0.4)";
-      toast.style.color = "#f87171";
-    } else {
-      toast.style.background = "#182123";
-      toast.style.border = "1px solid #2a383a";
-      toast.style.color = "#e8efeb";
-    }
-
+    toast.className = `profile-toast toast-${type} show`;
     toast.textContent = message;
-    toast.style.opacity = "1";
-    toast.style.transform = "translateY(0)";
 
     clearTimeout(window.toastTimer);
     window.toastTimer = setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(12px)";
+      toast.classList.remove("show");
     }, 3500);
   };
+
 });

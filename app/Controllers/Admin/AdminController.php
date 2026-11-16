@@ -17,11 +17,13 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/app/Models/Salon/Salon.php';
     require_once ROOT_PATH . '/app/Models/Platform/LandingContent.php';
     require_once ROOT_PATH . '/app/Models/Publications/PublicationMetadata.php';
+    require_once ROOT_PATH . '/app/Models/Social/FiliereGroups.php';
 } else {
     require_once dirname(__DIR__, 2) . '/Models/Identity/Admin.php';
     require_once dirname(__DIR__, 2) . '/Models/Salon/Salon.php';
     require_once dirname(__DIR__, 2) . '/Models/Platform/LandingContent.php';
     require_once dirname(__DIR__, 2) . '/Models/Publications/PublicationMetadata.php';
+    require_once dirname(__DIR__, 2) . '/Models/Social/FiliereGroups.php';
 }
 
 class AdminController {
@@ -120,6 +122,18 @@ class AdminController {
         }
 
         $responsibilities = $this->adminModel->getUserZoneResponsibilities($userId);
+        if ($user['role'] === 'etudiant' && !empty($responsibilities)) {
+            foreach ($responsibilities as $resp) {
+                if ($resp === 'delegue_general') {
+                    $user['role'] = 'delegue_general';
+                    break;
+                }
+                if ($resp === 'delegue_de_classe') {
+                    $user['role'] = 'delegue';
+                    break;
+                }
+            }
+        }
         echo json_encode([
             'success' => true,
             'user'    => $user,
@@ -153,7 +167,10 @@ class AdminController {
         $nom = trim($_POST['nom'] ?? '');
         $prenom = trim($_POST['prenom'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $role = strtolower(trim($_POST['role'] ?? 'etudiant'));
+        $rawRole = strtolower(trim($_POST['role'] ?? 'etudiant'));
+        $isDelegue = in_array($rawRole, ['delegue', 'delegue_de_classe'], true);
+        $isDelegueGeneral = in_array($rawRole, ['delegue_general'], true);
+        $role = ($isDelegue || $isDelegueGeneral) ? 'etudiant' : $rawRole;
         $filiere = trim($_POST['filiere'] ?? '');
         $modules = trim($_POST['modules_enseignes'] ?? '');
         $biographie = trim($_POST['biographie'] ?? '');
@@ -216,6 +233,37 @@ class AdminController {
             $_SESSION['flash_error'] = $msg;
             header('Location: ' . url('admin/users'));
             exit;
+        }
+
+        // Attribution automatique du rôle de zone selon le choix de rôle du modal
+        if (empty($zoneRoles)) {
+            $pdo = $this->adminModel->getPdo();
+            if ($pdo instanceof PDO) {
+                if ($isDelegue) {
+                    $fzStmt = $pdo->prepare(
+                        "SELECT COALESCE(f.zone_id, z.id) FROM filieres f 
+                         LEFT JOIN zones z ON z.nom = CONCAT('Filière ', f.nom) AND z.type_zone = 'filiere'
+                         WHERE LOWER(TRIM(f.nom)) = LOWER(TRIM(:filiere)) LIMIT 1"
+                    );
+                    $fzStmt->execute(['filiere' => $filiere]);
+                    $filiereZoneId = (int)$fzStmt->fetchColumn();
+                    if ($filiereZoneId > 0) {
+                        $zoneRoles[$filiereZoneId] = 'delegue_de_classe';
+                        $zoneExceptions[$filiereZoneId] = '1';
+                    }
+                } elseif ($isDelegueGeneral) {
+                    $dzStmt = $pdo->query("SELECT id FROM zones WHERE type_zone = 'delegation' AND est_active = 1 LIMIT 1");
+                    $delegationZoneId = (int)$dzStmt->fetchColumn();
+                    if ($delegationZoneId > 0) {
+                        $zoneRoles[$delegationZoneId] = 'delegue_general';
+                    }
+                } elseif ($role === 'etudiant') {
+                    $respZones = $this->adminModel->getResponsibilityZones();
+                    foreach ($respZones as $rz) {
+                        $zoneRoles[$rz['id']] = 'membre';
+                    }
+                }
+            }
         }
         $updateData['zone_roles'] = $zoneRoles;
         $updateData['zone_exceptions'] = $zoneExceptions;
@@ -427,6 +475,74 @@ class AdminController {
         }
 
         header('Location: ' . url('admin/categories#tags'));
+        exit;
+    }
+
+    public function messageGroups(): void {
+        global $baseUrl, $base, $assetBase, $asset;
+        $pdo = $this->adminModel->getPdo();
+        if (!$pdo instanceof PDO) {
+            http_response_code(503);
+            exit('La base de données est indisponible.');
+        }
+
+        if (empty($_SESSION['filiere_groups_csrf'])) {
+            $_SESSION['filiere_groups_csrf'] = bin2hex(random_bytes(32));
+        }
+        $csrfToken = $_SESSION['filiere_groups_csrf'];
+        $groupModel = new FiliereGroups($pdo);
+        $groups = $groupModel->getActiveGroups();
+        $professors = $groupModel->getActiveProfessors();
+        $professorAssignments = $groupModel->getProfessorAssignments();
+
+        require ROOT_PATH . '/resources/views/desktop/admin/message-groups.php';
+    }
+
+    public function updateMessageGroups(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Allow: POST');
+            http_response_code(405);
+            exit('Méthode non autorisée.');
+        }
+
+        $token = (string)($_POST['csrf_token'] ?? '');
+        if (empty($_SESSION['filiere_groups_csrf'])
+            || !hash_equals((string)$_SESSION['filiere_groups_csrf'], $token)) {
+            http_response_code(403);
+            $_SESSION['flash_error'] = 'Votre session a expiré. Rechargez la page puis réessayez.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+
+        $professorId = filter_var($_POST['professor_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $groupIds = $_POST['group_ids'] ?? [];
+        if ($professorId === false || $professorId === null || !is_array($groupIds)) {
+            $_SESSION['flash_error'] = 'Les données d’autorisation des groupes sont invalides.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+
+        $pdo = $this->adminModel->getPdo();
+        if (!$pdo instanceof PDO) {
+            $_SESSION['flash_error'] = 'La base de données est indisponible.';
+            header('Location: ' . url('admin/message-groups'));
+            exit;
+        }
+        try {
+            (new FiliereGroups($pdo))->replaceProfessorGroups(
+                (int)$professorId,
+                $groupIds,
+                (int)($_SESSION['user_id'] ?? 0)
+            );
+            $_SESSION['flash_success'] = 'Les groupes autorisés du professeur ont été mis à jour.';
+        } catch (InvalidArgumentException $exception) {
+            $_SESSION['flash_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Mise à jour des accès aux groupes impossible : ' . $exception->getMessage());
+            $_SESSION['flash_error'] = 'Les autorisations n’ont pas pu être enregistrées.';
+        }
+
+        header('Location: ' . url('admin/message-groups'));
         exit;
     }
 
