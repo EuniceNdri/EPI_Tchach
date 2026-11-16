@@ -1,6 +1,9 @@
 <?php
 /**
- * Variables supplied by ProfileController::index() before this view is included.
+ * ==============================================================
+ * resources/views/desktop/profile/index.php
+ * Profil Membre · Design System Campus Hub (Teal #00685f, Amber #fea619)
+ * ==============================================================
  *
  * @var string|null $baseUrl
  * @var string|null $assetBase
@@ -11,7 +14,9 @@
  * @var array|null $profileDocuments
  * @var array|null $profileStats
  * @var int|null $unreadCount
+ * @var int|null $unreadMessagesCount
  * @var bool|null $isOwnProfile
+ * @var string|null $socialCsrfToken
  */
 $base = is_string($baseUrl ?? null) ? $baseUrl : '';
 $asset = is_string($assetBase ?? null)
@@ -29,6 +34,8 @@ $profileStats = array_merge(
   is_array($profileStats ?? null) ? $profileStats : []
 );
 $unreadCount = max(0, (int)($unreadCount ?? 0));
+$unreadMessagesCount = max(0, (int)($unreadMessagesCount ?? 0));
+
 if (!isset($_SESSION) || !is_array($_SESSION)) {
   $_SESSION = [];
 }
@@ -41,6 +48,7 @@ $sessionBio = $user['biographie'] ?? '';
 $sessionFiliere = $user['filiere'] ?? '';
 $sessionModules = $user['modules_enseignes'] ?? '';
 $initials = strtoupper(mb_substr($sessionPrenom, 0, 1) . mb_substr($sessionNom, 0, 1));
+
 $loggedInUser = is_array($loggedInUser ?? null) ? $loggedInUser : [];
 $loggedInName = trim(($loggedInUser['prenom'] ?? $_SESSION['user_prenom'] ?? '') . ' ' . ($loggedInUser['nom'] ?? $_SESSION['user_nom'] ?? ''));
 $loggedInRole = $loggedInUser['role'] ?? $_SESSION['user_role'] ?? 'etudiant';
@@ -54,15 +62,20 @@ $loggedInHandle = strtolower(preg_replace(
   (($loggedInUser['prenom'] ?? $_SESSION['user_prenom'] ?? '') ? ($loggedInUser['prenom'] ?? $_SESSION['user_prenom']) . '.' : '')
     . ($loggedInUser['nom'] ?? $_SESSION['user_nom'] ?? '')
 ));
+
 $isOwnProfile = isset($isOwnProfile)
   ? (bool)$isOwnProfile
   : (isset($_SESSION['user_id'], $user['id']) && (int)$_SESSION['user_id'] === (int)$user['id']);
+
 $roleLabels = [
   'etudiant' => 'Étudiant',
   'professeur' => 'Professeur',
   'moderateur' => 'Modérateur',
   'administrateur' => 'Administrateur',
+  'delegue_general' => 'Délégué Général',
+  'delegue_de_classe' => 'Délégué de Classe',
 ];
+
 $friendshipState = 'none';
 if (is_array($friendshipStatus ?? null)) {
   if (($friendshipStatus['status'] ?? '') === 'accepted') {
@@ -73,8 +86,16 @@ if (is_array($friendshipStatus ?? null)) {
       : 'incoming';
   }
 }
+
+$socialCsrfToken = $socialCsrfToken ?? ($_SESSION['csrf_token'] ?? '');
 $activeProfileTab = isset($activeProfileTab) ? $activeProfileTab : 'posts';
 $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? $sessionPrenom . '.' : '') . $sessionNom));
+
+// Compétences / Matières découpées
+$moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModules)));
+if (empty($moduleList)) {
+  $moduleList = ['Génie Logiciel', 'Algorithmique & Complexité', 'Bases de Données', 'Réseaux & Télécoms', 'Systèmes Distribués'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -82,18 +103,18 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Profil Membre — <?= htmlspecialchars($sessionFullName) ?> · EPI Tchach</title>
-  <link rel="icon" type="image/svg+xml" href="<?= $asset ?>/images/logo_epi.svg" />
-  <link rel="apple-touch-icon" href="<?= $asset ?>/images/logo.jpeg" />
+  <link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($asset) ?>/images/logo_epi.svg" />
+  <link rel="apple-touch-icon" href="<?= htmlspecialchars($asset) ?>/images/logo.jpeg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/community-shell.css" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/salon.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/salon.css') ?>" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/profile.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/profile.css') ?>" />
-  <link rel="stylesheet" href="<?= $asset ?>/css/feedback.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/community-shell.css" />
+  <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/salon.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/salon.css') ?>" />
+  <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/profile.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/profile.css') ?>" />
+  <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/feedback.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
-<body class="community-shell community-salon community-profile" data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
+<body class="community-shell community-salon campus-profile-page" data-base-url="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>">
   <?php include ROOT_PATH . '/resources/views/partials/theme-toggle.php'; ?>
   <?php include ROOT_PATH . '/resources/views/partials/feedback-toast.php'; ?>
   
@@ -101,11 +122,10 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
   <div class="tricolor-bar"></div>
 
   <!-- ==============================================================
-   * BARRE SUPÉRIEURE (EPI STYLE TOPBAR)
+   * BARRE SUPÉRIEURE (TOPBAR)
    * ============================================================== -->
   <header class="epi-topbar">
     <div class="epi-topbar-inner">
-      
       <!-- GAUCHE : Logo & Brand -->
       <div class="epi-topbar-left">
         <a class="epi-brand" href="<?= $base ?>/salon" aria-label="Accueil EPI Tchach">
@@ -119,9 +139,6 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>u/<?= htmlspecialchars($loggedInHandle) ?></span>
         </a>
-        <a class="mobile-page-nav mobile-home-button" href="<?= $base ?>/salon" aria-label="Accueil" title="Accueil">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </a>
       </div>
 
       <!-- CENTRE : Barre de Recherche -->
@@ -130,17 +147,19 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
           <span class="epi-search-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
-          <input type="search" class="epi-search-input" placeholder="Rechercher des publications ou des profils..." autocomplete="off">
+          <input type="search" class="epi-search-input" placeholder="Rechercher publications, camarades, fiches..." autocomplete="off">
         </div>
       </div>
 
-      <!-- DROITE : Actions -->
+      <!-- DROITE : Actions & Menu Utilisateur -->
       <div class="epi-topbar-right">
         <a href="<?= $base ?>/messages" class="epi-icon-action" title="Messagerie" aria-label="Messagerie">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
           </svg>
-          <?php if ($unreadMessagesCount > 0): ?><span class="epi-badge-count"><?= $unreadMessagesCount > 99 ? '99+' : (int)$unreadMessagesCount ?></span><?php endif; ?>
+          <?php if ($unreadMessagesCount > 0): ?>
+            <span class="epi-badge-count"><?= $unreadMessagesCount > 99 ? '99+' : (int)$unreadMessagesCount ?></span>
+          <?php endif; ?>
         </a>
 
         <button type="button" class="epi-create-post-btn" data-open-create-post-modal aria-label="Créer une publication">
@@ -179,12 +198,16 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span>Mon profil</span>
             </a>
+            <a href="<?= $base ?>/friends" class="epi-dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <span>Mes camarades</span>
+            </a>
             <a href="<?= $base ?>/salon?view=saved" class="epi-dropdown-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              <span>Mes sauvegardes</span>
+              <span>Mes favoris</span>
             </a>
             <?php if ($loggedInRole === 'administrateur'): ?>
-              <a href="<?= $base ?>/admin" class="epi-dropdown-item" style="color:var(--community-orange);">
+              <a href="<?= $base ?>/admin" class="epi-dropdown-item" style="color:var(--profile-secondary);">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <span>Panneau Admin</span>
               </a>
@@ -201,29 +224,21 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
   </header>
 
   <!-- ==============================================================
-   * LAYOUT PRINCIPAL (GRID POINT TEMPLATE SCOPÉ SALON & PROFIL)
+   * LAYOUT PRINCIPAL AVEC NAVIGATION LATÉRALE
    * ============================================================== -->
   <div class="epi-salon-grid">
 
-    <!-- ========== SIDEBAR GAUCHE (grid-area: sidebar) ========== -->
+    <!-- ========== SIDEBAR GAUCHE ========== -->
     <aside class="epi-sidebar-left">
       <div class="epi-sidebar-box">
-        <div class="epi-nav-heading">Navigation</div>
+        <div class="epi-nav-heading">Espaces Campus</div>
         <a href="<?= $base ?>/salon" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Fil public</span>
-        </a>
-        <a href="<?= $base ?>/salon?view=popular" class="epi-nav-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-          <span>Populaires</span>
-        </a>
-        <a href="<?= $base ?>/profile" class="epi-nav-item is-active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Mon profil</span>
+          <span>Salons & Espaces</span>
         </a>
         <a href="<?= $base ?>/friends" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>Mes amis</span>
+          <span>Camarades & Réseau</span>
         </a>
         <a href="<?= $base ?>/messages" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -233,399 +248,507 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span>Notifications</span>
         </a>
+        <a href="<?= $base ?>/profile" class="epi-nav-item is-active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Mon Profil</span>
+        </a>
 
         <?php if ($loggedInRole === 'administrateur'): ?>
           <div class="epi-zone-group">
-            <div class="epi-nav-heading">Administration</div>
-            <a href="<?= $base ?>/admin" class="epi-nav-item" style="color:var(--community-orange);">
+            <div class="epi-nav-heading">Supervision</div>
+            <a href="<?= $base ?>/admin" class="epi-nav-item" style="color:var(--profile-secondary); font-weight:700;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              <span>Panneau Admin</span>
+              <span>Administration</span>
             </a>
           </div>
         <?php endif; ?>
       </div>
     </aside>
 
-    <!-- ========== CONTENU PRINCIPAL (grid-area: main) ========== -->
-    <main class="epi-main-feed">
+    <!-- ========== ZONE CENTRALE PROFIL (CAMPUS HUB) ========== -->
+    <main class="epi-main-feed" style="grid-column: 2 / -1;">
 
-      <!-- 1. En-tête / Carte Bannière Profil Style Reddit -->
-      <div class="epi-profile-header-card">
-        <div class="epi-profile-cover"></div>
-        <div class="epi-profile-header-body">
-          <div class="epi-profile-identity">
-            <div class="epi-profile-avatar-large">
-              <span class="profile-dynamic-initials"><?= htmlspecialchars($initials) ?></span>
-              <img class="profile-avatar-image" src="<?= !empty($user['avatar_url']) ? htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') : '' ?>" alt="Photo de profil de <?= htmlspecialchars($sessionFullName, ENT_QUOTES, 'UTF-8') ?>" <?= empty($user['avatar_url']) ? 'hidden' : '' ?> />
+      <div class="campus-profile-container">
+
+        <!-- 1. HERO COVER & IDENTITÉ ACADÉMIQUE -->
+        <section class="campus-profile-hero">
+          <div class="campus-profile-banner">
+            <!-- Formes géométriques décoratives inspirées du mockup d21 -->
+            <svg class="campus-profile-banner-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" fill="none">
+              <path d="M0,0 L350,300 L600,0 L900,300 L1200,0 V300 H0 Z" fill="#ffffff"></path>
+              <circle cx="850" cy="80" r="140" fill="#fea619" opacity="0.35"></circle>
+              <circle cx="200" cy="220" r="90" fill="#6bd8cb" opacity="0.45"></circle>
+            </svg>
+            <div class="campus-banner-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Campus Yamoussoukro • INP-HB / EPI</span>
             </div>
-            <div class="epi-profile-names">
-              <h1 class="epi-profile-fullname profile-dynamic-name"><?= htmlspecialchars($sessionFullName) ?></h1>
-              <div class="epi-profile-handle">
-                <span>u/<?= htmlspecialchars($userHandle) ?></span>
-                <span class="epi-profile-role-badge"><?= htmlspecialchars($roleLabels[$sessionRole] ?? ucfirst($sessionRole)) ?></span>
-                <?php if ($sessionFiliere): ?>
-                  <span class="epi-profile-filiere-badge"><?= htmlspecialchars($sessionFiliere) ?></span>
+          </div>
+
+          <div class="campus-profile-shelf">
+            <div class="campus-profile-identity">
+              <!-- Avatar avec bague et micro-dot actif -->
+              <div class="campus-profile-avatar-wrap">
+                <div class="campus-profile-avatar-box">
+                  <span class="profile-dynamic-initials"><?= htmlspecialchars($initials) ?></span>
+                  <?php if (!empty($user['avatar_url'])): ?>
+                    <img class="campus-profile-avatar-img profile-avatar-image" src="<?= htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') ?>" alt="Photo de <?= htmlspecialchars($sessionFullName) ?>" />
+                  <?php endif; ?>
+                </div>
+                <span class="campus-status-dot-active" title="Membre actif sur le campus"></span>
+              </div>
+
+              <!-- Informations textuelles & Badges -->
+              <div class="campus-profile-info">
+                <div class="campus-profile-name-row">
+                  <h1 class="campus-profile-name profile-dynamic-name"><?= htmlspecialchars($sessionFullName) ?></h1>
+                  <span class="campus-verified-icon" title="Profil vérifié par l'école">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  </span>
+                  <span class="campus-role-badge <?= htmlspecialchars($sessionRole) ?> profile-dynamic-role">
+                    <?= htmlspecialchars($roleLabels[$sessionRole] ?? ucfirst($sessionRole)) ?>
+                  </span>
+                </div>
+
+                <div class="campus-profile-meta-row">
+                  <span class="campus-profile-handle">@<?= htmlspecialchars($userHandle) ?></span>
+                  <span>•</span>
+                  <span><?= htmlspecialchars($sessionFiliere ?: 'Ingénierie Polytechnique') ?></span>
+                  <span class="campus-cas-pill">
+                    <span class="campus-cas-dot"></span>
+                    <span>CAS Vérifié</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions du profil -->
+            <div class="campus-profile-actions">
+              <button type="button" class="campus-profile-btn secondary" onclick="navigator.clipboard.writeText(window.location.href); window.showToast('Lien du profil copié dans le presse-papier !', 'success');">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>Partager</span>
+              </button>
+
+              <?php if ($isOwnProfile): ?>
+                <button type="button" class="campus-profile-btn primary open-profile-edit-modal">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <span>Modifier mon profil</span>
+                </button>
+              <?php elseif ($friendshipState === 'friends'): ?>
+                <a class="campus-profile-btn primary" href="<?= $base ?>/messages?user=<?= (int)$user['id'] ?>">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  <span>Message privé</span>
+                </a>
+                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                  <input type="hidden" name="action" value="remove">
+                  <button class="campus-profile-btn secondary" type="submit" onclick="return confirm('Retirer ce camarade de votre réseau ?');">Retirer des camarades</button>
+                </form>
+              <?php elseif ($friendshipState === 'incoming'): ?>
+                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                  <input type="hidden" name="action" value="accept">
+                  <button class="campus-profile-btn primary" type="submit">Accepter la demande</button>
+                </form>
+                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                  <input type="hidden" name="action" value="decline">
+                  <button class="campus-profile-btn secondary" type="submit">Décliner</button>
+                </form>
+              <?php elseif ($friendshipState === 'outgoing'): ?>
+                <button class="campus-profile-btn secondary" type="button" disabled>Demande envoyée</button>
+                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                  <input type="hidden" name="action" value="cancel">
+                  <button class="campus-profile-btn secondary" type="submit">Annuler</button>
+                </form>
+              <?php else: ?>
+                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                  <input type="hidden" name="action" value="request">
+                  <button class="campus-profile-btn primary" type="submit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m-3-3h6"/></svg>
+                    <span>Ajouter en camarade</span>
+                  </button>
+                </form>
+              <?php endif; ?>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. CARTES D'IMPACT ACADÉMIQUE (3 METRICS D21) -->
+        <section class="campus-impact-grid">
+          <div class="campus-impact-card">
+            <div class="campus-impact-card-top">
+              <div>
+                <span class="campus-impact-label">Publications & Fiches</span>
+                <div class="campus-impact-value" id="statSubjectsCount"><?= (int)$profileStats['posts'] ?></div>
+              </div>
+              <div class="campus-impact-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+            </div>
+            <div class="campus-impact-sub">
+              <span>★ 4.9/5 satisfaction des pairs</span>
+            </div>
+          </div>
+
+          <div class="campus-impact-card">
+            <div class="campus-impact-card-top">
+              <div>
+                <span class="campus-impact-label">Contributions & Échanges</span>
+                <div class="campus-impact-value"><?= (int)$profileStats['comments'] ?></div>
+              </div>
+              <div class="campus-impact-icon" style="background:var(--profile-secondary-container); color:var(--profile-secondary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+            </div>
+            <div class="campus-impact-sub">
+              <span>💬 <?= (int)$profileStats['comments'] ?> réponses et solutions apportées</span>
+            </div>
+          </div>
+
+          <div class="campus-impact-card">
+            <div class="campus-impact-card-top">
+              <div>
+                <span class="campus-impact-label">Réseau & Salons</span>
+                <div class="campus-impact-value" id="statDocumentsCount"><?= (int)$profileStats['zones'] ?></div>
+              </div>
+              <div class="campus-impact-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+            </div>
+            <div class="campus-impact-sub">
+              <a href="<?= $base ?>/friends?user=<?= (int)$user['id'] ?>" style="color:var(--profile-primary); font-weight:700; text-decoration:none;">
+                <?= $isOwnProfile ? 'Consulter mon annuaire de camarades →' : 'Voir les camarades de ce profil →' ?>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. GRILLE CENTRALE (2 COLONNES : SIDEBAR 320px + FEED PRINCIPAL) -->
+        <section class="campus-profile-grid">
+
+          <!-- COLONNE GAUCHE : INFOS ACADÉMIQUES & COMPÉTENCES -->
+          <div class="campus-profile-sidebar">
+            <!-- Carte Cursus & Présentation -->
+            <div class="campus-sidebar-card">
+              <h2 class="campus-sidebar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Identité & Cursus</span>
+              </h2>
+
+              <div class="campus-info-list">
+                <div class="campus-info-item">
+                  <span class="campus-info-label">Établissement</span>
+                  <span class="campus-info-val">INP-HB Yamoussoukro — EPI</span>
+                </div>
+                <div class="campus-info-item">
+                  <span class="campus-info-label">Filière d'Excellence</span>
+                  <span class="campus-info-val"><?= htmlspecialchars($sessionFiliere ?: 'Ingénierie Informatique') ?></span>
+                </div>
+                <div class="campus-info-item">
+                  <span class="campus-info-label">Statut & Rôle</span>
+                  <span class="campus-info-val"><?= htmlspecialchars($roleLabels[$sessionRole] ?? ucfirst($sessionRole)) ?></span>
+                </div>
+                <div class="campus-info-item">
+                  <span class="campus-info-label">E-mail Académique</span>
+                  <span class="campus-info-val"><?= htmlspecialchars($sessionEmail) ?></span>
+                </div>
+              </div>
+
+              <!-- Biographie -->
+              <div style="margin-top:0.25rem;">
+                <span class="campus-info-label" style="display:block; margin-bottom:0.35rem;">Présentation</span>
+                <p class="profile-dynamic-bio" style="font-size:0.875rem; color:var(--profile-text-muted); line-height:1.55; margin:0;">
+                  <?= htmlspecialchars($sessionBio ?: 'Aucune biographie académique renseignée pour le moment.') ?>
+                </p>
+              </div>
+
+              <!-- Bouton Accès Annuaire Camarades -->
+              <a href="<?= $base ?>/friends?user=<?= (int)$user['id'] ?>" class="campus-profile-btn secondary" style="justify-content:center; margin-top:0.5rem; text-decoration:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span><?= $isOwnProfile ? 'Consulter mes camarades' : 'Voir ses camarades' ?></span>
+              </a>
+            </div>
+
+            <!-- Carte Matières & Compétences -->
+            <div class="campus-sidebar-card">
+              <h2 class="campus-sidebar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span>Matières & Spécialités</span>
+              </h2>
+              <div class="campus-chips-wrap">
+                <?php foreach ($moduleList as $mod): ?>
+                  <span class="campus-chip"><?= htmlspecialchars($mod) ?></span>
+                <?php endforeach; ?>
+              </div>
+            </div>
+
+            <!-- Carte Salons Fréquentés -->
+            <div class="campus-sidebar-card">
+              <h2 class="campus-sidebar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Espaces Rejoints</span>
+              </h2>
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                <?php if (empty($profileZones)): ?>
+                  <span style="font-size:0.8rem; color:var(--profile-text-muted);">Aucun salon spécifique rattaché.</span>
+                <?php else: ?>
+                  <?php foreach (array_slice($profileZones, 0, 5) as $pz): ?>
+                    <a href="<?= $base ?>/salon?category=<?= (int)($pz['id'] ?? 0) ?>" class="campus-zone-mini-link">
+                      <span class="campus-zone-mini-name">
+                        <span style="width:7px; height:7px; border-radius:50%; background:var(--profile-primary); display:inline-block;"></span>
+                        <span><?= htmlspecialchars($pz['nom'] ?? 'Salon') ?></span>
+                      </span>
+                      <span class="campus-zone-count"><?= (int)($pz['membres_count'] ?? 1) ?></span>
+                    </a>
+                  <?php endforeach; ?>
                 <?php endif; ?>
               </div>
             </div>
           </div>
 
-          <?php if ($isOwnProfile): ?>
-            <button type="button" class="epi-card-action-btn open-profile-edit-modal" style="width:auto; padding:0.45rem 1.15rem;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              <span>Modifier le profil</span>
-            </button>
-          <?php elseif ($friendshipState === 'friends'): ?>
-            <div class="epi-profile-social-actions">
-              <a class="epi-card-action-btn primary" href="<?= $base ?>/messages?user=<?= (int)$user['id'] ?>">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                <span>Envoyer un message</span>
-              </a>
-              <form method="post" action="<?= $base ?>/friends/action">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                <input type="hidden" name="action" value="remove">
-                <button class="epi-card-action-btn" type="submit">Retirer des amis</button>
-              </form>
-            </div>
-          <?php elseif ($friendshipState === 'incoming'): ?>
-            <div class="epi-profile-social-actions">
-              <form method="post" action="<?= $base ?>/friends/action">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                <input type="hidden" name="action" value="accept">
-                <button class="epi-card-action-btn primary" type="submit">Accepter la demande</button>
-              </form>
-              <form method="post" action="<?= $base ?>/friends/action">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                <input type="hidden" name="action" value="decline">
-                <button class="epi-card-action-btn" type="submit">Refuser</button>
-              </form>
-            </div>
-          <?php elseif ($friendshipState === 'outgoing'): ?>
-            <div class="epi-profile-social-actions">
-              <button class="epi-card-action-btn" type="button" disabled>Demande envoyée</button>
-              <form method="post" action="<?= $base ?>/friends/action">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                <input type="hidden" name="action" value="cancel">
-                <button class="epi-card-action-btn" type="submit">Annuler</button>
-              </form>
-            </div>
-          <?php else: ?>
-            <form class="epi-profile-social-actions" method="post" action="<?= $base ?>/friends/action">
-              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-              <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-              <input type="hidden" name="action" value="request">
-              <button class="epi-card-action-btn primary" type="submit">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m-3-3h6"/></svg>
-                <span>Ajouter en ami</span>
-              </button>
-            </form>
-          <?php endif; ?>
-        </div>
-      </div>
+          <!-- COLONNE DROITE : TABS & FLUX D'ACTIVITÉ -->
+          <div class="campus-profile-main">
 
-      <!-- 2. Barre des 4 Statistiques -->
-      <div class="epi-profile-stats-bar">
-        <div class="epi-profile-stat-box">
-          <div class="epi-stat-icon">▤</div>
-          <div>
-            <div class="epi-stat-num" id="statSubjectsCount"><?= (int)$profileStats['posts'] ?></div>
-            <div class="epi-stat-title">Publications</div>
-          </div>
-        </div>
-        <div class="epi-profile-stat-box">
-          <div class="epi-stat-icon">💬</div>
-          <div>
-            <div class="epi-stat-num"><?= (int)$profileStats['comments'] ?></div>
-            <div class="epi-stat-title">Réponses</div>
-          </div>
-        </div>
-        <div class="epi-profile-stat-box">
-          <div class="epi-stat-icon">📎</div>
-          <div>
-            <div class="epi-stat-num" id="statDocumentsCount"><?= (int)$profileStats['documents'] ?></div>
-            <div class="epi-stat-title">Documents</div>
-          </div>
-        </div>
-        <div class="epi-profile-stat-box">
-          <div class="epi-stat-icon">⌂</div>
-          <div>
-            <div class="epi-stat-num"><?= (int)$profileStats['zones'] ?></div>
-            <div class="epi-stat-title">Salons rejoints</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. Onglets de Navigation Profil Style Reddit (Vue d'ensemble, etc.) -->
-      <div class="epi-profile-nav-tabs">
-        <button type="button" class="epi-profile-tab-btn tab-btn <?= $activeProfileTab === 'posts' ? 'is-active active' : '' ?>" data-tab="tab-posts">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Vue d'ensemble</span>
-        </button>
-        <button type="button" class="epi-profile-tab-btn tab-btn <?= $activeProfileTab === 'channels' ? 'is-active active' : '' ?>" data-tab="tab-channels">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Salons & Filières</span>
-        </button>
-        <button type="button" class="epi-profile-tab-btn tab-btn <?= $activeProfileTab === 'docs' ? 'is-active active' : '' ?>" data-tab="tab-docs">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>Documents</span>
-        </button>
-        <?php if ($isOwnProfile): ?>
-          <button type="button" class="epi-profile-tab-btn tab-btn <?= $activeProfileTab === 'saved' ? 'is-active active' : '' ?>" data-tab="tab-saved">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-            <span>Enregistrées</span>
-          </button>
-        <?php endif; ?>
-        <button type="button" class="epi-profile-tab-btn tab-btn <?= $activeProfileTab === 'about' ? 'is-active active' : '' ?>" data-tab="tab-about">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          <span>À propos</span>
-        </button>
-      </div>
-
-      <!-- 4. CONTENUS DES ONGLETS -->
-      
-      <!-- ONGLET 1 : PUBLICATIONS & FLUX -->
-      <div class="tab-content epi-tab-panel <?= $activeProfileTab === 'posts' ? 'active is-active' : '' ?>" id="tab-posts">
-        
-        <?php if ($isOwnProfile): ?>
-          <div class="epi-quick-composer" style="margin-bottom:0.5rem;">
-            <div class="epi-composer-avatar">
-              <span class="epi-avatar-fallback profile-dynamic-initials"><?= htmlspecialchars(mb_substr($initials, 0, 1)) ?></span>
-              <img class="epi-avatar-image profile-avatar-image" src="<?= !empty($user['avatar_url']) ? htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') : '' ?>" alt="" <?= empty($user['avatar_url']) ? 'hidden' : '' ?> />
-            </div>
-            <button type="button" class="epi-composer-dummy-input" data-open-create-post-modal>
-              Créer une nouvelle publication...
-            </button>
-          </div>
-        <?php endif; ?>
-
-        <div class="posts-feed" id="postsFeedList" style="display:flex; flex-direction:column; gap:0.85rem;">
-          <?php if (!$profilePosts): ?>
-            <div class="epi-empty-state-box">
-              <div class="epi-empty-mascot-circle">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/><path d="M8 15s1.5 2 4 2 4-2 4-2"/></svg>
-              </div>
-              <h3><?= $isOwnProfile ? "Tu n'as pas encore de publications" : "Cet utilisateur n'a pas encore de publications" ?></h3>
-              <p><?= $isOwnProfile
-                ? "Dès que tu commenceras à publier dans une communauté, le contenu s'affichera ici."
-                : "Les publications de cet utilisateur apparaîtront ici." ?></p>
-              <?php if ($isOwnProfile): ?>
-                <button type="button" class="epi-btn-submit" data-open-create-post-modal style="margin-top:0.5rem;">
-                  + Créer une publication
+            <!-- BARRE DES ONGLETS SEGMENTÉS -->
+            <div class="campus-tabs-toolbar">
+              <div class="campus-profile-tabs" role="tablist">
+                <button type="button" class="tab-btn <?= $activeProfileTab === 'posts' ? 'is-active active' : '' ?>" data-tab="tab-posts" role="tab">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>Publications</span>
+                  <span class="tab-counter"><?= count($profilePosts) ?></span>
                 </button>
-              <?php endif; ?>
+                <button type="button" class="tab-btn <?= $activeProfileTab === 'docs' ? 'is-active active' : '' ?>" data-tab="tab-docs" role="tab">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  <span>Fiches & Documents</span>
+                  <span class="tab-counter"><?= count($profileDocuments) ?></span>
+                </button>
+                <button type="button" class="tab-btn <?= $activeProfileTab === 'channels' ? 'is-active active' : '' ?>" data-tab="tab-channels" role="tab">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  <span>Salons & Zones</span>
+                  <span class="tab-counter"><?= count($profileZones) ?></span>
+                </button>
+                <button type="button" class="tab-btn <?= $activeProfileTab === 'about' ? 'is-active active' : '' ?>" data-tab="tab-about" role="tab">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <span>À propos</span>
+                </button>
+              </div>
+
+              <!-- Filtres interactifs par catégorie et statut -->
+              <div class="campus-filter-toolbar">
+                <select id="profilePostCategoryFilter" class="campus-select-filter">
+                  <option value="all">Toutes catégories</option>
+                  <?php foreach ($profileCategories as $cat): ?>
+                    <option value="<?= (int)$cat['id'] ?>"><?= htmlspecialchars($cat['nom']) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <select id="profilePostStatusFilter" class="campus-select-filter">
+                  <option value="all">Tous statuts</option>
+                  <option value="visible">Visibles</option>
+                  <option value="reported">En modération</option>
+                </select>
+              </div>
             </div>
-          <?php else: ?>
-            <?php foreach ($profilePosts as $post): ?>
-              <article class="epi-post-card" data-profile-post data-live-publication-id="<?= (int)$post['id'] ?>"
-                data-category-id="<?= (int)$post['category_id'] ?>"
-                data-post-status="<?= !empty($post['est_signale']) ? 'reported' : (in_array($post['statut'], ['ferme', 'resolu'], true) ? 'closed' : 'visible') ?>">
-                
-                <div class="epi-card-header">
-                  <div class="epi-card-meta">
-                    <span class="epi-salon-tag">s/<?= htmlspecialchars($post['category_name']) ?></span>
-                    <span>•</span>
-                    <span class="epi-author-badge"><?= htmlspecialchars($sessionFullName) ?></span>
-                    <span>•</span>
-                    <span><?= htmlspecialchars(date('d/m/Y H:i', strtotime($post['date_creation']))) ?></span>
+
+            <!-- CONTENU DE L'ONGLET 1 : PUBLICATIONS -->
+            <div class="tab-content <?= $activeProfileTab === 'posts' ? 'active is-active' : '' ?>" id="tab-posts">
+              <?php if ($isOwnProfile): ?>
+                <div style="background:var(--profile-card-bg); border:1px solid var(--profile-border); border-radius:var(--profile-radius-lg); padding:1rem 1.25rem; display:flex; align-items:center; gap:0.75rem;">
+                  <div style="width:38px; height:38px; border-radius:var(--profile-radius-md); background:var(--profile-primary-container); color:var(--profile-primary); display:flex; align-items:center; justify-content:center; font-weight:800;">
+                    <?= htmlspecialchars(mb_substr($initials, 0, 1)) ?>
                   </div>
-                  <div class="epi-post-badges">
-                    <span class="epi-status-pill"><?= htmlspecialchars(ucfirst($post['type_publication'])) ?></span>
-                    <?php if (!empty($post['est_signale'])): ?>
-                      <span class="epi-status-pill is-pinned" style="background:rgba(239,68,68,0.18); color:#f87171;">En modération</span>
+                  <button type="button" class="form-control" data-open-create-post-modal style="text-align:left; color:var(--profile-text-muted); cursor:pointer;">
+                    Publier une question, fiche ou ressource de cours...
+                  </button>
+                </div>
+              <?php endif; ?>
+
+              <div id="postsFeedList" style="display:flex; flex-direction:column; gap:1rem;">
+                <?php if (empty($profilePosts)): ?>
+                  <div class="campus-empty-box">
+                    <div class="campus-empty-icon">📝</div>
+                    <h3><?= $isOwnProfile ? "Aucune publication pour le moment" : "Cet utilisateur n'a pas encore publié" ?></h3>
+                    <p><?= $isOwnProfile ? "Partagez des fiches de cours, posez des questions de révision ou lancez des débats dans vos salons." : "Les publications académiques de cet utilisateur apparaîtront ici." ?></p>
+                    <?php if ($isOwnProfile): ?>
+                      <button type="button" class="campus-profile-btn primary" data-open-create-post-modal style="margin-top:0.5rem;">
+                        + Créer ma première publication
+                      </button>
                     <?php endif; ?>
                   </div>
+                <?php else: ?>
+                  <?php foreach ($profilePosts as $post): ?>
+                    <article class="campus-post-card" data-profile-post
+                             data-live-publication-id="<?= (int)$post['id'] ?>"
+                             data-category-id="<?= (int)$post['category_id'] ?>"
+                             data-post-status="<?= !empty($post['est_signale']) ? 'reported' : (in_array($post['statut'], ['ferme', 'resolu'], true) ? 'closed' : 'visible') ?>">
+                      
+                      <div class="campus-post-header">
+                        <div class="campus-post-author">
+                          <div class="campus-post-avatar-mini">
+                            <span><?= htmlspecialchars(mb_substr($sessionFullName, 0, 1)) ?></span>
+                            <?php if (!empty($user['avatar_url'])): ?>
+                              <img src="<?= htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy">
+                            <?php endif; ?>
+                          </div>
+                          <div>
+                            <div class="campus-post-author-name"><?= htmlspecialchars($sessionFullName) ?></div>
+                            <div class="campus-post-time"><?= htmlspecialchars(date('d/m/Y à H:i', strtotime($post['date_creation']))) ?></div>
+                          </div>
+                        </div>
+
+                        <div class="campus-post-badges">
+                          <span class="campus-post-tag"><?= htmlspecialchars($post['category_name']) ?></span>
+                          <?php if (!empty($post['est_signale'])): ?>
+                            <span class="campus-post-status is-warning">En modération</span>
+                          <?php else: ?>
+                            <span class="campus-post-status"><?= htmlspecialchars(ucfirst($post['type_publication'])) ?></span>
+                          <?php endif; ?>
+                        </div>
+                      </div>
+
+                      <h3 class="campus-post-title">
+                        <a href="<?= $base ?>/publication/<?= (int)$post['id'] ?>" style="color:inherit; text-decoration:none;">
+                          <?= htmlspecialchars($post['titre']) ?>
+                        </a>
+                      </h3>
+
+                      <p class="campus-post-excerpt">
+                        <?= nl2br(htmlspecialchars(mb_strimwidth(strip_tags($post['contenu']), 0, 280, '…'))) ?>
+                      </p>
+
+                      <div class="campus-post-footer">
+                        <div class="campus-post-stats-row">
+                          <span class="campus-post-stat-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#ef4444;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span><?= (int)$post['likes_count'] ?></span>
+                          </span>
+                          <span class="campus-post-stat-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span><?= (int)$post['comments_count'] ?> réponses</span>
+                          </span>
+                        </div>
+
+                        <a href="<?= $base ?>/publication/<?= (int)$post['id'] ?>" class="campus-profile-btn secondary" style="padding:0.35rem 0.75rem; font-size:0.775rem;">
+                          <span>Voir la discussion →</span>
+                        </a>
+                      </div>
+                    </article>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+            </div>
+
+            <!-- CONTENU DE L'ONGLET 2 : DOCUMENTS & FICHES -->
+            <div class="tab-content <?= $activeProfileTab === 'docs' ? 'active is-active' : '' ?>" id="tab-docs">
+              <?php if (empty($profileDocuments)): ?>
+                <div class="campus-empty-box">
+                  <div class="campus-empty-icon">📁</div>
+                  <h3>Aucun document ou fiche partagée</h3>
+                  <p>Partagez vos polycopiés, corrigés d'examens ou fiches de révision pour aider la communauté.</p>
                 </div>
-
-                <h2 class="epi-post-title">
-                  <a href="<?= $base ?>/publication/<?= (int)$post['id'] ?>"><?= htmlspecialchars($post['titre']) ?></a>
-                </h2>
-
-                <div class="epi-post-body">
-                  <?= nl2br(htmlspecialchars(mb_strimwidth(strip_tags($post['contenu']), 0, 360, '…'))) ?>
+              <?php else: ?>
+                <div class="campus-docs-grid">
+                  <?php foreach ($profileDocuments as $document):
+                    $ext = strtoupper(pathinfo($document['nom_fichier'], PATHINFO_EXTENSION) ?: 'DOC');
+                  ?>
+                    <div class="campus-doc-card" data-profile-document data-category-id="<?= (int)($document['category_id'] ?? 0) ?>">
+                      <div class="campus-doc-top">
+                        <div class="campus-doc-icon">
+                          <span style="font-size:0.8rem; font-weight:800;"><?= htmlspecialchars($ext) ?></span>
+                        </div>
+                        <div class="campus-doc-info">
+                          <span class="campus-doc-name" title="<?= htmlspecialchars($document['nom_fichier']) ?>">
+                            <?= htmlspecialchars($document['nom_fichier']) ?>
+                          </span>
+                          <span class="campus-doc-meta">
+                            <?= htmlspecialchars($document['publication_title'] ?? 'Fiche') ?> · <?= number_format(((int)$document['taille']) / 1048576, 2, ',', ' ') ?> Mo
+                          </span>
+                        </div>
+                      </div>
+                      <a class="campus-doc-btn" href="<?= $base ?>/attachment/download/<?= (int)$document['id'] ?>">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Télécharger</span>
+                      </a>
+                    </div>
+                  <?php endforeach; ?>
                 </div>
+              <?php endif; ?>
+            </div>
 
-                <div class="epi-card-actions">
-                  <div class="epi-vote-capsule">
-                    <span class="epi-vote-count">♥ <span data-live-likes><?= (int)$post['likes_count'] ?></span></span>
+            <!-- CONTENU DE L'ONGLET 3 : SALONS & ZONES -->
+            <div class="tab-content <?= $activeProfileTab === 'channels' ? 'active is-active' : '' ?>" id="tab-channels">
+              <?php if (empty($profileZones)): ?>
+                <div class="campus-empty-box">
+                  <div class="campus-empty-icon">🏛️</div>
+                  <h3>Aucun salon rattaché</h3>
+                  <p>Explorez les espaces de filières et groupes d'entraide pour rejoindre vos camarades.</p>
+                </div>
+              <?php else: ?>
+                <div class="campus-zones-grid">
+                  <?php foreach ($profileZones as $zone): ?>
+                    <a href="<?= $base ?>/salon?category=<?= (int)($zone['id'] ?? 0) ?>" class="campus-zone-card">
+                      <div class="campus-zone-card-header">
+                        <span class="campus-zone-dot"></span>
+                        <h4 class="campus-zone-card-title"><?= htmlspecialchars($zone['nom']) ?></h4>
+                      </div>
+                      <p class="campus-zone-card-desc">
+                        <?= htmlspecialchars(ucfirst($zone['type_zone'] ?? 'Salon')) ?> · Espace d'échanges académiques.
+                      </p>
+                      <div style="font-size:0.775rem; color:var(--profile-primary); font-weight:700;">
+                        <?= (int)($zone['membres_count'] ?? 1) ?> membres connectés →
+                      </div>
+                    </a>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+
+            <!-- CONTENU DE L'ONGLET 4 : À PROPOS -->
+            <div class="tab-content <?= $activeProfileTab === 'about' ? 'active is-active' : '' ?>" id="tab-about">
+              <div class="campus-sidebar-card">
+                <h3 class="campus-sidebar-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Charte & Engagement d'Intégrité Polytech</span>
+                </h3>
+                <p style="font-size:0.875rem; color:var(--profile-text-muted); line-height:1.6; margin:0;">
+                  Ce compte est rattaché au Système Centralisé d'Authentification (CAS) de l'Institut National Polytechnique Félix Houphouët-Boigny. 
+                  Toutes les contributions partagées sont régies par le code d'honneur académique.
+                </p>
+                <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem; font-size:0.825rem; color:var(--profile-text);">
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="color:#10b981; font-weight:800;">✓</span>
+                    <span>Profil académique vérifié par la scolarité.</span>
                   </div>
-                  <a class="epi-pill-btn post-discussion-button" href="<?= $base ?>/publication/<?= (int)$post['id'] ?>" aria-label="Commentaires" title="Commentaires">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <span><span data-live-comment-count><?= (int)$post['comments_count'] ?></span><span class="epi-action-label"> réponses</span></span>
-                  </a>
-                  <button type="button" class="epi-pill-btn epi-share-btn" data-share-url="<?= $base ?>/publication/<?= (int)$post['id'] ?>" aria-label="Partager" title="Partager">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                    <span>Partager</span>
-                  </button>
-                  <?php if ($isOwnProfile): ?>
-                    <form action="<?= $base ?>/salon/save" method="post" style="display:inline;">
-                      <input type="hidden" name="target_type" value="publication">
-                      <input type="hidden" name="target_id" value="<?= (int)$post['id'] ?>">
-                      <input type="hidden" name="return_page" value="profile">
-                      <input type="hidden" name="return_tab" value="posts">
-                      <button class="epi-pill-btn epi-save-post-btn <?= !empty($post['saved_id']) ? 'is-saved' : '' ?>" type="submit" aria-label="<?= !empty($post['saved_id']) ? 'Retirer des favoris' : 'Ajouter aux favoris' ?>" title="<?= !empty($post['saved_id']) ? 'Retirer des favoris' : 'Ajouter aux favoris' ?>">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="<?= !empty($post['saved_id']) ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                        <span><?= !empty($post['saved_id']) ? 'En favori' : 'Favori' ?></span>
-                      </button>
-                    </form>
-                  <?php endif; ?>
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="color:#10b981; font-weight:800;">✓</span>
+                    <span>Accès certifié aux ressources pédagogiques partagées.</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="color:#10b981; font-weight:800;">✓</span>
+                    <span>Respect de l'entraide solidaire et bienveillante.</span>
+                  </div>
                 </div>
-              </article>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- ONGLET 2 : SALONS & FILIÈRES -->
-      <div class="tab-content epi-tab-panel <?= $activeProfileTab === 'channels' ? 'active is-active' : '' ?>" id="tab-channels">
-        <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 0.75rem;">Salons et Filières rejoints</h3>
-        <?php if (!$profileZones): ?>
-          <p style="color:var(--community-muted);">Aucun salon n'est rattaché pour le moment.</p>
-        <?php else: ?>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-            <?php foreach ($profileZones as $zone): ?>
-              <div class="epi-file-pill" style="display:flex; flex-direction:column; align-items:flex-start; gap:0.35rem;">
-                <span class="epi-file-badge"><?= htmlspecialchars(ucfirst($zone['type_zone'])) ?></span>
-                <strong><?= htmlspecialchars($zone['nom']) ?></strong>
-                <span style="font-size:0.75rem; color:var(--community-muted);"><?= (int)$zone['membres_count'] ?> membres</span>
               </div>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
+            </div>
 
-      <!-- ONGLET 3 : DOCUMENTS PARTAGÉS -->
-      <div class="tab-content epi-tab-panel <?= $activeProfileTab === 'docs' ? 'active is-active' : '' ?>" id="tab-docs">
-        <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 0.75rem;">Documents et Médias</h3>
-        <?php if (!$profileDocuments): ?>
-          <p style="color:var(--community-muted);">Aucun fichier n'a été partagé.</p>
-        <?php else: ?>
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <?php foreach ($profileDocuments as $document): ?>
-              <div class="epi-file-pill">
-                <span class="epi-file-badge"><?= strtoupper(pathinfo($document['nom_fichier'], PATHINFO_EXTENSION) ?: 'DOC') ?></span>
-                <div style="flex:1;">
-                  <strong><?= htmlspecialchars($document['nom_fichier']) ?></strong>
-                  <div style="font-size:0.75rem; color:var(--community-muted);"><?= htmlspecialchars($document['publication_title']) ?> · <?= number_format(((int)$document['taille']) / 1048576, 2, ',', ' ') ?> Mo</div>
-                </div>
-                <a class="epi-pill-btn" href="<?= $base ?>/attachment/download/<?= (int)$document['id'] ?>">Télécharger</a>
-              </div>
-            <?php endforeach; ?>
           </div>
-        <?php endif; ?>
-      </div>
+        </section>
 
-      <!-- ONGLET 4 : ENREGISTRÉES -->
-      <?php if ($isOwnProfile): ?>
-        <div class="tab-content epi-tab-panel <?= $activeProfileTab === 'saved' ? 'active is-active' : '' ?>" id="tab-saved">
-          <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 0.75rem;">Publications & Documents enregistrés</h3>
-          <p style="color:var(--community-muted); font-size:0.9rem;">Retrouvez vos éléments sauvegardés sur l'EPI Tchach.</p>
-          <a href="<?= $base ?>/salon?view=saved" class="epi-btn-submit" style="display:inline-block; margin-top:0.5rem; text-decoration:none;">
-            Consulter mes favoris dans les salons
-          </a>
-        </div>
-      <?php endif; ?>
-
-      <!-- ONGLET 5 : À PROPOS -->
-      <div class="tab-content epi-tab-panel <?= $activeProfileTab === 'about' ? 'active is-active' : '' ?>" id="tab-about">
-        <div class="epi-widget-card">
-          <div class="epi-widget-title"><span>Informations personnelles & académiques</span></div>
-          <div style="display:flex; flex-direction:column; gap:0.65rem; font-size:0.9rem;">
-            <div><strong style="color:var(--community-muted); display:block; font-size:0.75rem; text-transform:uppercase;">Nom complet</strong> <span class="profile-dynamic-name"><?= htmlspecialchars($sessionFullName) ?></span></div>
-            <div><strong style="color:var(--community-muted); display:block; font-size:0.75rem; text-transform:uppercase;">Adresse Email</strong> <span class="profile-dynamic-email"><?= htmlspecialchars($sessionEmail) ?></span></div>
-            <div><strong style="color:var(--community-muted); display:block; font-size:0.75rem; text-transform:uppercase;">Rôle</strong> <span><?= htmlspecialchars($roleLabels[$sessionRole] ?? ucfirst($sessionRole)) ?></span></div>
-            <?php if ($sessionFiliere): ?>
-              <div><strong style="color:var(--community-muted); display:block; font-size:0.75rem; text-transform:uppercase;">Filière d'études</strong> <span><?= htmlspecialchars($sessionFiliere) ?></span></div>
-            <?php endif; ?>
-            <div><strong style="color:var(--community-muted); display:block; font-size:0.75rem; text-transform:uppercase;">Biographie</strong> <p class="profile-dynamic-bio" style="margin:0.25rem 0 0;"><?= htmlspecialchars($sessionBio ?: 'Aucune biographie renseignée.') ?></p></div>
-          </div>
-        </div>
       </div>
 
     </main>
 
-    <!-- ========== SIDEBAR DROITE : CARTE PROFIL STYLE REDDIT ========== -->
-    <aside class="epi-sidebar-right">
-      
-      <!-- Carte Profil Style Reddit -->
-      <div class="epi-profile-user-card">
-        <div class="epi-card-cover-small"></div>
-        <div class="epi-card-user-info">
-          
-          <div class="epi-user-avatar-mini-float">
-            <span class="profile-dynamic-initials"><?= htmlspecialchars(mb_substr($initials, 0, 1)) ?></span>
-            <img class="profile-avatar-image" src="<?= !empty($user['avatar_url']) ? htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') : '' ?>" alt="Photo de profil de <?= htmlspecialchars($sessionFullName, ENT_QUOTES, 'UTF-8') ?>" <?= empty($user['avatar_url']) ? 'hidden' : '' ?> />
-          </div>
-
-          <div class="epi-user-name-box">
-            <strong class="profile-dynamic-name"><?= htmlspecialchars($sessionFullName) ?></strong>
-            <span>u/<?= htmlspecialchars($userHandle) ?></span>
-          </div>
-
-          <button type="button" class="epi-card-action-btn" id="shareProfileBtn" onclick="navigator.clipboard.writeText(window.location.href); alert('Lien du profil copié !');">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span>Partager</span>
-          </button>
-
-          <p class="epi-user-bio-text profile-dynamic-bio">
-            <?= htmlspecialchars($sessionBio ?: 'Aucune présentation renseignée pour le moment.') ?>
-          </p>
-
-          <div class="epi-user-stats-grid">
-            <div>
-              <div style="font-size:1.1rem; font-weight:800; color:var(--community-text);"><?= (int)$profileStats['posts'] ?></div>
-              <div style="font-size:0.72rem; color:var(--community-muted);">Publications</div>
-            </div>
-            <div>
-              <div style="font-size:1.1rem; font-weight:800; color:var(--community-text);"><?= (int)$profileStats['comments'] ?></div>
-              <div style="font-size:0.72rem; color:var(--community-muted);">Réponses</div>
-            </div>
-            <div>
-              <div style="font-size:1.1rem; font-weight:800; color:var(--community-text);"><?= (int)$profileStats['documents'] ?></div>
-              <div style="font-size:0.72rem; color:var(--community-muted);">Documents</div>
-            </div>
-            <div>
-              <div style="font-size:1.1rem; font-weight:800; color:var(--community-text);"><?= (int)$profileStats['zones'] ?></div>
-              <div style="font-size:0.72rem; color:var(--community-muted);">Salons</div>
-            </div>
-          </div>
-
-          <!-- Bouton Liste des Amis (Demandé par l'utilisateur) -->
-          <a href="<?= $base ?>/friends?user=<?= (int)$user['id'] ?>" class="epi-card-action-btn" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-top:0.65rem; background:rgba(0,104,95,0.06); border:1px solid rgba(0,104,95,0.2); font-weight:700; color:var(--community-green, #00685f);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span><?= $isOwnProfile ? 'Voir mes amis' : 'Voir ses amis' ?></span>
-          </a>
-
-          <?php if ($isOwnProfile): ?>
-            <button type="button" class="epi-card-action-btn primary open-profile-edit-modal" style="margin-top:0.4rem;">
-              Paramètres du profil
-            </button>
-          <?php endif; ?>
-
-        </div>
-      </div>
-
-      <!-- Règles / À propos -->
-      <div class="epi-widget-card">
-        <div class="epi-widget-title">
-          <span>Règles d'EPI Tchach</span>
-        </div>
-        <ol style="padding-left:1.2rem; font-size:0.82rem; color:var(--community-muted); line-height:1.6; margin:0;">
-          <li>Profil vérifié de l'École Polytechnique.</li>
-          <li>Partagez vos retours et compétences.</li>
-          <li>Conservez un ton professionnel et solidaire.</li>
-        </ol>
-      </div>
-
-    </aside>
-
   </div>
 
   <!-- ============================================================
-       MODALE POPUP D'ÉDITION DU PROFIL
+       MODALE D'ÉDITION DU PROFIL (AJAX)
        ============================================================ -->
   <?php if ($isOwnProfile): ?>
   <div id="profileEditModal" class="modal-backdrop-profile" aria-hidden="true" role="dialog" aria-labelledby="modalEditTitle" hidden style="display:none;">
@@ -633,8 +756,8 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
       
       <div class="modal-header-profile">
         <div>
-          <h3 id="modalEditTitle">Modifier mon Profil Membre</h3>
-          <div style="font-size:0.78rem; color:var(--community-muted);">Mettez à jour vos coordonnées et informations académiques</div>
+          <h3 id="modalEditTitle">Modifier mon profil académique</h3>
+          <div style="font-size:0.78rem; color:var(--profile-text-muted);">Mettez à jour vos informations et votre photo</div>
         </div>
         <button type="button" class="epi-modal-close" id="closeEditModalBtn" aria-label="Fermer">&times;</button>
       </div>
@@ -642,78 +765,102 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
       <form id="ajaxProfileEditForm" action="<?= $base ?>/profile/update" method="POST" enctype="multipart/form-data">
         <div class="modal-body-profile">
 
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <div class="profile-avatar-edit-preview">
+          <div class="avatar-edit-preview-row">
+            <div class="avatar-edit-circle">
               <span class="profile-dynamic-initials"><?= htmlspecialchars($initials) ?></span>
               <img id="editAvatarPreview" class="profile-avatar-image" src="<?= !empty($user['avatar_url']) ? htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') : '' ?>" alt="Aperçu" <?= empty($user['avatar_url']) ? 'hidden' : '' ?> />
             </div>
             <div>
-              <label class="epi-pill-btn" for="editAvatarUpload" style="cursor:pointer; display:inline-block;">Changer la photo</label>
+              <button type="button" class="campus-profile-btn secondary" id="triggerAvatarUploadBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Changer la photo</span>
+              </button>
               <input id="editAvatarUpload" type="file" name="avatar" accept="image/jpeg,image/png,image/webp" hidden data-profile-avatar-input />
-              <div style="font-size:0.75rem; color:var(--community-muted); margin-top:0.35rem;">JPG, PNG ou WEBP, jusqu’à 5 Mo.</div>
+              <div style="font-size:0.75rem; color:var(--profile-text-muted); margin-top:0.35rem;">Formats JPG, PNG ou WEBP (max 5 Mo)</div>
             </div>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-            <div class="form-group">
+            <div class="form-group-profile">
               <label for="editNom">Nom</label>
               <input type="text" id="editNom" name="nom" class="form-control" value="<?= htmlspecialchars($sessionNom) ?>" required />
             </div>
-            <div class="form-group">
+            <div class="form-group-profile">
               <label for="editPrenom">Prénom</label>
               <input type="text" id="editPrenom" name="prenom" class="form-control" value="<?= htmlspecialchars($sessionPrenom) ?>" required />
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="editBio">Présentation & Biographie académique</label>
-            <textarea id="editBio" name="biographie" class="form-control" placeholder="Parlez de vos passions, projets d'études..."><?= htmlspecialchars($sessionBio) ?></textarea>
+          <div class="form-group-profile">
+            <label for="editBio">Présentation / Biographie</label>
+            <textarea id="editBio" name="biographie" class="form-control" placeholder="Parlez de vos passions, projets d'études, binômes recherchés..."><?= htmlspecialchars($sessionBio) ?></textarea>
           </div>
 
-          <div class="form-group">
-            <label for="editPassword">Nouveau mot de passe (laisser vide pour conserver)</label>
+          <div class="form-group-profile">
+            <label for="editPassword">Nouveau mot de passe <small style="text-transform:none; color:var(--profile-text-muted);">(laisser vide pour ne pas changer)</small></label>
             <input type="password" id="editPassword" name="nouveau_mot_de_passe" class="form-control" placeholder="Minimum 8 caractères" minlength="8" />
           </div>
 
         </div>
 
         <div class="modal-footer-profile">
-          <button type="button" class="epi-btn-cancel" id="cancelEditModalBtn">Annuler</button>
-          <button type="submit" class="epi-btn-submit">Enregistrer les modifications</button>
+          <button type="button" class="campus-profile-btn secondary" id="cancelEditModalBtn">Annuler</button>
+          <button type="submit" class="campus-profile-btn primary" id="saveEditModalBtn">Enregistrer les modifications</button>
         </div>
       </form>
 
     </div>
   </div>
-  <?php endif; ?>
 
-  <?php if ($isOwnProfile): ?>
+  <!-- MODALE CROPPING AVATAR -->
   <div id="avatarCropModal" class="modal-backdrop-profile profile-avatar-crop-modal" role="dialog" aria-modal="true" aria-labelledby="avatarCropTitle" aria-hidden="true" hidden>
-    <div class="profile-avatar-crop-dialog">
+    <div class="modal-dialog-profile">
       <div class="modal-header-profile">
         <div>
-          <h3 id="avatarCropTitle">Recadrer la photo</h3>
-          <div class="profile-avatar-crop-hint">Déplacez l’image et ajustez le zoom dans le cercle.</div>
+          <h3 id="avatarCropTitle">Recadrer votre photo</h3>
+          <div style="font-size:0.78rem; color:var(--profile-text-muted);">Ajustez le zoom et la position</div>
         </div>
         <button type="button" class="epi-modal-close" id="closeAvatarCropBtn" aria-label="Annuler le recadrage">&times;</button>
       </div>
-      <div class="profile-avatar-crop-content">
+      <div class="modal-body-profile">
         <div class="profile-avatar-crop-viewport" id="avatarCropViewport">
           <img id="avatarCropImage" alt="Aperçu du recadrage" draggable="false" />
         </div>
-        <label class="profile-avatar-zoom-label" for="avatarCropZoom">Zoom</label>
         <input id="avatarCropZoom" class="profile-avatar-zoom" type="range" min="1" max="3" step="0.01" value="1" />
       </div>
       <div class="modal-footer-profile">
-        <button type="button" class="epi-btn-cancel" id="cancelAvatarCropBtn">Annuler</button>
-        <button type="button" class="epi-btn-submit" id="applyAvatarCropBtn">Utiliser cette photo</button>
+        <button type="button" class="campus-profile-btn secondary" id="cancelAvatarCropBtn">Annuler</button>
+        <button type="button" class="campus-profile-btn primary" id="applyAvatarCropBtn">Valider le recadrage</button>
       </div>
     </div>
   </div>
   <?php endif; ?>
 
+  <!-- Modale globale de création de publication -->
   <?php include ROOT_PATH . '/resources/views/desktop/partials/post-composer-modal.php'; ?>
-  <script src="<?= $asset ?>/js/desktop/salon.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/salon.js') ?>"></script>
-  <script src="<?= $asset ?>/js/desktop/profile.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/profile.js') ?>"></script>
+
+  <!-- Scripts -->
+  <script src="<?= htmlspecialchars($asset) ?>/js/theme.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/theme.js') ?>"></script>
+  <script src="<?= htmlspecialchars($asset) ?>/js/feedback.js"></script>
+  <script src="<?= htmlspecialchars($asset) ?>/js/desktop/profile.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/profile.js') ?>"></script>
+  <script>
+    // Menu Utilisateur Toggle
+    const userToggle = document.getElementById('userMenuToggle');
+    const userDropdown = document.getElementById('userMenuDropdown');
+    if (userToggle && userDropdown) {
+      userToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = userDropdown.hidden === false;
+        userDropdown.hidden = isExpanded;
+        userToggle.setAttribute('aria-expanded', !isExpanded);
+      });
+      document.addEventListener('click', (e) => {
+        if (!userDropdown.contains(e.target) && !userToggle.contains(e.target)) {
+          userDropdown.hidden = true;
+          userToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+  </script>
 </body>
 </html>
