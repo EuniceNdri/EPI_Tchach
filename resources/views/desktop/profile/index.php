@@ -593,8 +593,14 @@ $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? 
             </div>
           </div>
 
+          <!-- Bouton Liste des Amis (Demandé par l'utilisateur) -->
+          <a href="<?= $base ?>/friends?user=<?= (int)$user['id'] ?>" class="epi-card-action-btn" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-top:0.65rem; background:rgba(0,104,95,0.06); border:1px solid rgba(0,104,95,0.2); font-weight:700; color:var(--community-green, #00685f);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span><?= $isOwnProfile ? 'Voir mes amis' : 'Voir ses amis' ?></span>
+          </a>
+
           <?php if ($isOwnProfile): ?>
-            <button type="button" class="epi-card-action-btn primary open-profile-edit-modal">
+            <button type="button" class="epi-card-action-btn primary open-profile-edit-modal" style="margin-top:0.4rem;">
               Paramètres du profil
             </button>
           <?php endif; ?>
