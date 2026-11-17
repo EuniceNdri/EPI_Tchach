@@ -687,6 +687,20 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                     <p class="campus-post-text"><?= nl2br(htmlspecialchars(trim($cleanContent))) ?></p>
                   <?php endif; ?>
 
+                  <?php if (!empty($publicationTags[$postId]) || !empty($publicationMentions[$postId])): ?>
+                    <div class="epi-post-metadata">
+                      <?php foreach ($publicationTags[$postId] ?? [] as $postTag): ?>
+                        <a class="epi-post-metadata-chip" href="<?= htmlspecialchars($base) ?>/salon?tag=<?= (int)$postTag['id'] ?>">#<?= htmlspecialchars((string)$postTag['nom']) ?></a>
+                      <?php endforeach; ?>
+                      <?php if (!empty($publicationMentions[$postId])): ?>
+                        <span class="epi-post-metadata-label">Avec</span>
+                        <?php foreach ($publicationMentions[$postId] as $mentionedPerson): ?>
+                          <span class="epi-post-metadata-chip"><?= htmlspecialchars(trim((string)$mentionedPerson['prenom'] . ' ' . (string)$mentionedPerson['nom'])) ?></span>
+                        <?php endforeach; ?>
+                      <?php endif; ?>
+                    </div>
+                  <?php endif; ?>
+
                   <!-- Snippet de code interactif si présent -->
                   <?php if ($hasCodeBlock && $codeText !== ''): ?>
                     <div class="campus-code-block">

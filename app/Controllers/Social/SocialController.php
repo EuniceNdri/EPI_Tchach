@@ -32,6 +32,9 @@ class SocialController
         $selectedId = array_key_exists('user', $_GET)
             ? filter_var($_GET['user'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
             : null;
+        $selectedConversationId = array_key_exists('conversation', $_GET)
+            ? filter_var($_GET['conversation'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : null;
         $selectedGroupId = array_key_exists('group', $_GET)
             ? filter_var($_GET['group'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
             : null;
@@ -56,6 +59,21 @@ class SocialController
             }
         } elseif ($selectedGroupId === false) {
             $_SESSION['flash_error'] = 'Groupe invalide.';
+        } elseif ($selectedConversationId !== false && $selectedConversationId !== null) {
+            foreach ($friends as $friend) {
+                if ((int)($friend['conversation_id'] ?? 0) === (int)$selectedConversationId) {
+                    $selectedFriend = $friend;
+                    $selectedId = (int)$friend['id'];
+                    break;
+                }
+            }
+            if ($selectedFriend !== null) {
+                $messages = $this->social->getMessages($userId, (int)$selectedId);
+            } else {
+                $_SESSION['flash_error'] = 'Cette conversation est introuvable ou inaccessible.';
+            }
+        } elseif ($selectedConversationId === false) {
+            $_SESSION['flash_error'] = 'Conversation invalide.';
         } elseif ($selectedId !== false && $selectedId !== null) {
             foreach ($friends as $friend) {
                 if ((int)$friend['id'] === (int)$selectedId) {
@@ -72,6 +90,14 @@ class SocialController
             $_SESSION['flash_error'] = 'Conversation invalide.';
         }
         $friends = $this->social->getInbox($userId);
+        if ($selectedFriend !== null) {
+            foreach ($friends as $friend) {
+                if ((int)$friend['id'] === (int)$selectedFriend['id']) {
+                    $selectedFriend = $friend;
+                    break;
+                }
+            }
+        }
         $groups = $this->filiereGroups->getAccessibleGroups($userId);
         $unreadMessagesCount = $this->social->getUnreadMessageCount($userId)
             + array_sum(array_map(static fn (array $group): int => (int)$group['unread_count'], $groups));

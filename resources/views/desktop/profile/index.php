@@ -11,7 +11,9 @@
  * @var array|null $profilePosts
  * @var array|null $profileZones
  * @var array|null $profileCategories
+ * @var array|null $profilePostCategories
  * @var array|null $profileDocuments
+ * @var array|null $savedPublications
  * @var array|null $profileStats
  * @var int|null $unreadCount
  * @var int|null $unreadMessagesCount
@@ -30,7 +32,9 @@ $user = is_array($user ?? null) ? $user : [];
 $profilePosts = is_array($profilePosts ?? null) ? $profilePosts : [];
 $profileZones = is_array($profileZones ?? null) ? $profileZones : [];
 $profileCategories = is_array($profileCategories ?? null) ? $profileCategories : [];
+$profilePostCategories = is_array($profilePostCategories ?? null) ? $profilePostCategories : [];
 $profileDocuments = is_array($profileDocuments ?? null) ? $profileDocuments : [];
+$savedPublications = is_array($savedPublications ?? null) ? $savedPublications : [];
 $profileStats = array_merge(
   ['posts' => 0, 'comments' => 0, 'documents' => 0, 'zones' => 0],
   is_array($profileStats ?? null) ? $profileStats : []
@@ -93,11 +97,8 @@ $socialCsrfToken = $socialCsrfToken ?? ($_SESSION['csrf_token'] ?? '');
 $activeProfileTab = isset($activeProfileTab) ? $activeProfileTab : 'posts';
 $userHandle = strtolower(preg_replace('/[^a-zA-Z0-9_.]/', '', ($sessionPrenom ? $sessionPrenom . '.' : '') . $sessionNom));
 
-// Compétences / Matières découpées
+// Matières et spécialités réelles de l'utilisateur
 $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModules)));
-if (empty($moduleList)) {
-  $moduleList = ['Génie Logiciel', 'Algorithmique & Complexité', 'Bases de Données', 'Réseaux & Télécoms', 'Systèmes Distribués'];
-}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -233,10 +234,14 @@ if (empty($moduleList)) {
     <!-- ========== SIDEBAR GAUCHE ========== -->
     <aside class="epi-sidebar-left">
       <div class="epi-sidebar-box">
-        <div class="epi-nav-heading">Espaces Campus</div>
+        <div class="epi-nav-heading">Navigation Campus</div>
         <a href="<?= $base ?>/salon" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Salons & Espaces</span>
+          <span>Fil public / Salon</span>
+        </a>
+        <a href="<?= $base ?>/zones" class="epi-nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+          <span>Mes Zones</span>
         </a>
         <a href="<?= $base ?>/friends" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -245,15 +250,31 @@ if (empty($moduleList)) {
         <a href="<?= $base ?>/messages" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           <span>Messagerie</span>
+          <?php if ($unreadMessagesCount > 0): ?><small class="epi-sidebar-count"><?= $unreadMessagesCount > 99 ? '99+' : $unreadMessagesCount ?></small><?php endif; ?>
         </a>
         <a href="<?= $base ?>/notifications" class="epi-nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span>Notifications</span>
+          <?php if ($unreadCount > 0): ?><small class="epi-sidebar-count is-notification"><?= $unreadCount > 99 ? '99+' : $unreadCount ?></small><?php endif; ?>
         </a>
-        <a href="<?= $base ?>/profile" class="epi-nav-item is-active">
+        <a href="<?= $base ?>/profile" class="epi-nav-item <?= $isOwnProfile ? 'is-active' : '' ?>" <?= $isOwnProfile ? 'aria-current="page"' : '' ?>>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Mon Profil</span>
         </a>
+
+        <?php if ($isOwnProfile && $profileZones): ?>
+          <div class="epi-zone-group">
+            <div class="epi-nav-heading">Mes zones</div>
+            <?php foreach (array_slice($profileZones, 0, 5) as $profileZone): ?>
+              <a href="<?= $base ?>/salon?zone=<?= (int)$profileZone['id'] ?>" class="epi-nav-item epi-nav-zone-item">
+                <span class="epi-nav-zone-dot" aria-hidden="true"></span>
+                <span><?= htmlspecialchars($profileZone['nom'] ?? 'Zone') ?></span>
+                <small><?= (int)($profileZone['membres_count'] ?? 0) ?></small>
+              </a>
+            <?php endforeach; ?>
+            <a href="<?= $base ?>/zones" class="epi-nav-more">Voir toutes les zones</a>
+          </div>
+        <?php endif; ?>
 
         <?php if ($loggedInRole === 'administrateur'): ?>
           <div class="epi-zone-group">
@@ -268,14 +289,13 @@ if (empty($moduleList)) {
     </aside>
 
     <!-- ========== ZONE CENTRALE PROFIL (CAMPUS HUB) ========== -->
-    <main class="epi-main-feed" style="grid-column: 2 / -1;">
+    <main class="epi-main-feed">
 
       <div class="campus-profile-container">
 
         <!-- 1. HERO COVER & IDENTITÉ ACADÉMIQUE -->
         <section class="campus-profile-hero">
           <div class="campus-profile-banner">
-            <!-- Formes géométriques décoratives inspirées du mockup d21 -->
             <svg class="campus-profile-banner-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" fill="none">
               <path d="M0,0 L350,300 L600,0 L900,300 L1200,0 V300 H0 Z" fill="#ffffff"></path>
               <circle cx="850" cy="80" r="140" fill="#fea619" opacity="0.35"></circle>
@@ -315,7 +335,7 @@ if (empty($moduleList)) {
                 <div class="campus-profile-meta-row">
                   <span class="campus-profile-handle">@<?= htmlspecialchars($userHandle) ?></span>
                   <span>•</span>
-                  <span><?= htmlspecialchars($sessionFiliere ?: 'Ingénierie Polytechnique') ?></span>
+                  <span class="profile-dynamic-filiere"><?= htmlspecialchars($sessionFiliere ?: 'Filière non spécifiée') ?></span>
                   <span class="campus-cas-pill">
                     <span class="campus-cas-dot"></span>
                     <span>CAS Vérifié</span>
@@ -383,12 +403,12 @@ if (empty($moduleList)) {
           </div>
         </section>
 
-        <!-- 2. CARTES D'IMPACT ACADÉMIQUE (3 METRICS D21) -->
+        <!-- 2. CARTES D'IMPACT ACADÉMIQUE DYNAMIQUES -->
         <section class="campus-impact-grid">
           <div class="campus-impact-card">
             <div class="campus-impact-card-top">
               <div>
-                <span class="campus-impact-label">Publications & Fiches</span>
+                <span class="campus-impact-label">Publications</span>
                 <div class="campus-impact-value" id="statSubjectsCount"><?= (int)$profileStats['posts'] ?></div>
               </div>
               <div class="campus-impact-icon">
@@ -396,14 +416,14 @@ if (empty($moduleList)) {
               </div>
             </div>
             <div class="campus-impact-sub">
-              <span>★ 4.9/5 satisfaction des pairs</span>
+              <span><?= (int)$profileStats['posts'] ?> sujet(s) et question(s) sur le campus</span>
             </div>
           </div>
 
           <div class="campus-impact-card">
             <div class="campus-impact-card-top">
               <div>
-                <span class="campus-impact-label">Contributions & Échanges</span>
+                <span class="campus-impact-label">Réponses & Discussions</span>
                 <div class="campus-impact-value"><?= (int)$profileStats['comments'] ?></div>
               </div>
               <div class="campus-impact-icon" style="background:var(--profile-secondary-container); color:var(--profile-secondary);">
@@ -411,24 +431,22 @@ if (empty($moduleList)) {
               </div>
             </div>
             <div class="campus-impact-sub">
-              <span>💬 <?= (int)$profileStats['comments'] ?> réponses et solutions apportées</span>
+              <span>💬 <?= (int)$profileStats['comments'] ?> réponse(s) et contribution(s)</span>
             </div>
           </div>
 
           <div class="campus-impact-card">
             <div class="campus-impact-card-top">
               <div>
-                <span class="campus-impact-label">Réseau & Salons</span>
-                <div class="campus-impact-value" id="statDocumentsCount"><?= (int)$profileStats['zones'] ?></div>
+                <span class="campus-impact-label">Documents & Fiches</span>
+                <div class="campus-impact-value" id="statDocumentsCount"><?= (int)$profileStats['documents'] ?></div>
               </div>
               <div class="campus-impact-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
             </div>
             <div class="campus-impact-sub">
-              <a href="<?= $base ?>/friends?user=<?= (int)$user['id'] ?>" style="color:var(--profile-primary); font-weight:700; text-decoration:none;">
-                <?= $isOwnProfile ? 'Consulter mon annuaire de camarades →' : 'Voir les camarades de ce profil →' ?>
-              </a>
+              <span>📎 <?= (int)$profileStats['documents'] ?> ressource(s) partagée(s)</span>
             </div>
           </div>
         </section>
@@ -452,7 +470,7 @@ if (empty($moduleList)) {
                 </div>
                 <div class="campus-info-item">
                   <span class="campus-info-label">Filière d'Excellence</span>
-                  <span class="campus-info-val"><?= htmlspecialchars($sessionFiliere ?: 'Ingénierie Informatique') ?></span>
+                  <span class="campus-info-val profile-dynamic-filiere"><?= htmlspecialchars($sessionFiliere ?: 'Filière non renseignée') ?></span>
                 </div>
                 <div class="campus-info-item">
                   <span class="campus-info-label">Statut & Rôle</span>
@@ -486,9 +504,15 @@ if (empty($moduleList)) {
                 <span>Matières & Spécialités</span>
               </h2>
               <div class="campus-chips-wrap">
-                <?php foreach ($moduleList as $mod): ?>
-                  <span class="campus-chip"><?= htmlspecialchars($mod) ?></span>
-                <?php endforeach; ?>
+                <?php if (empty($moduleList)): ?>
+                  <span style="font-size:0.8rem; color:var(--profile-text-muted); font-style:italic;">
+                    <?= $isOwnProfile ? 'Aucune matière spécifiée. Cliquez sur "Modifier mon profil" pour en ajouter.' : 'Aucune matière spécifiée pour ce profil.' ?>
+                  </span>
+                <?php else: ?>
+                  <?php foreach ($moduleList as $mod): ?>
+                    <span class="campus-chip"><?= htmlspecialchars($mod) ?></span>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </div>
             </div>
 
@@ -496,14 +520,14 @@ if (empty($moduleList)) {
             <div class="campus-sidebar-card">
               <h2 class="campus-sidebar-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span>Espaces Rejoints</span>
+                <span>Espaces Rejoints (<?= count($profileZones) ?>)</span>
               </h2>
               <div style="display:flex; flex-direction:column; gap:0.4rem;">
                 <?php if (empty($profileZones)): ?>
                   <span style="font-size:0.8rem; color:var(--profile-text-muted);">Aucun salon spécifique rattaché.</span>
                 <?php else: ?>
                   <?php foreach (array_slice($profileZones, 0, 5) as $pz): ?>
-                    <a href="<?= $base ?>/salon?category=<?= (int)($pz['id'] ?? 0) ?>" class="campus-zone-mini-link">
+                    <a href="<?= $base ?>/salon?zone=<?= (int)($pz['id'] ?? 0) ?>" class="campus-zone-mini-link">
                       <span class="campus-zone-mini-name">
                         <span style="width:7px; height:7px; border-radius:50%; background:var(--profile-primary); display:inline-block;"></span>
                         <span><?= htmlspecialchars($pz['nom'] ?? 'Salon') ?></span>
@@ -529,14 +553,21 @@ if (empty($moduleList)) {
                 </button>
                 <button type="button" class="tab-btn <?= $activeProfileTab === 'docs' ? 'is-active active' : '' ?>" data-tab="tab-docs" role="tab">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                  <span>Fiches & Documents</span>
+                  <span>Documents</span>
                   <span class="tab-counter"><?= count($profileDocuments) ?></span>
                 </button>
                 <button type="button" class="tab-btn <?= $activeProfileTab === 'channels' ? 'is-active active' : '' ?>" data-tab="tab-channels" role="tab">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                  <span>Salons & Zones</span>
+                  <span>Espaces</span>
                   <span class="tab-counter"><?= count($profileZones) ?></span>
                 </button>
+                <?php if ($isOwnProfile): ?>
+                  <button type="button" class="tab-btn <?= $activeProfileTab === 'saved' ? 'is-active active' : '' ?>" data-tab="tab-saved" role="tab">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    <span>Favoris</span>
+                    <span class="tab-counter"><?= count($savedPublications) ?></span>
+                  </button>
+                <?php endif; ?>
                 <button type="button" class="tab-btn <?= $activeProfileTab === 'about' ? 'is-active active' : '' ?>" data-tab="tab-about" role="tab">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                   <span>À propos</span>
@@ -547,8 +578,13 @@ if (empty($moduleList)) {
               <div class="campus-filter-toolbar">
                 <select id="profilePostCategoryFilter" class="campus-select-filter">
                   <option value="all">Toutes catégories</option>
-                  <?php foreach ($profileCategories as $cat): ?>
-                    <option value="<?= (int)$cat['id'] ?>"><?= htmlspecialchars($cat['nom']) ?></option>
+                  <?php
+                  $displayCats = !empty($profilePostCategories) ? $profilePostCategories : $profileCategories;
+                  foreach ($displayCats as $cat):
+                    $catId = (int)($cat['id'] ?? 0);
+                    $catTitle = htmlspecialchars($cat['nom'] ?? $cat['name'] ?? 'Catégorie');
+                  ?>
+                    <option value="<?= $catId ?>"><?= $catTitle ?></option>
                   <?php endforeach; ?>
                 </select>
                 <select id="profilePostStatusFilter" class="campus-select-filter">
@@ -637,9 +673,27 @@ if (empty($moduleList)) {
                           </span>
                         </div>
 
-                        <a href="<?= $base ?>/publication/<?= (int)$post['id'] ?>" class="campus-profile-btn secondary" style="padding:0.35rem 0.75rem; font-size:0.775rem;">
-                          <span>Voir la discussion →</span>
-                        </a>
+                        <div style="display:flex; align-items:center; gap:0.4rem;">
+                          <button type="button" class="campus-profile-btn secondary" style="padding:0.35rem 0.65rem; font-size:0.75rem;" onclick="navigator.clipboard.writeText(window.location.origin + '<?= $base ?>/publication/<?= (int)$post['id'] ?>'); window.showToast('Lien copié dans le presse-papier !', 'success');">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            <span>Partager</span>
+                          </button>
+                          <?php if ($isOwnProfile): ?>
+                            <form action="<?= $base ?>/salon/save" method="post" style="display:inline;">
+                              <input type="hidden" name="target_type" value="publication">
+                              <input type="hidden" name="target_id" value="<?= (int)$post['id'] ?>">
+                              <input type="hidden" name="return_page" value="profile">
+                              <input type="hidden" name="return_tab" value="posts">
+                              <button class="campus-profile-btn secondary" type="submit" style="padding:0.35rem 0.65rem; font-size:0.75rem;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="<?= !empty($post['saved_id']) ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                <span><?= !empty($post['saved_id']) ? 'Enregistré' : 'Favori' ?></span>
+                              </button>
+                            </form>
+                          <?php endif; ?>
+                          <a href="<?= $base ?>/publication/<?= (int)$post['id'] ?>" class="campus-profile-btn secondary" style="padding:0.35rem 0.75rem; font-size:0.75rem;">
+                            <span>Discussion →</span>
+                          </a>
+                        </div>
                       </div>
                     </article>
                   <?php endforeach; ?>
@@ -712,7 +766,68 @@ if (empty($moduleList)) {
               <?php endif; ?>
             </div>
 
-            <!-- CONTENU DE L'ONGLET 4 : À PROPOS -->
+            <!-- CONTENU DE L'ONGLET 4 : FAVORIS & SAUVEGARDES -->
+            <?php if ($isOwnProfile): ?>
+              <div class="tab-content <?= $activeProfileTab === 'saved' ? 'active is-active' : '' ?>" id="tab-saved">
+                <?php if (empty($savedPublications)): ?>
+                  <div class="campus-empty-box">
+                    <div class="campus-empty-icon">🔖</div>
+                    <h3>Aucune publication enregistrée</h3>
+                    <p>Enregistrez vos publications et fiches favorites pour les retrouver rapidement ici.</p>
+                    <a href="<?= $base ?>/salon" class="campus-profile-btn secondary" style="margin-top:0.5rem; text-decoration:none;">
+                      Explorer le fil du salon →
+                    </a>
+                  </div>
+                <?php else: ?>
+                  <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <?php foreach ($savedPublications as $savedPost): ?>
+                      <article class="campus-post-card">
+                        <div class="campus-post-header">
+                          <div class="campus-post-badges">
+                            <span class="campus-post-tag"><?= htmlspecialchars($savedPost['category_name'] ?? 'Salon') ?></span>
+                            <span class="campus-post-status">Sauvegardé</span>
+                          </div>
+                        </div>
+
+                        <h3 class="campus-post-title">
+                          <a href="<?= $base ?>/publication/<?= (int)$savedPost['id'] ?>" style="color:inherit; text-decoration:none;">
+                            <?= htmlspecialchars($savedPost['titre']) ?>
+                          </a>
+                        </h3>
+
+                        <p class="campus-post-excerpt">
+                          <?= nl2br(htmlspecialchars(mb_strimwidth(strip_tags($savedPost['contenu']), 0, 240, '…'))) ?>
+                        </p>
+
+                        <div class="campus-post-footer">
+                          <span class="campus-post-stat-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#ef4444;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span><?= (int)($savedPost['likes_count'] ?? 0) ?></span>
+                          </span>
+
+                          <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <form action="<?= $base ?>/salon/save" method="post" style="display:inline;">
+                              <input type="hidden" name="target_type" value="publication">
+                              <input type="hidden" name="target_id" value="<?= (int)$savedPost['id'] ?>">
+                              <input type="hidden" name="return_page" value="profile">
+                              <input type="hidden" name="return_tab" value="saved">
+                              <button class="campus-profile-btn secondary" type="submit" style="padding:0.35rem 0.65rem; font-size:0.75rem;">
+                                Retirer
+                              </button>
+                            </form>
+                            <a href="<?= $base ?>/publication/<?= (int)$savedPost['id'] ?>" class="campus-profile-btn primary" style="padding:0.35rem 0.75rem; font-size:0.75rem;">
+                              Consulter →
+                            </a>
+                          </div>
+                        </div>
+                      </article>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
+
+            <!-- CONTENU DE L'ONGLET 5 : À PROPOS -->
             <div class="tab-content <?= $activeProfileTab === 'about' ? 'active is-active' : '' ?>" id="tab-about">
               <div class="campus-sidebar-card">
                 <h3 class="campus-sidebar-title">
@@ -793,6 +908,17 @@ if (empty($moduleList)) {
             </div>
           </div>
 
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="form-group-profile">
+              <label for="editFiliere">Filière d'études</label>
+              <input type="text" id="editFiliere" name="filiere" class="form-control" value="<?= htmlspecialchars($sessionFiliere) ?>" placeholder="Ex: Informatique, BTP, Mines..." />
+            </div>
+            <div class="form-group-profile">
+              <label for="editModules">Matières clés (séparées par virgules)</label>
+              <input type="text" id="editModules" name="modules_enseignes" class="form-control" value="<?= htmlspecialchars($sessionModules) ?>" placeholder="Ex: Algorithmique, BDD, Réseaux..." />
+            </div>
+          </div>
+
           <div class="form-group-profile">
             <label for="editBio">Présentation / Biographie</label>
             <textarea id="editBio" name="biographie" class="form-control" placeholder="Parlez de vos passions, projets d'études, binômes recherchés..."><?= htmlspecialchars($sessionBio) ?></textarea>
@@ -800,7 +926,7 @@ if (empty($moduleList)) {
 
           <div class="form-group-profile">
             <label for="editPassword">Nouveau mot de passe <small style="text-transform:none; color:var(--profile-text-muted);">(laisser vide pour ne pas changer)</small></label>
-            <input type="password" id="editPassword" name="nouveau_mot_de_passe" class="form-control" placeholder="Minimum 8 caractères" minlength="8" />
+            <input type="password" id="editPassword" name="nouveau_mot_de_passe" class="form-control" placeholder="Minimum 8 caractères" minlength="8" autocomplete="new-password" />
           </div>
 
         </div>

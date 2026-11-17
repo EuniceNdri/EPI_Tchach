@@ -76,6 +76,26 @@ Les middlewares disponibles sont `auth`, `guest`, `admin` et
 défaut, sauf les routes publiques de connexion et les routes explicitement
 spécialisées. Les contrôleurs gardent les contrôles fins liés aux ressources.
 
+Routes principales du site :
+
+| URL | Page / action |
+| --- | --- |
+| `/` | Landing pour les visiteurs; redirection vers `/salon` si connecté |
+| `/salon`, `/salon/{zone_id}`, `/zones`, `/zones/{zone_id}` | Fil public, salon d'une zone et liste des zones |
+| `/publication/{id}` | Détail d'une publication |
+| `/publication/live-stats` | Compteurs en direct des publications et commentaires (GET authentifié) |
+| `/profile`, `/profil`, `/profile/{id}`, `/profil/{id}` | Mon profil ou profil d'un membre |
+| `/friends`, `/amis` | Amis, demandes et suggestions |
+| `/messages`, `/messages/{conversation_id}` | Messagerie et conversation privée accessible |
+| `/notifications` | Centre de notifications |
+| `/zones/creer` | Création d'une zone (requête POST authentifiée) |
+| `/admin`, `/admin/users`, `/admin/moderation`, `/admin/zones` | Administration (rôle administrateur) |
+| URL inconnue ou `/404` | Page 404 |
+
+Les paramètres numériques des chemins sont normalisés vers les paramètres
+attendus par les contrôleurs. L'accès aux zones et conversations reste vérifié
+par le contrôleur à partir des appartenances et relations de l'utilisateur.
+
 ---
 
 ## 2. Vision fonctionnelle globale

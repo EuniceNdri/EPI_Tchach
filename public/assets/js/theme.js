@@ -2,7 +2,23 @@
   const storageKey = "epi-theme";
   let theme = "dark";
   try {
-    theme = window.localStorage.getItem(storageKey) === "light" ? "light" : "dark";
+    const savedTheme = window.localStorage.getItem(storageKey);
+    const pathSegments = window.location.pathname.split("/").filter(Boolean);
+    const communityRoutes = [
+      "salon", "salons", "zones", "profile", "profil", "friends", "amis",
+      "messages", "messagerie", "notifications", "admin", "dashboard",
+      "login", "register", "forgot-password", "reset-password", "publication",
+      "search", "moderation", "signalement", "logout", "attachment", "api",
+    ];
+    const isLandingPage = pathSegments.length === 0
+      || pathSegments.includes("landing")
+      || pathSegments.includes("home")
+      || !pathSegments.some((segment) => communityRoutes.includes(segment));
+    theme = savedTheme === "light"
+      ? "light"
+      : savedTheme === "dark" || isLandingPage
+        ? "dark"
+        : "light";
   } catch (error) {
     console.warn("Le thème ne peut pas être mémorisé dans ce navigateur.", error);
   }

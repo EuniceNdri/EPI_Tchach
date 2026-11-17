@@ -2,17 +2,17 @@
  * ==============================================================
  * public/assets/css/desktop/messages.css
  * Styles modernisés WhatsApp-style pour Messagerie Instantanée EPI Tchach
- * Basé sur le Design System Campus (Teal #00685f, Amber #fea619)
+ * Basé sur le Design System Campus (Teal #0d9488, Amber #f59e0b)
  * ==============================================================
  */
 
 :root {
-  --msg-primary: #00685f;
-  --msg-primary-hover: #008378;
+  --msg-primary: #0d9488;
+  --msg-primary-hover: #0f766e;
   --msg-primary-container: #e0f2f1;
   --msg-on-primary: #ffffff;
-  --msg-accent: #fea619;
-  --msg-bubble-sent: #00685f;
+  --msg-accent: #f59e0b;
+  --msg-bubble-sent: #0d9488;
   --msg-bubble-sent-text: #ffffff;
   --msg-bubble-received: #ffffff;
   --msg-bubble-received-text: #111c2d;

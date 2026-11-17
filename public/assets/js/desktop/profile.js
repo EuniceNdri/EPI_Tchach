@@ -72,6 +72,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. MODALE POPUP D'ÉDITION DU PROFIL
   // ============================================================
   const editModal = document.getElementById("profileEditModal");
+  const postModal = document.getElementById("epiPostModal");
+
+  const closeOtherProfileModal = (keepModal) => {
+    if (keepModal !== editModal && editModal) {
+      window.closeProfileEditModal();
+    }
+    if (keepModal !== postModal && postModal) {
+      const closePostModalBtn = document.getElementById("closeCreatePostModal");
+      const cancelPostBtn = document.getElementById("cancelPostBtn");
+      if (closePostModalBtn && typeof closePostModalBtn.click === "function") {
+        closePostModalBtn.click();
+      } else if (cancelPostBtn && typeof cancelPostBtn.click === "function") {
+        cancelPostBtn.click();
+      } else {
+        postModal.classList.remove("show");
+        postModal.hidden = true;
+        postModal.style.display = "none";
+        postModal.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+      }
+    }
+  };
 
   window.openProfileEditModal = function (e) {
     if (e) {
@@ -79,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (typeof e.stopPropagation === "function") e.stopPropagation();
     }
     if (!editModal) return;
+    closeOtherProfileModal(editModal);
     editModal.hidden = false;
     editModal.removeAttribute("hidden");
     editModal.classList.add("show");
@@ -135,6 +158,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (profileEditForm) {
     const avatarInput = profileEditForm.querySelector("[data-profile-avatar-input]");
+    const triggerAvatarBtn = document.getElementById("triggerAvatarUploadBtn");
+    if (triggerAvatarBtn && avatarInput) {
+      triggerAvatarBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        avatarInput.click();
+      });
+    }
     const avatarPreview = document.getElementById("editAvatarPreview");
     const cropModal = document.getElementById("avatarCropModal");
     const cropViewport = document.getElementById("avatarCropViewport");
@@ -165,7 +195,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const closeCropModal = (restorePreviousFile) => {
       if (!cropModal) return;
+      if (cropModal.contains(document.activeElement)) {
+        if (triggerAvatarBtn && !triggerAvatarBtn.disabled) {
+          triggerAvatarBtn.focus();
+        } else {
+          document.activeElement.blur();
+        }
+      }
       cropModal.classList.remove("show");
+      cropModal.style.display = "none";
       cropModal.hidden = true;
       cropModal.setAttribute("aria-hidden", "true");
       if (restorePreviousFile && avatarInput) {
@@ -194,6 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
       cropImageUrl = URL.createObjectURL(file);
+      cropModal.style.display = "flex";
       cropModal.hidden = false;
       cropModal.classList.add("show");
       cropModal.setAttribute("aria-hidden", "false");
@@ -343,6 +382,13 @@ document.addEventListener("DOMContentLoaded", () => {
           document.querySelectorAll(".profile-dynamic-bio").forEach((el) => {
             el.textContent = newBio || "Aucune biographie renseignée pour l'instant.";
           });
+
+          // Mettre à jour la filière
+          if (data.user.filiere) {
+            document.querySelectorAll(".profile-dynamic-filiere").forEach((el) => {
+              el.textContent = data.user.filiere;
+            });
+          }
 
           // 2. Fermer la modale
           window.closeProfileEditModal();
@@ -556,6 +602,60 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // ============================================================
+  // GESTION DU POST COMPOSER MODAL (#epiPostModal)
+  // ============================================================
+  const openComposerModal = () => {
+    if (!postModal) return;
+    if (editModal) {
+      window.closeProfileEditModal();
+    }
+    postModal.hidden = false;
+    postModal.classList.add("show");
+    postModal.style.display = "flex";
+    postModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    const firstInput = postModal.querySelector("input[name='titre'], textarea");
+    if (firstInput) firstInput.focus();
+  };
+
+  const closeComposerModal = () => {
+    if (!postModal) return;
+    postModal.classList.remove("show");
+    postModal.hidden = true;
+    postModal.style.display = "none";
+    postModal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  };
+
+  document.querySelectorAll("[data-open-create-post-modal]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openComposerModal();
+    });
+  });
+
+  const closePostModalBtn = document.getElementById("closeCreatePostModal");
+  const cancelPostBtn = document.getElementById("cancelPostBtn");
+  if (closePostModalBtn) closePostModalBtn.addEventListener("click", closeComposerModal);
+  if (cancelPostBtn) cancelPostBtn.addEventListener("click", closeComposerModal);
+  if (postModal) {
+    postModal.addEventListener("click", (e) => {
+      if (e.target === postModal) closeComposerModal();
+    });
+  }
+
+  // Topbar search redirect
+  document.querySelectorAll(".epi-search-input").forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      const query = input.value.trim();
+      if (!query) return;
+      const baseUrl = document.body.dataset.baseUrl || "";
+      window.location.href = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+    });
+  });
 
   // ============================================================
   // 5. SYSTÈME DE NOTIFICATION TOAST UNIVERSEL

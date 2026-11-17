@@ -35,10 +35,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toast = document.createElement("div");
         toast.className = `admin-toast ${type}`;
-        
-        const iconSvg = type === "success" 
-            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`
-            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+        const iconSvg = type === "success" ?
+            `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>` :
+            `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
         toast.innerHTML = `${iconSvg}<span>${message}</span>`;
         container.appendChild(toast);
@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Clic sur un bouton "Éditer" (délégation pour tous les tableaux)
-    document.addEventListener("click", async (e) => {
+    document.addEventListener("click", async(e) => {
         const editBtn = e.target.closest(".btn-edit-user");
         if (!editBtn) return;
 
@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("editUserPrenom").value = u.prenom || "";
                 document.getElementById("editUserNom").value = u.nom || "";
                 document.getElementById("editUserEmail").value = u.email || "";
-                
+
                 const userRole = (u.role || "etudiant").toLowerCase();
                 const cleanRole = userRole === "admin" ? "administrateur" : userRole;
                 if (roleSelect) roleSelect.value = cleanRole;
@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ------------------------------------------------------------
     // 4. Suppression définitive d'un utilisateur (AJAX)
     // ------------------------------------------------------------
-    document.addEventListener("click", async (e) => {
+    document.addEventListener("click", async(e) => {
         const deleteBtn = e.target.closest(".btn-delete-user");
         if (!deleteBtn) return;
 
@@ -643,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    document.addEventListener("click", async (e) => {
+    document.addEventListener("click", async(e) => {
         const viewBtn = e.target.closest(".btn-view-profile");
         if (!viewBtn) return;
 
@@ -687,7 +687,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (dateEl) dateEl.textContent = `Inscrit le : ${u.created_at ? new Date(u.created_at).toLocaleDateString("fr-FR") : "Récemment"}`;
 
                 if (profileLink) {
-                    profileLink.href = `${baseUrl}/profile?id=${u.id}`;
+                    profileLink.href = `${baseUrl}/profile/${u.id}`;
                 }
 
                 const roleKey = (u.role || "etudiant").toLowerCase();

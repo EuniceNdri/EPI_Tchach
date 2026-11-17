@@ -83,7 +83,8 @@ class ProfileController {
 
         if (!$user) {
             http_response_code(404);
-            exit('Profil introuvable.');
+            require ROOT_PATH . '/resources/views/errors/404.php';
+            return;
         }
 
         $profilePosts = [];
@@ -384,6 +385,8 @@ class ProfileController {
         $nom = trim($_POST['nom'] ?? '');
         $prenom = trim($_POST['prenom'] ?? '');
         $biographie = trim($_POST['biographie'] ?? '');
+        $filiere = isset($_POST['filiere']) ? trim((string)$_POST['filiere']) : null;
+        $modules = isset($_POST['modules_enseignes']) ? trim((string)$_POST['modules_enseignes']) : null;
         $nouveauMotDePasse = $_POST['nouveau_mot_de_passe'] ?? '';
 
         $updateError = '';
@@ -406,6 +409,8 @@ class ProfileController {
                     $prenom,
                     $biographie,
                     $avatarUrl,
+                    filiere: $filiere,
+                    modules_enseignes: $modules,
                     removeAvatar: $removeAvatar && $avatarUrl === null
                 )) {
                     Avatar::removeStoredFile($avatarUrl);
@@ -449,6 +454,12 @@ class ProfileController {
         $_SESSION['user_nom'] = $nom;
         $_SESSION['user_prenom'] = $prenom;
         $_SESSION['user_bio'] = $biographie;
+        if ($filiere !== null) {
+            $_SESSION['user_filiere'] = $filiere;
+        }
+        if ($modules !== null) {
+            $_SESSION['user_modules'] = $modules;
+        }
 
         $initials = strtoupper(substr($prenom, 0, 1) . substr($nom, 0, 1));
 
@@ -462,6 +473,8 @@ class ProfileController {
                     'prenom' => $prenom,
                     'fullname' => $prenom . ' ' . $nom,
                     'biographie' => $biographie,
+                    'filiere' => $filiere ?? ($currentUser['filiere'] ?? ''),
+                    'modules' => $modules ?? ($currentUser['modules_enseignes'] ?? ''),
                     'initials' => $initials,
                     'avatar_url' => !empty($_SESSION['user_avatar'])
                         ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))

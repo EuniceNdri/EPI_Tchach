@@ -156,6 +156,19 @@ $roleLabels = [
         </div>
         <h1 class="epi-post-title publication-detail-title"><?= htmlspecialchars((string)$publication['titre']) ?></h1>
         <div class="epi-post-body publication-detail-body"><?= nl2br(htmlspecialchars((string)$publication['contenu'])) ?></div>
+        <?php if ($publicationTags || $publicationMentions): ?>
+          <div class="epi-post-metadata">
+            <?php foreach ($publicationTags as $postTag): ?>
+              <a class="epi-post-metadata-chip" href="<?= htmlspecialchars($base) ?>/salon?tag=<?= (int)$postTag['id'] ?>">#<?= htmlspecialchars((string)$postTag['nom']) ?></a>
+            <?php endforeach; ?>
+            <?php if ($publicationMentions): ?>
+              <span class="epi-post-metadata-label">Avec</span>
+              <?php foreach ($publicationMentions as $mentionedPerson): ?>
+                <span class="epi-post-metadata-chip"><?= htmlspecialchars(trim((string)$mentionedPerson['prenom'] . ' ' . (string)$mentionedPerson['nom'])) ?></span>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
 
         <?php if ($publicationAttachments): ?>
           <div class="epi-media-container">
@@ -275,7 +288,13 @@ $roleLabels = [
         <?php endif; ?>
 
         <?php if (!$comments): ?>
-          <div class="publication-no-comments"><span>💬</span><strong>Pas encore de commentaire</strong><p>Soyez la première personne à répondre à cette publication.</p></div>
+          <div class="publication-no-comments">
+            <span>💬</span>
+            <strong><?= (bool)$publication['commentaires_fermes'] ? 'Aucun commentaire' : 'Pas encore de commentaire' ?></strong>
+            <p><?= (bool)$publication['commentaires_fermes']
+              ? 'Les commentaires sont fermés pour cette publication.'
+              : 'Soyez la première personne à répondre à cette publication.' ?></p>
+          </div>
         <?php else: ?>
           <div class="publication-comment-list">
             <?php foreach ($comments as $comment): ?>

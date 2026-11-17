@@ -59,8 +59,25 @@ document.addEventListener("DOMContentLoaded", () => {
                                 });
                                 const likeButton = publication.querySelector('[data-toggle-reaction][data-target-type="publication"]');
                                 if (likeButton) {
-                                    likeButton.classList.toggle("is-voted", stats.user_liked);
-                                    likeButton.setAttribute("aria-pressed", String(stats.user_liked));
+                                    const userReaction = stats.user_reaction || "";
+                                    likeButton.dataset.currentReaction = userReaction;
+                                    likeButton.classList.remove(
+                                        "is-reacted-like",
+                                        "is-reacted-jadore",
+                                        "is-reacted-utile",
+                                        "is-reacted-haha",
+                                        "is-reacted-wouah",
+                                        "is-reacted-triste"
+                                    );
+                                    likeButton.classList.toggle("is-voted", Boolean(userReaction));
+                                    likeButton.setAttribute("aria-pressed", String(Boolean(userReaction)));
+                                    if (userReaction) likeButton.classList.add(`is-reacted-${userReaction}`);
+                                    const icon = likeButton.querySelector(".epi-btn-reaction-icon");
+                                    if (icon) {
+                                        icon.innerHTML = userReaction
+                                            ? fbEmojis[userReaction] || fbEmojis.like
+                                            : fbDefaultArrow;
+                                    }
                                 }
                             });
 
@@ -73,6 +90,10 @@ document.addEventListener("DOMContentLoaded", () => {
                                 likeButton.setAttribute("aria-pressed", String(stats.user_liked));
                                 const count = likeButton.querySelector("[data-live-comment-likes]");
                                 if (count) count.textContent = String(stats.likes_count);
+                                const reactionLabel = [...likeButton.childNodes].find(
+                                    (node) => node.nodeType === Node.TEXT_NODE && node.textContent.includes("·")
+                                );
+                                if (reactionLabel) reactionLabel.textContent = `${stats.user_liked ? "♥ Aimé" : "♡ J’aime"} · `;
                             });
                         }
                     }
@@ -792,7 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         profiles.forEach((profile) => {
                             const link = document.createElement("a");
                             link.className = "epi-search-profile";
-                            link.href = `${baseUrl}/profile?id=${encodeURIComponent(profile.id)}`;
+                            link.href = `${baseUrl}/profile/${encodeURIComponent(profile.id)}`;
 
                             const avatar = document.createElement("span");
                             avatar.className = "epi-search-profile-avatar";

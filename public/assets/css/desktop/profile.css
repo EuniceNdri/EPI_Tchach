@@ -1,19 +1,19 @@
 /**
  * ====================================================================
  * public/assets/css/desktop/profile.css
- * Profil Membre · Design System Campus Hub (Teal #00685f, Amber #fea619)
+ * Profil Membre · Design System Campus Hub (Teal #0d9488, Amber #f59e0b)
  * Cohérence parfaite avec Salon Général et Camarades
  * ====================================================================
  */
 
 :root {
-    --profile-primary: #00685f;
-    --profile-primary-hover: #008378;
-    --profile-primary-container: rgba(0, 104, 95, 0.08);
-    --profile-primary-light: #e6f5f3;
-    --profile-secondary: #fea619;
-    --profile-secondary-hover: #e59312;
-    --profile-secondary-container: rgba(254, 166, 25, 0.15);
+    --profile-primary: #0d9488;
+    --profile-primary-hover: #0f766e;
+    --profile-primary-container: rgba(13, 148, 136, 0.08);
+    --profile-primary-light: #e8f4f2;
+    --profile-secondary: #f59e0b;
+    --profile-secondary-hover: #d97706;
+    --profile-secondary-container: rgba(245, 158, 11, 0.15);
     --profile-card-bg: #ffffff;
     --profile-surface-low: #f8fafc;
     --profile-surface-high: #f1f5f9;
@@ -83,7 +83,7 @@
 
 .campus-profile-banner {
     height: 180px;
-    background: linear-gradient(135deg, #00685f 0%, #008378 45%, #004d46 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 45%, #064e49 100%);
     position: relative;
     overflow: hidden;
 }
@@ -110,7 +110,7 @@
     align-items: center;
     gap: 0.4rem;
     background: rgba(255, 255, 255, 0.92);
-    color: #00685f;
+    color: #0d9488;
     backdrop-filter: blur(8px);
     padding: 0.35rem 0.85rem;
     border-radius: var(--profile-radius-pill);
@@ -1077,6 +1077,146 @@
     animation: fadeInModal 0.25s ease-out;
 }
 
+.modal-backdrop-profile[hidden] {
+    display: none !important;
+}
+
+/* Keep the profile aligned with the shared campus shell and desktop references. */
+.campus-profile-page {
+    background: var(--community-bg, #f4f6f9);
+    color: var(--profile-text);
+}
+
+.campus-profile-page .epi-topbar {
+    background: var(--community-surface, #ffffff);
+    border-bottom: 1px solid var(--community-line, #e2e8f0);
+    box-shadow: 0 2px 12px rgba(27, 50, 84, 0.06);
+}
+
+.campus-profile-page .epi-topbar-inner {
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 600px) minmax(210px, 1fr);
+    width: min(100%, 1600px);
+}
+
+body.campus-profile-page .epi-salon-grid {
+    grid-template-columns: minmax(230px, 260px) minmax(0, 1fr) !important;
+    grid-template-areas: "sidebar main" !important;
+    gap: 1.5rem !important;
+    width: min(100%, 1600px) !important;
+    padding: 1.25rem 1.5rem 4rem !important;
+}
+
+.campus-profile-page .epi-sidebar-left {
+    grid-area: sidebar !important;
+    top: 82px !important;
+    max-height: calc(100vh - 96px) !important;
+}
+
+.campus-profile-page .epi-main-feed {
+    grid-area: main !important;
+}
+
+.campus-profile-page .campus-profile-container {
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.campus-profile-page .campus-profile-grid {
+    grid-template-columns: minmax(240px, 0.78fr) minmax(0, 1.65fr);
+    gap: 1.25rem;
+}
+
+.campus-profile-page .campus-profile-tabs {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    overflow: visible;
+}
+
+.campus-profile-page .epi-sidebar-box {
+    background: var(--community-surface, #fff);
+    border-color: var(--community-line, #e2e8f0);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.campus-profile-page .epi-nav-zone-item {
+    gap: 0.6rem;
+}
+
+.campus-profile-page .epi-sidebar-count {
+    display: inline-flex;
+    min-width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding: 0 5px;
+    border-radius: var(--profile-radius-pill);
+    background: var(--profile-primary-container);
+    color: var(--profile-primary);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.campus-profile-page .epi-sidebar-count.is-notification {
+    background: var(--profile-secondary-container);
+    color: #a16207;
+}
+
+.campus-profile-page .epi-nav-zone-item small {
+    margin-left: auto;
+    color: var(--community-muted, #64748b);
+    font-size: 0.7rem;
+}
+
+.campus-profile-page .epi-nav-zone-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--profile-primary);
+}
+
+.campus-profile-page .epi-nav-more {
+    padding: 0.45rem 0.85rem;
+    color: var(--profile-primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.campus-profile-page .epi-nav-more:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 1200px) {
+    .campus-profile-page .epi-topbar-inner {
+        grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr) minmax(170px, 1fr);
+    }
+
+    body.campus-profile-page .epi-salon-grid {
+        grid-template-columns: minmax(210px, 240px) minmax(0, 1fr) !important;
+        gap: 1rem !important;
+        padding-right: 1rem !important;
+        padding-left: 1rem !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    body.campus-profile-page .epi-salon-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-areas: "main" !important;
+    }
+
+    .campus-profile-page .epi-sidebar-left {
+        display: none !important;
+    }
+
+    .campus-profile-page .campus-profile-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 @keyframes fadeInModal {
     from {
         opacity: 0;
@@ -1257,7 +1397,7 @@ textarea.form-control {
 }
 
 .profile-toast.toast-success {
-    background: #00685f;
+    background: #0d9488;
     border-left: 4px solid #10b981;
 }
 

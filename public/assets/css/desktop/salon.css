@@ -2132,6 +2132,424 @@ h1, h2, h3, h4, h5, h6, .font-headline {
   border-top: 1px solid var(--campus-outline-light);
 }
 
+.epi-create-post-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 640px);
+  max-height: min(90vh, 820px);
+  overflow: hidden;
+}
+
+.epi-create-post-header {
+  flex: 0 0 auto;
+}
+
+.epi-create-post-header .epi-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  transition: background-color var(--campus-transition), color var(--campus-transition);
+}
+
+.epi-create-post-header .epi-modal-close:hover {
+  background: var(--campus-primary-light);
+  color: var(--campus-primary);
+}
+
+.epi-create-post-form {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.epi-composer-avatar {
+  position: relative;
+  flex: 0 0 40px;
+  overflow: hidden;
+}
+
+.epi-composer-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.epi-composer-author-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.epi-composer-audience {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--campus-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.epi-composer-audience svg,
+.epi-composer-type-tabs svg,
+.epi-composer-tool svg {
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.epi-composer-audience svg {
+  flex-basis: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.epi-composer-title,
+.epi-composer-content {
+  box-sizing: border-box;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.epi-composer-title {
+  font-size: 1.05rem !important;
+  font-weight: 700;
+}
+
+.epi-composer-content {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.epi-composer-type-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.epi-composer-type-tabs .epi-type-tab {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.5rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: var(--campus-radius-md);
+  background: var(--campus-surface);
+  color: var(--campus-text-muted);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: var(--campus-transition);
+}
+
+.epi-composer-type-tabs .epi-type-tab:hover {
+  border-color: var(--campus-primary);
+  color: var(--campus-primary);
+}
+
+.epi-composer-type-tabs .epi-type-tab.is-active {
+  border-color: var(--campus-primary);
+  background: var(--campus-primary-light);
+  color: var(--campus-primary);
+}
+
+.epi-composer-poll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: var(--campus-radius-md);
+  background: var(--campus-surface-alt, var(--campus-surface));
+}
+
+.epi-composer-poll[hidden],
+.epi-composer-attachment-preview[hidden] {
+  display: none;
+}
+
+.epi-composer-poll #pollOptionsList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.epi-composer-poll small {
+  color: var(--campus-text-muted);
+}
+
+.epi-composer-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--campus-outline-light);
+}
+
+.epi-composer-tools > strong {
+  font-size: 0.82rem;
+}
+
+.epi-composer-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.epi-composer-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--campus-outline-light);
+}
+
+.epi-composer-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.epi-composer-picker > label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.epi-composer-picker .epi-form-control {
+  width: 100%;
+}
+
+.epi-composer-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: 3.75rem;
+  right: 0;
+  left: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: var(--campus-radius-md);
+  background: var(--campus-surface);
+  box-shadow: 0 10px 24px rgb(15 23 42 / 14%);
+}
+
+.epi-composer-suggestions[hidden] {
+  display: none;
+}
+
+.epi-composer-suggestion {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--campus-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.epi-composer-suggestion:hover,
+.epi-composer-suggestion:focus-visible {
+  background: var(--campus-primary-light);
+  outline: none;
+}
+
+.epi-composer-suggestion small {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--campus-text-muted);
+}
+
+.epi-composer-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.epi-composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: 999px;
+  background: var(--campus-primary-light);
+  color: var(--campus-text);
+  font-size: 0.78rem;
+}
+
+.epi-composer-chip button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.epi-composer-picker-status {
+  min-height: 1rem;
+  margin: 0.25rem 0 0;
+  color: var(--campus-text-muted);
+  font-size: 0.75rem;
+}
+
+.epi-composer-metadata-inputs {
+  display: none;
+}
+
+.epi-post-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.65rem 0;
+}
+
+.epi-post-metadata-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: 999px;
+  background: var(--campus-primary-light);
+  color: var(--campus-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.epi-post-metadata-label {
+  color: var(--campus-text-muted);
+  font-size: 0.78rem;
+}
+
+.epi-composer-tool {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--campus-outline-light);
+  border-radius: var(--campus-radius-md);
+  background: var(--campus-surface);
+  color: var(--campus-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--campus-transition);
+}
+
+.epi-composer-tool:hover {
+  border-color: var(--campus-primary);
+  background: var(--campus-primary-light);
+  color: var(--campus-primary);
+}
+
+.epi-composer-category select {
+  width: auto;
+  max-width: min(230px, 42vw);
+  min-height: 30px;
+  margin-left: 0.15rem;
+  padding: 0.2rem 1.7rem 0.2rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.epi-create-post-form .salon-attachment-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.epi-composer-tool:has(.salon-attachment-input:focus-visible) {
+  outline: 2px solid var(--campus-primary);
+  outline-offset: 2px;
+}
+
+.epi-composer-attachment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.epi-composer-feedback:empty {
+  display: none;
+}
+
+.epi-composer-footer {
+  position: sticky;
+  bottom: -1.5rem;
+  margin: 0 -1.5rem -1.5rem;
+  padding: 0.9rem 1.5rem 1.25rem;
+  background: var(--campus-surface);
+}
+
+@media (max-width: 640px) {
+  .epi-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .epi-create-post-dialog {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: var(--campus-radius-lg) var(--campus-radius-lg) 0 0;
+  }
+
+  .epi-create-post-header {
+    padding: 1rem 1.1rem;
+  }
+
+  .epi-create-post-form {
+    gap: 0.9rem;
+    padding: 1.1rem;
+  }
+
+  .epi-composer-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .epi-composer-footer {
+    bottom: -1.1rem;
+    margin: 0 -1.1rem -1.1rem;
+    padding: 0.8rem 1.1rem 1rem;
+  }
+
+  .epi-composer-category {
+    flex-wrap: wrap;
+  }
+
+  .epi-composer-category select {
+    max-width: 100%;
+  }
+}
+
 /* Reaction Picker Floating */
 .epi-reaction-picker {
   position: absolute;

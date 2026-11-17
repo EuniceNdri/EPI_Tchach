@@ -166,10 +166,13 @@ $roleLabels = [
                   ? url('public/' . ltrim((string)$friend['avatar_url'], '/'))
                   : '';
                 $initials = mb_substr((string)$friend['prenom'], 0, 1) . mb_substr((string)$friend['nom'], 0, 1);
+                $conversationUrl = !empty($friend['conversation_id'])
+                  ? $base . '/messages/' . (int)$friend['conversation_id']
+                  : $base . '/messages?user=' . $friendId;
               ?>
                 <a class="epi-conv-card <?= $selectedId === $friendId ? 'is-selected' : '' ?>"
                    data-conversation-item="private"
-                   href="<?= htmlspecialchars($base) ?>/messages?user=<?= $friendId ?>">
+                   href="<?= htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8') ?>">
                   <div class="epi-conv-avatar">
                     <span><?= htmlspecialchars($initials) ?></span>
                     <?php if ($friendAvatar !== ''): ?><img src="<?= htmlspecialchars($friendAvatar, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy"><?php endif; ?>
@@ -281,7 +284,7 @@ $roleLabels = [
               $mInitial = mb_substr((string)$member['prenom'], 0, 1) . mb_substr((string)$member['nom'], 0, 1);
             ?>
               <li>
-                <a href="<?= htmlspecialchars($base) ?>/profile?id=<?= (int)$member['id'] ?>" class="epi-drawer-user-link">
+                <a href="<?= htmlspecialchars($base) ?>/profile/<?= (int)$member['id'] ?>" class="epi-drawer-user-link">
                   <span class="epi-drawer-avatar"><?= htmlspecialchars($mInitial) ?></span>
                   <div>
                     <strong><?= htmlspecialchars($mName) ?></strong>
@@ -353,14 +356,14 @@ $roleLabels = [
             <a class="epi-chat-back-btn" href="<?= htmlspecialchars($base) ?>/messages" aria-label="Retour aux discussions" title="Retour">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"/></svg>
             </a>
-            <a class="epi-conv-avatar" href="<?= htmlspecialchars($base) ?>/profile?id=<?= (int)$selectedFriend['id'] ?>">
+            <a class="epi-conv-avatar" href="<?= htmlspecialchars($base) ?>/profile/<?= (int)$selectedFriend['id'] ?>">
               <span><?= htmlspecialchars($friendInitials) ?></span>
               <?php if ($selectedAvatar !== ''): ?><img src="<?= htmlspecialchars($selectedAvatar, ENT_QUOTES, 'UTF-8') ?>" alt=""><?php endif; ?>
               <span class="epi-online-dot"></span>
             </a>
             <div class="epi-chat-contact-info">
               <h2 class="epi-chat-contact-name">
-                <a href="<?= htmlspecialchars($base) ?>/profile?id=<?= (int)$selectedFriend['id'] ?>"><?= htmlspecialchars($friendName) ?></a>
+                <a href="<?= htmlspecialchars($base) ?>/profile/<?= (int)$selectedFriend['id'] ?>"><?= htmlspecialchars($friendName) ?></a>
               </h2>
               <span class="epi-chat-contact-status"><span class="epi-status-green">● En ligne</span> • <?= htmlspecialchars($friendRole) ?></span>
             </div>
@@ -523,7 +526,7 @@ $roleLabels = [
               </div>
               <h4><?= htmlspecialchars($friendName) ?></h4>
               <span class="epi-drawer-badge"><?= htmlspecialchars($friendRole) ?></span>
-              <a href="<?= htmlspecialchars($base) ?>/profile?id=<?= (int)$selectedFriend['id'] ?>" class="epi-drawer-link-btn">Voir le profil complet</a>
+              <a href="<?= htmlspecialchars($base) ?>/profile/<?= (int)$selectedFriend['id'] ?>" class="epi-drawer-link-btn">Voir le profil complet</a>
             </div>
 
             <div class="epi-drawer-section">

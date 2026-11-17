@@ -4,41 +4,41 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --community-bg: #f3f6fb;
+  --community-bg: #f4f6f9;
   --community-surface: #ffffff;
-  --community-raised: #eef3fa;
-  --community-hover: #e5edf8;
-  --community-line: #d6dfec;
-  --community-text: #17243a;
-  --community-muted: #61718a;
-  --community-green: #2563eb;
-  --community-orange: #d83b4b;
-  --community-blue: #1d4ed8;
+  --community-raised: #f1f5f9;
+  --community-hover: #e8f4f2;
+  --community-line: #e2e8f0;
+  --community-text: #1e293b;
+  --community-muted: #64748b;
+  --community-green: #0d9488;
+  --community-orange: #f59e0b;
+  --community-blue: #0d9488;
 }
 
 :root[data-theme="light"] {
-  --admin-bg: #f3f6fb;
+  --admin-bg: #f4f6f9;
   --admin-sidebar-bg: #ffffff;
-  --admin-sidebar-hover: #edf3fc;
-  --admin-sidebar-text: #53647d;
-  --admin-sidebar-active: #1d4ed8;
-  --admin-primary: #1d4ed8;
-  --admin-primary-dark: #183b82;
-  --admin-primary-light: #3b82f6;
-  --admin-accent: #d83b4b;
-  --admin-accent-light: #e85a67;
+  --admin-sidebar-hover: #e8f4f2;
+  --admin-sidebar-text: #64748b;
+  --admin-sidebar-active: #0d9488;
+  --admin-primary: #0d9488;
+  --admin-primary-dark: #0f766e;
+  --admin-primary-light: #14b8a6;
+  --admin-accent: #f59e0b;
+  --admin-accent-light: #fbbf24;
   --admin-card: #ffffff;
-  --admin-text: #17243a;
-  --admin-muted: #61718a;
-  --admin-border: #d6dfec;
-  --admin-info-bg: #e7efff;
-  --background: #f3f6fb;
-  --foreground: #17243a;
+  --admin-text: #1e293b;
+  --admin-muted: #64748b;
+  --admin-border: #e2e8f0;
+  --admin-info-bg: #e8f4f2;
+  --background: #f4f6f9;
+  --foreground: #1e293b;
   --card: #ffffff;
-  --muted-foreground: #61718a;
-  --border: #d6dfec;
-  --input-bg: #f8fafd;
-  --input-border: #d6dfec;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --input-border: #e2e8f0;
 }
 
 :root[data-theme="light"] .admin-sidebar {
@@ -56,8 +56,8 @@
 
 :root[data-theme="light"] .sidebar-link:hover,
 :root[data-theme="light"] .sidebar-link.active {
-  background-color: #edf3fc;
-  color: #1d4ed8;
+  background-color: #e8f4f2;
+  color: #0d9488;
 }
 
 :root[data-theme="light"] body.community-shell {
@@ -101,7 +101,7 @@
 }
 
 :root[data-theme="light"] .epi-profile-cover {
-  background: linear-gradient(120deg, #dbeafe, #eaf1fb 60%, #fce8e9);
+  background: linear-gradient(120deg, #ccfbf1, #e8f4f2 60%, #ffedd5);
 }
 
 :root[data-theme="light"] .epi-search-box,
@@ -124,8 +124,8 @@
 :root[data-theme="light"] .epi-form-control:focus,
 :root[data-theme="light"] .form-control:focus,
 :root[data-theme="light"] .publication-comment-editor textarea:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
 }
 
 :root[data-theme="light"] .epi-search-input,
@@ -191,8 +191,8 @@
 :root[data-theme="light"] .epi-create-post-btn,
 :root[data-theme="light"] .epi-btn-submit,
 :root[data-theme="light"] .poll-vote-button {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #0d9488;
+  border-color: #0d9488;
   color: #ffffff;
 }
 
@@ -203,30 +203,30 @@
 :root[data-theme="light"] .epi-create-post-btn:hover,
 :root[data-theme="light"] .epi-btn-submit:hover,
 :root[data-theme="light"] .poll-vote-button:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: #0f766e;
+  border-color: #0f766e;
   color: #ffffff;
 }
 
 :root[data-theme="light"] .epi-role-pill,
 :root[data-theme="light"] .epi-status-pill.is-solved {
-  background-color: #e7efff;
-  color: #1d4ed8;
+  background-color: #e8f4f2;
+  color: #0d9488;
 }
 
 :root[data-theme="light"] .epi-status-pill.is-pinned,
 :root[data-theme="light"] .notif-heading-badge,
 :root[data-theme="light"] .epi-badge-count {
-  background-color: #fce8e9;
-  color: #b42332;
+  background-color: #ffedd5;
+  color: #b45309;
 }
 
 :root[data-theme="light"] .profile-avatar-edit-preview,
 :root[data-theme="light"] .publication-detail-avatar,
 :root[data-theme="light"] .publication-comment-input-avatar,
 :root[data-theme="light"] .publication-comment-avatar {
-  background-color: #e8effb;
-  color: #1d4ed8;
+  background-color: #e8f4f2;
+  color: #0d9488;
 }
 
 :root[data-theme="light"] .epi-media-image,
@@ -235,7 +235,7 @@
 }
 
 :root[data-theme="light"] .publication-comment.is-solution {
-  background: #eff6ff;
+  background: #e8f4f2;
 }
 
 :root[data-theme="dark"] {

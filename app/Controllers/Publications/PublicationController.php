@@ -687,6 +687,9 @@ class PublicationController {
             exit('Publication introuvable ou accès non autorisé.');
         }
 
+        $publicationTags = $this->publicationMetadata->getPublicationTags([$publicationId])[$publicationId] ?? [];
+        $publicationMentions = $this->publicationMetadata->getPublicationMentions([$publicationId])[$publicationId] ?? [];
+
         $commentsStatement = $this->pdo->prepare("
             SELECT comment.id, comment.parent_comment_id, comment.contenu, comment.date_creation, comment.est_solution,
                    author.id AS author_id, author.prenom, author.nom, author.avatar_url, author.role AS author_role,

@@ -64,6 +64,23 @@ $composerInitial = mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1, 'U
         <textarea class="epi-composer-content" id="salonPostContent" name="contenu" rows="5" required placeholder="Quoi de neuf<?= $composerName !== '' ? ', ' . htmlspecialchars(explode(' ', $composerName)[0], ENT_QUOTES, 'UTF-8') : '' ?> ?"></textarea>
       </div>
 
+      <div class="epi-composer-metadata">
+        <div class="epi-composer-picker" data-composer-picker="tags">
+          <label for="publicationTagSearch">Ajouter des tags</label>
+          <input id="publicationTagSearch" class="epi-form-control" type="search" maxlength="50" autocomplete="off" placeholder="Rechercher ou proposer un tag…">
+          <div class="epi-composer-suggestions" role="listbox" aria-label="Tags disponibles" hidden></div>
+          <div class="epi-composer-selected" data-selected-tags aria-live="polite"></div>
+          <p class="epi-composer-picker-status" data-tag-status role="status" aria-live="polite"></p>
+        </div>
+        <div class="epi-composer-picker" data-composer-picker="mentions">
+          <label for="publicationMentionSearch">Associer des personnes</label>
+          <input id="publicationMentionSearch" class="epi-form-control" type="search" autocomplete="off" placeholder="Rechercher un professeur ou un étudiant…">
+          <div class="epi-composer-suggestions" role="listbox" aria-label="Personnes à mentionner" hidden></div>
+          <div class="epi-composer-selected" data-selected-mentions aria-live="polite"></div>
+          <p class="epi-composer-picker-status" data-mention-status role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
       <div class="epi-modal-type-tabs epi-composer-type-tabs" role="group" aria-label="Type de publication">
         <button type="button" class="epi-type-tab is-active" data-type-target="discussion">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -111,6 +128,7 @@ $composerInitial = mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1, 'U
         </div>
         <input id="salonPostAttachments" class="salon-attachment-input sr-only" type="file" name="pieces_jointes[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg,.gif">
       </div>
+      <div class="epi-composer-metadata-inputs" data-composer-metadata-inputs></div>
       <div id="salonAttachmentPreview" class="salon-attachment-preview epi-composer-attachment-preview" aria-live="polite" hidden></div>
       <p id="salonPostFeedback" class="salon-composer-feedback epi-composer-feedback" role="status" aria-live="polite"></p>
 
@@ -121,3 +139,4 @@ $composerInitial = mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1, 'U
     </form>
   </div>
 </div>
+<script src="<?= htmlspecialchars($asset, ENT_QUOTES, 'UTF-8') ?>/js/desktop/post-composer.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/post-composer.js') ?>" defer></script>

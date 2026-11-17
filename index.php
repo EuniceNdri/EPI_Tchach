@@ -56,6 +56,23 @@ if (preg_match('#^publication/(?:show/)?([1-9][0-9]*)$#', $fullRoute, $publicati
     exit;
 }
 
+if (preg_match('#^(?:profile|profil)/([1-9][0-9]*)$#', $fullRoute, $profileMatch)) {
+    $_GET['id'] = (int)$profileMatch[1];
+    $fullRoute = 'profile';
+}
+if (preg_match('#^(?:salon|zones)/([1-9][0-9]*)$#', $fullRoute, $zoneMatch)) {
+    $_GET['zone'] = (int)$zoneMatch[1];
+    $fullRoute = 'salon';
+}
+if (preg_match('#^messages/([1-9][0-9]*)$#', $fullRoute, $conversationMatch)) {
+    $_GET['conversation'] = (int)$conversationMatch[1];
+    $fullRoute = 'messages';
+}
+
+if ($fullRoute === '' && !empty($_SESSION['user_id'])) {
+    header('Location: ' . url('salon'));
+    exit;
+}
 
 if (in_array($fullRoute, ['', 'landing', 'home'], true)) {
     [$filieres, $filieresLoadError] = loadActiveFilieres($pdo);
