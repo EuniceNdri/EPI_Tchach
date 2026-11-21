@@ -203,6 +203,18 @@ $logoPath = $asset . '/images/logo.jpeg';
             </div>
           </div>
 
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label for="annee" class="form-label" style="font-size: 0.85rem;">Année d’études</label>
+            <select id="annee" name="annee" class="form-select" required>
+              <option value="">-- Choisir une année --</option>
+              <?php for ($anneeOption = 1; $anneeOption <= 5; $anneeOption++): ?>
+                <option value="<?= $anneeOption ?>" <?= ((int)($_POST['annee'] ?? 0) === $anneeOption) ? 'selected' : '' ?>>
+                  <?= $anneeOption === 1 ? '1ère année' : $anneeOption . 'ème année' ?>
+                </option>
+              <?php endfor; ?>
+            </select>
+          </div>
+
           <!-- Champ texte si "Autre filière" -->
           <div class="form-group" id="autre-filiere-group" style="display: none; margin-bottom: 0.75rem;">
             <label for="autre_filiere" class="form-label" style="font-size: 0.85rem;">Précisez le nom complet de votre filière</label>

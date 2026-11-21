@@ -487,6 +487,12 @@ Les nouvelles pièces jointes sont stockées hors du dossier public puis servies
 
 Le salon propose également la rubrique « Documents partagés », filtrée par salon ou catégorie. Elle regroupe les fichiers des publications et commentaires accessibles; les PDF peuvent y être prévisualisés et tous les fichiers téléchargés via les routes protégées du projet.
 
+### 10.5 Stories éphémères
+
+Le salon affiche les stories actives pendant 24 heures. Un utilisateur peut publier un texte de 300 caractères maximum et/ou une image, avec une audience publique ou limitée à ses amis acceptés. Chaque compte peut avoir au maximum 10 stories actives. Les stories expirées sont exclues des flux et des statistiques; une vue par personne est enregistrée. L’auteur peut consulter les personnes ayant vu sa story ou la supprimer.
+
+Les images de stories sont stockées hors du dossier public et diffusées uniquement après vérification de l'audience. La migration `database/migrations/20261121_add_stories.sql` crée les tables `stories` et `story_vues`; elle est également intégrée au schéma neuf `database.sql`.
+
 ---
 
 ## 11. Base de données

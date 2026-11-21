@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PORT="${PORT:-8000}"
+PORT="${PORT:-8001}"
 
 if ! command -v php >/dev/null 2>&1; then
     echo "Erreur : PHP n'est pas installé ou absent du PATH." >&2

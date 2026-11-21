@@ -14,12 +14,14 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/app/Models/Salon/Salon.php';
     require_once ROOT_PATH . '/app/Models/Identity/User.php';
     require_once ROOT_PATH . '/app/Models/Notifications/Notification.php';
+    require_once ROOT_PATH . '/app/Models/Social/Story.php';
     require_once ROOT_PATH . '/app/Models/Publications/PublicationMetadata.php';
     require_once ROOT_PATH . '/app/Models/Moderation/RoleAccess.php';
 } else {
     require_once dirname(__DIR__, 2) . '/Models/Salon/Salon.php';
     require_once dirname(__DIR__, 2) . '/Models/Identity/User.php';
     require_once dirname(__DIR__, 2) . '/Models/Notifications/Notification.php';
+    require_once dirname(__DIR__, 2) . '/Models/Social/Story.php';
     require_once dirname(__DIR__, 2) . '/Models/Publications/PublicationMetadata.php';
     require_once dirname(__DIR__, 2) . '/Models/Moderation/RoleAccess.php';
 }
@@ -162,6 +164,11 @@ class SalonController {
             : [];
         $popularPosts = $this->salonModel->getPopularPublications($userId, $userRole, 5);
         $onlineUsers = $this->salonModel->getOnlineUsers();
+        if (empty($_SESSION['story_csrf'])) {
+            $_SESSION['story_csrf'] = bin2hex(random_bytes(32));
+        }
+        $storyCsrfToken = $_SESSION['story_csrf'];
+        $storyGroups = (new Story($this->pdo))->getVisibleStories($userId);
         $unreadCount = (new Notification($this->pdo))->countUnread($userId);
         $flashSuccess = $_SESSION['flash_success'] ?? '';
         $flashError = $_SESSION['flash_error'] ?? '';

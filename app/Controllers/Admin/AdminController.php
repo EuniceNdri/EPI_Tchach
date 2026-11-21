@@ -29,6 +29,7 @@ if (defined('ROOT_PATH')) {
 class AdminController {
     private Admin $adminModel;
     private Salon $salonModel;
+    private PDO $pdo;
 
     public function __construct() {
         $this->adminModel = new Admin();
@@ -61,6 +62,7 @@ class AdminController {
             http_response_code(503);
             exit('Espace administration indisponible : la base de données ne répond pas.');
         }
+        $this->pdo = $pdo;
 
         $userRole = strtolower(trim((string)$this->adminModel->chargeRole($userEmail)));
         $isAuthorized = in_array($userRole, ['administrateur', 'admin'], true);
@@ -939,7 +941,6 @@ class AdminController {
      * ============================================================
      */
     public function schoolYears(): void {
-        $this->requireRole('administrateur');
         global $baseUrl, $base, $assetBase, $asset;
         require_once ROOT_PATH . '/app/Models/Platform/SchoolYear.php';
 
@@ -959,7 +960,6 @@ class AdminController {
     }
 
     public function createSchoolYear(): void {
-        $this->requireRole('administrateur');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             header('Location: ' . url('admin/school-years'));
             exit;
@@ -991,7 +991,6 @@ class AdminController {
     }
 
     public function activateSchoolYear(): void {
-        $this->requireRole('administrateur');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             header('Location: ' . url('admin/school-years'));
             exit;
@@ -1018,7 +1017,6 @@ class AdminController {
     }
 
     public function deleteSchoolYear(): void {
-        $this->requireRole('administrateur');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             header('Location: ' . url('admin/school-years'));
             exit;
@@ -1045,7 +1043,6 @@ class AdminController {
     }
 
     public function adminBinomages(): void {
-        $this->requireRole('administrateur');
         global $baseUrl, $base, $assetBase, $asset;
 
         $stmt = $this->pdo->query("
