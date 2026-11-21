@@ -178,7 +178,9 @@ class User {
         ?string $filiere = null,
         ?string $modules_enseignes = null,
         array $profFilieres = [],
-        ?string $avatar_url = null
+        ?string $avatar_url = null,
+        ?int $annee = null,
+        ?int $annee_scolaire_id = null
     ) {
         if (!$this->pdo) {
             return false;
@@ -228,9 +230,16 @@ class User {
             }
         }
 
-        // 5. Insertion dans la table `utilisateurs`
-        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere_id, modules_enseignes, avatar_url)
-                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere_id, :modules_enseignes, :avatar_url)";
+        // 5. Résolution de l'année scolaire active si non fournie pour un étudiant
+        if ($role === 'etudiant' && empty($annee_scolaire_id)) {
+            $activeStmt = $this->pdo->query("SELECT id FROM annees_scolaires WHERE est_active = 1 LIMIT 1");
+            $activeId = $activeStmt->fetchColumn();
+            $annee_scolaire_id = $activeId ? (int)$activeId : null;
+        }
+
+        // 6. Insertion dans la table `utilisateurs`
+        $sql = "INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role, filiere_id, annee, annee_scolaire_id, modules_enseignes, avatar_url)
+                VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :filiere_id, :annee, :annee_scolaire_id, :modules_enseignes, :avatar_url)";
         
         $stmt = $this->pdo->prepare($sql);
         $success = $stmt->execute([
@@ -240,6 +249,8 @@ class User {
             'mot_de_passe'      => $hashedPassword,
             'role'              => $role,
             'filiere_id'        => $filiereId,
+            'annee'             => $role === 'etudiant' ? $annee : null,
+            'annee_scolaire_id' => $role === 'etudiant' ? $annee_scolaire_id : null,
             'modules_enseignes' => $modules_enseignes,
             'avatar_url'        => $avatar_url
         ]);
@@ -462,11 +473,13 @@ class User {
         }
 
         $stmt = $this->pdo->prepare("
-            SELECT u.id, u.nom, u.prenom, u.email, u.role, u.filiere_id,
+            SELECT u.id, u.nom, u.prenom, u.email, u.role, u.filiere_id, u.annee, u.annee_scolaire_id,
                    f.nom AS filiere, f.code AS filiere_code,
+                   a.libelle AS annee_scolaire_libelle, a.est_active AS annee_scolaire_active,
                    u.modules_enseignes, u.avatar_url, u.biographie, u.date_inscription
             FROM utilisateurs u
             LEFT JOIN filieres f ON f.id = u.filiere_id
+            LEFT JOIN annees_scolaires a ON a.id = u.annee_scolaire_id
             WHERE u.id = :id
             LIMIT 1
         ");
@@ -477,7 +490,7 @@ class User {
     /**
      * Mise à jour des informations de profil
      */
-    public function updateProfile(int $id, string $nom, string $prenom, ?string $biographie = null, ?string $avatar_url = null, ?string $filiere = null, ?string $modules_enseignes = null, bool $removeAvatar = false): bool {
+    public function updateProfile(int $id, string $nom, string $prenom, ?string $biographie = null, ?string $avatar_url = null, ?string $filiere = null, ?string $modules_enseignes = null, bool $removeAvatar = false, ?int $annee = null, ?int $annee_scolaire_id = null): bool {
         if (!$this->pdo) {
             return false;
         }
@@ -517,6 +530,16 @@ class User {
         if ($modules_enseignes !== null) {
             $sql .= ", modules_enseignes = :modules_enseignes";
             $params['modules_enseignes'] = trim($modules_enseignes);
+        }
+
+        if ($annee !== null) {
+            $sql .= ", annee = :annee";
+            $params['annee'] = $annee;
+        }
+
+        if ($annee_scolaire_id !== null) {
+            $sql .= ", annee_scolaire_id = :annee_scolaire_id";
+            $params['annee_scolaire_id'] = $annee_scolaire_id > 0 ? $annee_scolaire_id : null;
         }
 
         $sql .= " WHERE id = :id";

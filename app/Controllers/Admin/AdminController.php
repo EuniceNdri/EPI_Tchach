@@ -932,4 +932,138 @@ class AdminController {
             }
         }
     }
+
+    /**
+     * ============================================================
+     * GESTION DES ANNÉES SCOLAIRES
+     * ============================================================
+     */
+    public function schoolYears(): void {
+        $this->requireRole('administrateur');
+        global $baseUrl, $base, $assetBase, $asset;
+        require_once ROOT_PATH . '/app/Models/Platform/SchoolYear.php';
+
+        $schoolYears = $this->pdo->query("
+            SELECT a.*,
+                   (SELECT COUNT(*) FROM utilisateurs u WHERE u.annee_scolaire_id = a.id AND u.role = 'etudiant') AS students_count
+            FROM annees_scolaires a
+            ORDER BY a.date_debut DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($_SESSION['admin_csrf'])) {
+            $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
+        }
+
+        $activeAdminPage = 'school-years';
+        require_once ROOT_PATH . '/resources/views/desktop/admin/school-years.php';
+    }
+
+    public function createSchoolYear(): void {
+        $this->requireRole('administrateur');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $csrf = (string)($_POST['csrf_token'] ?? '');
+        if (!hash_equals((string)($_SESSION['admin_csrf'] ?? ''), $csrf)) {
+            $_SESSION['flash_error'] = 'Jeton de sécurité invalide.';
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $libelle = trim((string)($_POST['libelle'] ?? ''));
+        $dateDebut = trim((string)($_POST['date_debut'] ?? ''));
+        $dateFin = trim((string)($_POST['date_fin'] ?? ''));
+        $estActive = !empty($_POST['est_active']);
+
+        require_once ROOT_PATH . '/app/Models/Platform/SchoolYear.php';
+        $schoolYearModel = new SchoolYear($this->pdo);
+        try {
+            $schoolYearModel->create($libelle, $dateDebut, $dateFin, $estActive);
+            $_SESSION['flash_success'] = "L’année scolaire {$libelle} a été créée avec succès.";
+        } catch (Exception $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        header('Location: ' . url('admin/school-years'));
+        exit;
+    }
+
+    public function activateSchoolYear(): void {
+        $this->requireRole('administrateur');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $csrf = (string)($_POST['csrf_token'] ?? '');
+        if (!hash_equals((string)($_SESSION['admin_csrf'] ?? ''), $csrf)) {
+            $_SESSION['flash_error'] = 'Jeton de sécurité invalide.';
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        require_once ROOT_PATH . '/app/Models/Platform/SchoolYear.php';
+        $schoolYearModel = new SchoolYear($this->pdo);
+        if ($schoolYearModel->activate($id)) {
+            $_SESSION['flash_success'] = "L'année scolaire active a été mise à jour.";
+        } else {
+            $_SESSION['flash_error'] = "Impossible d'activer cette année scolaire.";
+        }
+
+        header('Location: ' . url('admin/school-years'));
+        exit;
+    }
+
+    public function deleteSchoolYear(): void {
+        $this->requireRole('administrateur');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $csrf = (string)($_POST['csrf_token'] ?? '');
+        if (!hash_equals((string)($_SESSION['admin_csrf'] ?? ''), $csrf)) {
+            $_SESSION['flash_error'] = 'Jeton de sécurité invalide.';
+            header('Location: ' . url('admin/school-years'));
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        require_once ROOT_PATH . '/app/Models/Platform/SchoolYear.php';
+        $schoolYearModel = new SchoolYear($this->pdo);
+        if ($schoolYearModel->delete($id)) {
+            $_SESSION['flash_success'] = "L'année scolaire a été supprimée.";
+        } else {
+            $_SESSION['flash_error'] = "Impossible de supprimer l'année scolaire active.";
+        }
+
+        header('Location: ' . url('admin/school-years'));
+        exit;
+    }
+
+    public function adminBinomages(): void {
+        $this->requireRole('administrateur');
+        global $baseUrl, $base, $assetBase, $asset;
+
+        $stmt = $this->pdo->query("
+            SELECT b.*,
+                   mentor.nom AS mentor_nom, mentor.prenom AS mentor_prenom, mentor.email AS mentor_email, mentor.annee AS mentor_annee,
+                   mentore.nom AS mentore_nom, mentore.prenom AS mentore_prenom, mentore.email AS mentore_email, mentore.annee AS mentore_annee,
+                   f.nom AS filiere_nom,
+                   a.libelle AS promo_libelle
+            FROM binomages b
+            JOIN utilisateurs mentor ON mentor.id = b.mentor_id
+            JOIN utilisateurs mentore ON mentore.id = b.mentore_id
+            LEFT JOIN filieres f ON f.id = mentor.filiere_id
+            LEFT JOIN annees_scolaires a ON a.id = mentor.annee_scolaire_id
+            ORDER BY b.date_demande DESC
+        ");
+        $binomages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $activeAdminPage = 'binomages';
+        require_once ROOT_PATH . '/resources/views/desktop/admin/binomages.php';
+    }
 }

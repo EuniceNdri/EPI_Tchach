@@ -79,7 +79,7 @@ class BinomageController
                     // Notification au mentor : "Momo veut que tu sois son mentor" -> lien vers /binomage
                     $this->notify(
                         $mentorId,
-                        'binomage',
+                        'demande_binome',
                         $senderName . ' veut que vous soyez son mentor.',
                         'binomage'
                     );
@@ -93,7 +93,7 @@ class BinomageController
                     // Notification au mentoré : "Awa a accepté d'être ton mentor" -> lien vers le profil d'Awa
                     $this->notify(
                         (int)$relation['mentore_id'],
-                        'binomage',
+                        'binome_accepte',
                         $senderName . ' a accepté d’être votre mentor.',
                         'profile?id=' . $userId
                     );
@@ -106,7 +106,7 @@ class BinomageController
                 if ($this->binomage->respond($relationId, $userId, 'refuse') && $relation) {
                     $this->notify(
                         (int)$relation['mentore_id'],
-                        'binomage',
+                        'binome_refuse',
                         $senderName . ' a décliné votre demande de mentorat.',
                         'binomage'
                     );
@@ -123,7 +123,7 @@ class BinomageController
                             : (int)$relation['mentor_id'];
                         $this->notify(
                             $otherId,
-                            'binomage',
+                            'binome_termine',
                             $senderName . ' a mis fin au binômage de mentorat.',
                             'binomage'
                         );

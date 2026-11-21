@@ -78,7 +78,7 @@ class Binomage
         }
 
         $stmt = $this->pdo->prepare(
-            "SELECT u.id, u.role, u.annee, u.filiere_id, f.nom AS filiere_nom
+            "SELECT u.id, u.role, u.annee, u.filiere_id, u.annee_scolaire_id, f.nom AS filiere_nom
              FROM utilisateurs u
              LEFT JOIN filieres f ON f.id = u.filiere_id
              WHERE u.id IN (?, ?) AND u.est_actif = 1"
@@ -110,6 +110,10 @@ class Binomage
 
         if (empty($mentore['filiere_id']) || empty($mentor['filiere_id']) || (int)$mentore['filiere_id'] !== (int)$mentor['filiere_id']) {
             return ['eligible' => false, 'reason' => 'Le mentor et le mentoré doivent impérativement être de la même filière.'];
+        }
+
+        if (!empty($mentore['annee_scolaire_id']) && !empty($mentor['annee_scolaire_id']) && (int)$mentore['annee_scolaire_id'] !== (int)$mentor['annee_scolaire_id']) {
+            return ['eligible' => false, 'reason' => 'Le mentor et le mentoré doivent appartenir à la même année scolaire / promotion.'];
         }
 
         // Vérifier si le mentoré a déjà un mentor actif
@@ -164,6 +168,7 @@ class Binomage
                AND mentor.annee >= 2
                AND mentore.filiere_id IS NOT NULL
                AND mentor.filiere_id = mentore.filiere_id
+               AND (mentore.annee_scolaire_id IS NULL OR mentor.annee_scolaire_id IS NULL OR mentor.annee_scolaire_id = mentore.annee_scolaire_id)
                AND mentor.id NOT IN (
                     SELECT mentor_id FROM binomages
                     WHERE mentore_id = :mentore_id AND statut IN ('en_attente','accepte')

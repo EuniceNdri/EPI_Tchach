@@ -275,6 +275,10 @@ if (!function_exists('formatDateNotif')) {
             $iconMap = [
               'binomage'        => '🎓',
               'binomage_request'=> '🎓',
+              'demande_binome'  => '🎓',
+              'binome_accepte'  => '🤝',
+              'binome_refuse'   => '❌',
+              'binome_termine'  => '👋',
               'binomage_accept' => '🤝',
               'friend_request'  => '👥',
               'friend_accept'   => '🤝',
@@ -289,7 +293,7 @@ if (!function_exists('formatDateNotif')) {
             $iconChar = $iconMap[$type] ?? '🔔';
 
             $categoryFilter = 'systeme';
-            if (str_starts_with($type, 'binomage')) {
+            if (str_starts_with($type, 'binom') || str_contains($type, 'binome')) {
                 $categoryFilter = 'binomage';
             } elseif (str_starts_with($type, 'friend') || $type === 'ami') {
                 $categoryFilter = 'friends';
@@ -300,8 +304,10 @@ if (!function_exists('formatDateNotif')) {
             }
 
             $badgeLabel = match($type) {
-                'binomage', 'binomage_request' => 'Binômage',
-                'binomage_accept' => 'Mentor',
+                'binomage', 'binomage_request', 'demande_binome' => 'Binômage',
+                'binomage_accept', 'binome_accepte' => 'Mentor accepté',
+                'binome_refuse' => 'Mentor refusé',
+                'binome_termine' => 'Binômage clos',
                 'friend_request' => 'Camarade',
                 'friend_accept' => 'Ami',
                 'reaction' => 'Réaction',
@@ -314,8 +320,9 @@ if (!function_exists('formatDateNotif')) {
             };
 
             $actionText = match($type) {
-                'binomage', 'binomage_request' => 'Voir la demande de mentorat →',
-                'binomage_accept' => 'Voir le profil du mentor →',
+                'binomage', 'binomage_request', 'demande_binome' => 'Voir la demande de mentorat →',
+                'binomage_accept', 'binome_accepte' => 'Voir le profil du mentor →',
+                'binome_refuse', 'binome_termine' => 'Consulter l’espace binômage →',
                 'friend_request' => 'Voir mes demandes d’amis →',
                 'friend_accept' => 'Consulter le profil →',
                 default => 'Accéder au contenu →'
@@ -570,7 +577,7 @@ if (!function_exists('formatDateNotif')) {
             if (filter === "unread") {
               visible = isUnread;
             } else if (filter === "binomage") {
-              visible = (group === "binomage" || type.startsWith("binomage"));
+              visible = (group === "binomage" || type.startsWith("binom") || type.includes("binome"));
             } else if (filter === "friends") {
               visible = (group === "friends" || type.startsWith("friend") || type === "ami");
             } else if (filter === "reaction") {

@@ -14,7 +14,24 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================
--- 1. FILIERES
+-- 1. ANNÉES SCOLAIRES
+-- ============================================================
+CREATE TABLE annees_scolaires (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    libelle         VARCHAR(20) NOT NULL UNIQUE,
+    date_debut      DATE NOT NULL,
+    date_fin        DATE NOT NULL,
+    est_active      BOOLEAN NOT NULL DEFAULT FALSE,
+    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+INSERT INTO annees_scolaires (libelle, date_debut, date_fin, est_active) VALUES
+('2024-2025', '2024-09-01', '2025-08-31', FALSE),
+('2025-2026', '2025-09-01', '2026-08-31', TRUE),
+('2026-2027', '2026-09-01', '2027-08-31', FALSE);
+
+-- ============================================================
+-- 2. FILIERES
 -- ============================================================
 CREATE TABLE filieres (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -28,7 +45,7 @@ CREATE TABLE filieres (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 2. UTILISATEURS
+-- 3. UTILISATEURS
 -- ============================================================
 CREATE TABLE utilisateurs (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -39,17 +56,39 @@ CREATE TABLE utilisateurs (
     avatar_url          VARCHAR(255) DEFAULT NULL,
     biographie          TEXT DEFAULT NULL,
     filiere_id          INT UNSIGNED DEFAULT NULL,
+    annee               TINYINT UNSIGNED DEFAULT NULL,
+    annee_scolaire_id   INT UNSIGNED DEFAULT NULL,
     modules_enseignes   TEXT DEFAULT NULL,
     role                ENUM('etudiant','professeur','administrateur') NOT NULL DEFAULT 'etudiant',
     est_actif           BOOLEAN NOT NULL DEFAULT TRUE,
     date_inscription    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     derniere_connexion  DATETIME DEFAULT NULL,
     derniere_activite   DATETIME DEFAULT NULL,
-    FOREIGN KEY (filiere_id) REFERENCES filieres(id) ON DELETE SET NULL
+    FOREIGN KEY (filiere_id) REFERENCES filieres(id) ON DELETE SET NULL,
+    FOREIGN KEY (annee_scolaire_id) REFERENCES annees_scolaires(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 3. ZONES
+-- 3. BINOMAGES (MENTORAT)
+-- ============================================================
+CREATE TABLE binomages (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    mentor_id       INT UNSIGNED NOT NULL,
+    mentore_id      INT UNSIGNED NOT NULL,
+    statut          ENUM('en_attente','accepte','refuse','termine') NOT NULL DEFAULT 'en_attente',
+    message_demande TEXT DEFAULT NULL,
+    date_demande    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    date_reponse    DATETIME DEFAULT NULL,
+    UNIQUE KEY uq_binomage_mentor_mentore (mentor_id, mentore_id),
+    INDEX idx_binomages_mentore_statut (mentore_id, statut),
+    INDEX idx_binomages_mentor_statut (mentor_id, statut),
+    CONSTRAINT chk_binomages_utilisateurs_differents CHECK (mentor_id <> mentore_id),
+    FOREIGN KEY (mentor_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    FOREIGN KEY (mentore_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 4. ZONES
 -- ============================================================
 CREATE TABLE zones (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -91,6 +130,34 @@ CREATE TABLE amis (
     UNIQUE KEY uq_relation (utilisateur_id, ami_id),
     FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     FOREIGN KEY (ami_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 5. STORIES ÉPHÉMÈRES
+-- ============================================================
+CREATE TABLE stories (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    type_contenu    ENUM('texte', 'image', 'texte_image') NOT NULL,
+    texte           VARCHAR(300) DEFAULT NULL,
+    image_url       VARCHAR(500) DEFAULT NULL,
+    visibilite      ENUM('public', 'amis') NOT NULL DEFAULT 'amis',
+    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    date_expiration DATETIME NOT NULL,
+    est_active      BOOLEAN NOT NULL DEFAULT TRUE,
+    INDEX idx_stories_expiration (est_active, date_expiration),
+    INDEX idx_stories_utilisateur (utilisateur_id, date_expiration),
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE story_vues (
+    story_id        INT UNSIGNED NOT NULL,
+    utilisateur_id  INT UNSIGNED NOT NULL,
+    date_vue        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (story_id, utilisateur_id),
+    INDEX idx_story_vues_utilisateur (utilisateur_id),
+    FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE,
+    FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================

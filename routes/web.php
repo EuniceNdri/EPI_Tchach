@@ -83,6 +83,11 @@ $routes = [
     'admin/categories/create-category' => ['controller' => 'AdminController', 'method' => 'createCategory'],
     'admin/tags/action' => ['controller' => 'AdminController', 'method' => 'tagAction'],
     'admin/settings' => ['controller' => 'AdminController', 'method' => 'settings'],
+    'admin/school-years' => ['controller' => 'AdminController', 'method' => 'schoolYears'],
+    'admin/school-years/create' => ['controller' => 'AdminController', 'method' => 'createSchoolYear'],
+    'admin/school-years/activate' => ['controller' => 'AdminController', 'method' => 'activateSchoolYear'],
+    'admin/school-years/delete' => ['controller' => 'AdminController', 'method' => 'deleteSchoolYear'],
+    'admin/binomages' => ['controller' => 'AdminController', 'method' => 'adminBinomages'],
     'api/notifications/unread-count' => ['controller' => 'NotificationApiController', 'method' => 'unreadCount'],
     'api/reactions' => ['controller' => 'ReactionApiController', 'method' => 'toggle'],
     'api/mentions/search' => ['controller' => 'MentionApiController', 'method' => 'search'],
@@ -95,7 +100,8 @@ $adminRoutes = [
     'admin/users/delete', 'admin/moderation', 'admin/moderation/action', 'admin/categories',
     'admin/filieres', 'admin/zones', 'admin/message-groups', 'admin/message-groups/update',
     'admin/categories/create-zone', 'admin/categories/create-category',
-    'admin/tags/action', 'admin/settings',
+    'admin/tags/action', 'admin/settings', 'admin/school-years', 'admin/school-years/create',
+    'admin/school-years/activate', 'admin/school-years/delete', 'admin/binomages',
 ];
 $roleRoutes = [
     'dashboard/delegue' => 'delegue_general',

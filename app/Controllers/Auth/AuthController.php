@@ -101,6 +101,7 @@ class AuthController {
                     $_SESSION['user_avatar'] = $user['avatar_url'] ?? null;
                     $_SESSION['user_bio'] = $user['biographie'] ?? null;
                     $_SESSION['user_filiere'] = $user['filiere'] ?? null;
+                    $_SESSION['user_annee'] = $user['annee'] ?? null;
                     $_SESSION['user_modules'] = $user['modules_enseignes'] ?? null;
 
                     // Redirection automatique selon le rôle :
@@ -156,6 +157,13 @@ class AuthController {
         // Récupérer les zones de filières existantes pour l'interface
         $availableFilieres = $this->userModel->getAvailableFiliereZones();
 
+        // Récupérer l'année scolaire active pour la promotion
+        $activeSchoolYear = null;
+        if ($this->userModel->getPdo() instanceof PDO) {
+            $yearStmt = $this->userModel->getPdo()->query("SELECT * FROM annees_scolaires WHERE est_active = 1 LIMIT 1");
+            $activeSchoolYear = $yearStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $this->userModel->getPdo() instanceof PDO) {
             $nom = trim((string)($_POST['nom'] ?? ''));
             $prenom = trim((string)($_POST['prenom'] ?? ''));
@@ -170,6 +178,14 @@ class AuthController {
             $autreFiliere = trim($_POST['autre_filiere'] ?? '');
             $profFilieres = isset($_POST['prof_filieres']) && is_array($_POST['prof_filieres']) ? $_POST['prof_filieres'] : [];
             $modulesEnseignes = trim($_POST['modules_enseignes'] ?? '');
+            $annee = filter_input(INPUT_POST, 'annee', FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1, 'max_range' => 5],
+            ]);
+            $annee = $annee !== false && $annee !== null ? (int)$annee : null;
+            $anneeScolaireId = filter_input(INPUT_POST, 'annee_scolaire_id', FILTER_VALIDATE_INT);
+            if (!$anneeScolaireId && !empty($activeSchoolYear['id'])) {
+                $anneeScolaireId = (int)$activeSchoolYear['id'];
+            }
 
             // Normalisation de la filière étudiante
             $filiereFinale = null;
@@ -197,6 +213,8 @@ class AuthController {
                 $error = "Le mot de passe doit comporter au moins 8 caractères.";
             } elseif ($role === 'etudiant' && empty($filiereFinale)) {
                 $error = "Veuillez choisir ou renseigner votre filière d'études.";
+            } elseif ($role === 'etudiant' && $annee === null) {
+                $error = "Veuillez renseigner votre année d’études.";
             } elseif ($role === 'professeur' && empty($modulesEnseignes) && empty($profFilieres)) {
                 $error = "En tant que professeur, veuillez indiquer vos modules d'enseignement ou vos filières rattachées.";
             } else {
@@ -216,7 +234,9 @@ class AuthController {
                             $filiereFinale,
                             $modulesEnseignes,
                             $profFilieres,
-                            $avatarUrl
+                            $avatarUrl,
+                            $annee,
+                            $anneeScolaireId
                         );
                         if (!$userId) {
                             Avatar::removeStoredFile($avatarUrl);
@@ -232,6 +252,7 @@ class AuthController {
                     $_SESSION['user_email'] = $email;
                     $_SESSION['user_role'] = $role;
                     $_SESSION['user_filiere'] = $filiereFinale;
+                    $_SESSION['user_annee'] = $annee;
                     $_SESSION['user_modules'] = $modulesEnseignes;
                     $_SESSION['user_avatar'] = $avatarUrl;
                     $_SESSION['user_bio'] = null;

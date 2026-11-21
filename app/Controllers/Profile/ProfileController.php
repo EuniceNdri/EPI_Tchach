@@ -102,6 +102,11 @@ class ProfileController {
                 strtolower((string)($loggedInUser['role'] ?? $_SESSION['user_role'] ?? 'etudiant'))
             )
             : [];
+        $schoolYears = [];
+        if ($pdo instanceof PDO) {
+            $syStmt = $pdo->query("SELECT * FROM annees_scolaires ORDER BY date_debut DESC");
+            $schoolYears = $syStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
         $unreadCount = (new Notification($pdo))->countUnread((int)$currentUserId);
 
         if (!$user) {
@@ -414,6 +419,8 @@ class ProfileController {
             'options' => ['min_range' => 1, 'max_range' => 5],
         ]);
         $annee = $annee !== false && $annee !== null ? (int)$annee : null;
+        $anneeScolaireId = filter_input(INPUT_POST, 'annee_scolaire_id', FILTER_VALIDATE_INT);
+        $anneeScolaireId = $anneeScolaireId !== false && $anneeScolaireId !== null ? (int)$anneeScolaireId : null;
         $nouveauMotDePasse = $_POST['nouveau_mot_de_passe'] ?? '';
 
         $updateError = '';
@@ -439,7 +446,8 @@ class ProfileController {
                     filiere: $filiere,
                     modules_enseignes: $modules,
                     removeAvatar: $removeAvatar && $avatarUrl === null,
-                    annee: $annee
+                    annee: $annee,
+                    annee_scolaire_id: $anneeScolaireId
                 )) {
                     Avatar::removeStoredFile($avatarUrl);
                     $updateError = 'La mise à jour du profil a échoué.';
