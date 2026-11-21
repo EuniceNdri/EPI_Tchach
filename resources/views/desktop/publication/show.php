@@ -19,13 +19,14 @@ $publicationAttachments = is_array($publicationAttachments ?? null) ? $publicati
 $pollOptions = is_array($pollOptions ?? null) ? $pollOptions : [];
 $unreadMessagesCount = (int)($unreadMessagesCount ?? 0);
 $unreadCount = (int)($unreadCount ?? 0);
+$currentUserId = (int)($_SESSION['user_id'] ?? 0);
 
 $authorName = trim((string)($publication['prenom'] ?? '') . ' ' . (string)($publication['nom'] ?? ''));
 $authorAvatar = !empty($publication['avatar_url'])
-    ? url('public/' . ltrim((string)$publication['avatar_url'], '/'))
+    ? (string)$publication['avatar_url']
     : '';
 $currentAvatar = !empty($_SESSION['user_avatar'])
-    ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))
+    ? (string)$_SESSION['user_avatar']
     : '';
 $commentCount = count($comments);
 $roleLabels = [
@@ -46,6 +47,7 @@ $roleLabels = [
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/community-shell.css">
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/desktop/salon.css?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/css/desktop/salon.css') ?>">
   <link rel="stylesheet" href="<?= htmlspecialchars($asset) ?>/css/feedback.css">
@@ -94,11 +96,7 @@ $roleLabels = [
         </a>
         <div class="epi-user-menu-wrapper">
           <button type="button" class="epi-profile-pill" id="userMenuToggle" aria-label="Menu du profil utilisateur" aria-expanded="false">
-            <div class="epi-avatar-bubble">
-              <span class="epi-avatar-fallback"><?= htmlspecialchars(strtoupper(mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1))) ?></span>
-              <img class="epi-avatar-image" src="<?= htmlspecialchars($currentAvatar, ENT_QUOTES, 'UTF-8') ?>" alt="" <?= $currentAvatar === '' ? 'hidden' : '' ?>>
-              <span class="epi-status-dot" aria-label="En ligne"></span>
-            </div>
+            <?= renderAvatar((string)($_SESSION['user_prenom'] ?? 'M'), (string)($_SESSION['user_nom'] ?? ''), (string)($_SESSION['user_avatar'] ?? null), 36, true) ?>
             <div class="epi-profile-info">
               <span class="epi-profile-name"><?= htmlspecialchars($_SESSION['user_prenom'] ?? 'Membre') ?></span>
               <span class="epi-profile-role"><?= htmlspecialchars($roleLabels[$_SESSION['user_role'] ?? 'etudiant'] ?? 'Étudiant') ?></span>
@@ -148,11 +146,12 @@ $roleLabels = [
           <?php if ($publication['statut'] === 'epingle'): ?><span class="epi-status-pill is-pinned">📌 Épinglée</span><?php endif; ?>
           <?php if ($publication['statut'] === 'resolu'): ?><span class="epi-status-pill is-solved">✓ Résolue</span><?php endif; ?>
         </div>
-        <div class="publication-detail-author">
-          <div class="publication-detail-avatar">
-            <?php if ($authorAvatar !== ''): ?><img src="<?= htmlspecialchars($authorAvatar, ENT_QUOTES, 'UTF-8') ?>" alt=""><?php else: ?><span><?= htmlspecialchars(strtoupper(mb_substr((string)$publication['prenom'], 0, 1) . mb_substr((string)$publication['nom'], 0, 1))) ?></span><?php endif; ?>
+        <div class="publication-detail-author" style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+          <?= renderAvatar((string)($publication['prenom'] ?? ''), (string)($publication['nom'] ?? ''), (string)($publication['avatar_url'] ?? null), 46) ?>
+          <div>
+            <strong style="font-size:1.05rem; display:block;"><?= htmlspecialchars($authorName) ?></strong>
+            <span style="font-size:0.83rem; color:var(--community-muted);"><?= htmlspecialchars((string)$publication['zone_name']) ?> · <?= htmlspecialchars((string)$publication['category_name']) ?></span>
           </div>
-          <div><strong><?= htmlspecialchars($authorName) ?></strong><span><?= htmlspecialchars((string)$publication['zone_name']) ?> · <?= htmlspecialchars((string)$publication['category_name']) ?></span></div>
         </div>
         <h1 class="epi-post-title publication-detail-title"><?= htmlspecialchars((string)$publication['titre']) ?></h1>
         <div class="epi-post-body publication-detail-body"><?= nl2br(htmlspecialchars((string)$publication['contenu'])) ?></div>
@@ -171,44 +170,119 @@ $roleLabels = [
         <?php endif; ?>
 
         <?php if ($publicationAttachments): ?>
-          <div class="epi-media-container">
-            <?php foreach ($publicationAttachments as $attachment): ?>
-              <?php if (str_starts_with((string)$attachment['type_mime'], 'image/')): ?>
-                <a href="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$attachment['id'] ?>" target="_blank" rel="noopener">
-                  <img class="epi-media-image" src="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$attachment['id'] ?>" alt="<?= htmlspecialchars((string)$attachment['nom_fichier']) ?>">
+          <?php
+            $showImages = [];
+            $showFiles = [];
+            foreach ($publicationAttachments as $att) {
+              if (str_starts_with((string)$att['type_mime'], 'image/')) {
+                $showImages[] = $att;
+              } else {
+                $showFiles[] = $att;
+              }
+            }
+          ?>
+          
+          <?php if (!empty($showImages)): ?>
+            <?php $imgCount = count($showImages); ?>
+            <?php if ($imgCount === 1): ?>
+              <div class="campus-post-image-hero">
+                <a href="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$showImages[0]['id'] ?>" class="campus-image-lightbox-link" target="_blank" rel="noopener">
+                  <img src="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$showImages[0]['id'] ?>" alt="<?= htmlspecialchars((string)$showImages[0]['nom_fichier']) ?>" loading="lazy" class="campus-single-image" />
+                  <span class="campus-image-zoom-overlay">
+                    <span class="material-symbols-outlined">zoom_in</span>
+                  </span>
                 </a>
-              <?php else: ?>
-                <div class="epi-file-pill">
-                  <span class="epi-file-badge"><?= htmlspecialchars(strtoupper(pathinfo((string)$attachment['nom_fichier'], PATHINFO_EXTENSION) ?: 'DOC')) ?></span>
-                  <div class="publication-file-details"><strong><?= htmlspecialchars((string)$attachment['nom_fichier']) ?></strong><span><?= number_format((int)$attachment['taille'] / 1048576, 2, ',', ' ') ?> Mo</span></div>
-                  <a class="epi-pill-btn" href="<?= htmlspecialchars($base) ?>/attachment/download/<?= (int)$attachment['id'] ?>">Télécharger</a>
+              </div>
+            <?php else: ?>
+              <div class="campus-post-images-gallery <?= $imgCount === 2 ? 'is-grid-2' : 'is-grid-multi' ?>">
+                <?php foreach ($showImages as $idx => $imgAtt): ?>
+                  <a href="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$imgAtt['id'] ?>" class="campus-post-image-item" target="_blank" rel="noopener">
+                    <img src="<?= htmlspecialchars($base) ?>/attachment/view/<?= (int)$imgAtt['id'] ?>" alt="<?= htmlspecialchars((string)$imgAtt['nom_fichier']) ?>" loading="lazy" />
+                    <span class="campus-image-zoom-overlay">
+                      <span class="material-symbols-outlined">zoom_in</span>
+                    </span>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          <?php endif; ?>
+
+          <?php if (!empty($showFiles)): ?>
+            <div class="campus-post-files-list">
+              <?php foreach ($showFiles as $fileAtt): ?>
+                <?php 
+                  $ext = strtoupper(pathinfo((string)$fileAtt['nom_fichier'], PATHINFO_EXTENSION) ?: 'DOC');
+                  $sizeMo = number_format((int)$fileAtt['taille'] / 1048576, 2, ',', ' ') . ' Mo';
+                ?>
+                <div class="campus-file-attachment-card">
+                  <div class="campus-file-ext-icon"><?= htmlspecialchars($ext) ?></div>
+                  <div class="campus-file-info">
+                    <span class="campus-file-name" title="<?= htmlspecialchars((string)$fileAtt['nom_fichier']) ?>"><?= htmlspecialchars((string)$fileAtt['nom_fichier']) ?></span>
+                    <span class="campus-file-meta"><?= $sizeMo ?></span>
+                  </div>
+                  <a href="<?= htmlspecialchars($base) ?>/attachment/download/<?= (int)$fileAtt['id'] ?>" class="campus-doc-btn" download>
+                    <span class="material-symbols-outlined">download</span>
+                    <span>Télécharger</span>
+                  </a>
                 </div>
-              <?php endif; ?>
-            <?php endforeach; ?>
-          </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
         <?php endif; ?>
 
-        <?php if (!empty($publication['type_publication']) && $publication['type_publication'] === 'question' && !empty($pollOptions)): ?>
+        <?php if (!empty($publication['type_publication']) && ($publication['type_publication'] === 'question' || $publication['type_publication'] === 'sondage') && !empty($pollOptions)): ?>
           <?php
             $pollTotal = array_sum(array_map(static fn ($option): int => (int)($option['votes'] ?? 0), $pollOptions));
             $hasVoted = (bool)array_filter($pollOptions, static fn ($option): bool => !empty($option['user_voted']));
           ?>
-          <form class="poll-form publication-detail-poll" action="<?= htmlspecialchars($base) ?>/publication/vote" method="post">
-            <fieldset <?= $hasVoted ? 'class="poll-has-voted"' : '' ?>>
-              <?php foreach ($pollOptions as $option): ?>
-                <?php $percent = $pollTotal ? (int)round((int)$option['votes'] / $pollTotal * 100) : 0; ?>
-                <label class="poll-option">
-                  <input type="radio" name="option_id" value="<?= (int)$option['id'] ?>" <?= $option['user_voted'] ? 'checked' : '' ?> required>
-                  <span class="poll-option-result" style="--vote-percent: <?= $percent ?>%">
-                    <span><?= htmlspecialchars((string)$option['texte']) ?></span><strong><?= (int)$option['votes'] ?> vote(s) · <?= $percent ?>%</strong>
+          <div class="campus-poll-box" style="margin: 1.5rem 0;">
+            <form class="poll-form publication-detail-poll" action="<?= htmlspecialchars($base) ?>/publication/vote" method="post">
+              <div class="campus-poll-header">
+                <div class="campus-poll-title-wrap">
+                  <span class="material-symbols-outlined campus-poll-icon">poll</span>
+                  <span class="campus-poll-badge-state <?= $hasVoted ? 'is-voted' : 'is-open' ?>">
+                    <?= $hasVoted ? '✓ Vote enregistré' : 'Sondage ouvert' ?>
                   </span>
-                </label>
-              <?php endforeach; ?>
-            </fieldset>
-            <input type="hidden" name="publication_id" value="<?= (int)$publication['id'] ?>">
-            <button class="poll-vote-button" type="submit"><?= $hasVoted ? 'Modifier mon vote' : 'Voter' ?></button>
-            <span class="poll-feedback" role="status" aria-live="polite"></span>
-          </form>
+                </div>
+                <span class="campus-poll-total-votes">
+                  <strong><?= $pollTotal ?></strong> vote<?= $pollTotal > 1 ? 's' : '' ?> au total
+                </span>
+              </div>
+
+              <fieldset class="campus-poll-fieldset <?= $hasVoted ? 'poll-has-voted' : '' ?>">
+                <?php foreach ($pollOptions as $option): ?>
+                  <?php 
+                    $percent = $pollTotal ? (int)round((int)$option['votes'] / $pollTotal * 100) : 0;
+                    $isUserChoice = (bool)$option['user_voted'];
+                  ?>
+                  <label class="campus-poll-choice <?= $isUserChoice ? 'is-selected-choice' : '' ?>">
+                    <input type="radio" name="option_id" value="<?= (int)$option['id'] ?>" <?= $isUserChoice ? 'checked' : '' ?> required>
+                    <div class="campus-poll-bar" style="--vote-percent: <?= $percent ?>%">
+                      <div class="campus-poll-label-group">
+                        <span class="campus-poll-radio-dot"></span>
+                        <span class="campus-poll-label"><?= htmlspecialchars((string)$option['texte']) ?></span>
+                        <?php if ($isUserChoice): ?>
+                          <span class="campus-poll-my-vote">✓ Votre choix</span>
+                        <?php endif; ?>
+                      </div>
+                      <div class="campus-poll-stats-pill">
+                        <strong><?= $percent ?>%</strong>
+                        <span>(<?= (int)$option['votes'] ?>)</span>
+                      </div>
+                    </div>
+                  </label>
+                <?php endforeach; ?>
+              </fieldset>
+              <input type="hidden" name="publication_id" value="<?= (int)$publication['id'] ?>">
+              <div class="campus-poll-actions" style="margin-top:0.8rem;">
+                <button class="campus-poll-btn <?= $hasVoted ? 'has-voted-btn' : 'btn-vote-now' ?>" type="submit">
+                  <span class="material-symbols-outlined"><?= $hasVoted ? 'edit' : 'how_to_vote' ?></span>
+                  <span><?= $hasVoted ? 'Modifier mon vote' : 'Voter maintenant' ?></span>
+                </button>
+                <span class="poll-feedback" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
         <?php endif; ?>
 
         <div class="epi-card-actions publication-detail-actions">
@@ -262,17 +336,15 @@ $roleLabels = [
             </button>
           </form>
 
-          <?php if ((int)($publication['utilisateur_id'] ?? 0) !== (int)($currentUserId ?? 0)): ?>
-            <button type="button" class="epi-pill-btn btn-report-trigger" 
-              data-report-type="publication" 
-              data-report-id="<?= (int)$publication['id'] ?>" 
-              data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
-              data-report-title="<?= htmlspecialchars($publication['titre'] ?? 'Publication', ENT_QUOTES, 'UTF-8') ?>"
-              aria-label="Signaler" title="Signaler cette publication" style="color:#ef4444;">
-              <span class="material-symbols-outlined" style="font-size:16px;">flag</span>
-              <span>Signaler</span>
-            </button>
-          <?php endif; ?>
+          <button type="button" class="epi-pill-btn btn-report-trigger" 
+            data-report-type="publication" 
+            data-report-id="<?= (int)$publication['id'] ?>" 
+            data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
+            data-report-title="<?= htmlspecialchars($publication['titre'] ?? 'Publication', ENT_QUOTES, 'UTF-8') ?>"
+            aria-label="Signaler" title="Signaler cette publication" style="color:#ef4444; border-color:rgba(239,68,68,0.25); background:rgba(239,68,68,0.06); margin-left:auto;">
+            <span class="material-symbols-outlined" style="font-size:16px; color:#ef4444;">flag</span>
+            <span style="color:#ef4444; font-weight:600;">Signaler</span>
+          </button>
         </div>
       </article>
 
@@ -287,7 +359,7 @@ $roleLabels = [
             <input type="hidden" name="ajax" value="1">
             <input type="hidden" name="publication_id" value="<?= (int)$publication['id'] ?>">
             <div class="publication-comment-input-avatar">
-              <?php if ($currentAvatar !== ''): ?><img src="<?= htmlspecialchars($currentAvatar, ENT_QUOTES, 'UTF-8') ?>" alt=""><?php else: ?><span><?= htmlspecialchars(strtoupper(mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1))) ?></span><?php endif; ?>
+              <?= renderAvatar((string)($_SESSION['user_prenom'] ?? 'M'), (string)($_SESSION['user_nom'] ?? ''), (string)($_SESSION['user_avatar'] ?? null), 36) ?>
             </div>
             <div class="publication-comment-editor">
               <label class="sr-only" for="publicationCommentContent">Votre commentaire</label>
@@ -318,7 +390,7 @@ $roleLabels = [
                 data-live-comment-id="<?= (int)$comment['id'] ?>"
                 data-parent-comment-id="<?= $comment['parent_comment_id'] !== null ? (int)$comment['parent_comment_id'] : '' ?>">
                 <div class="publication-comment-avatar">
-                  <?php if ($commentAvatar !== ''): ?><img src="<?= htmlspecialchars($commentAvatar, ENT_QUOTES, 'UTF-8') ?>" alt=""><?php else: ?><span><?= htmlspecialchars(strtoupper(mb_substr((string)$comment['prenom'], 0, 1) . mb_substr((string)$comment['nom'], 0, 1))) ?></span><?php endif; ?>
+                  <?= renderAvatar((string)($comment['prenom'] ?? 'M'), (string)($comment['nom'] ?? ''), (string)($comment['avatar_url'] ?? null), 36) ?>
                 </div>
                 <div class="publication-comment-content">
                   <div class="publication-comment-meta">
@@ -341,17 +413,15 @@ $roleLabels = [
                     <?php if (!(bool)$publication['commentaires_fermes']): ?>
                       <button type="button" class="epi-pill-btn publication-reply-toggle" aria-expanded="false">↩ Répondre</button>
                     <?php endif; ?>
-                    <?php if ((int)($comment['utilisateur_id'] ?? 0) !== (int)($currentUserId ?? 0)): ?>
-                      <button type="button" class="epi-pill-btn btn-report-trigger" 
-                        data-report-type="commentaire" 
-                        data-report-id="<?= (int)$comment['id'] ?>" 
-                        data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
-                        data-report-title="<?= htmlspecialchars($commentName, ENT_QUOTES, 'UTF-8') ?>"
-                        aria-label="Signaler" title="Signaler ce commentaire" style="margin-left:auto; color:#94a3b8;">
-                        <span class="material-symbols-outlined" style="font-size:14px;">flag</span>
-                        <span>Signaler</span>
-                      </button>
-                    <?php endif; ?>
+                    <button type="button" class="epi-pill-btn btn-report-trigger" 
+                      data-report-type="commentaire" 
+                      data-report-id="<?= (int)$comment['id'] ?>" 
+                      data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
+                      data-report-title="<?= htmlspecialchars($commentName, ENT_QUOTES, 'UTF-8') ?>"
+                      aria-label="Signaler" title="Signaler ce commentaire" style="margin-left:auto; color:#ef4444; background:rgba(239,68,68,0.06);">
+                      <span class="material-symbols-outlined" style="font-size:14px; color:#ef4444;">flag</span>
+                      <span style="color:#ef4444;">Signaler</span>
+                    </button>
                   </div>
                   <?php if (!(bool)$publication['commentaires_fermes']): ?>
                     <form class="discussion-comment-form publication-reply-form" action="<?= htmlspecialchars($base) ?>/comment/create" method="post" hidden>

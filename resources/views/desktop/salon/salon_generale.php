@@ -186,11 +186,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
         <?php if (!empty($_SESSION['user_id'])): ?>
           <div class="campus-user-menu-wrapper">
             <button type="button" class="campus-user-trigger" id="userMenuToggle" aria-label="Menu profil">
-              <div class="campus-avatar-box">
-                <span class="campus-avatar-fallback"><?= htmlspecialchars(strtoupper(mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1))) ?></span>
-                <img class="campus-avatar-img" src="<?= htmlspecialchars($sessionAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" <?= $sessionAvatarUrl === '' ? 'hidden' : '' ?> />
-                <span class="campus-online-dot"></span>
-              </div>
+              <?= renderAvatar($_SESSION['user_prenom'] ?? '', $_SESSION['user_nom'] ?? '', $sessionAvatarUrl, 38, true) ?>
               <div class="campus-user-meta">
                 <span class="campus-user-name"><?= htmlspecialchars($_SESSION['user_prenom'] ?? '') ?></span>
                 <span class="campus-user-status"><span class="campus-dot-sm"></span> En ligne</span>
@@ -249,6 +245,10 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
           <a href="<?= $base ?>/friends" class="campus-nav-link">
             <span class="material-symbols-outlined">volunteer_activism</span>
             <span>Amis & Entraide</span>
+          </a>
+          <a href="<?= $base ?>/binomage" class="campus-nav-link">
+            <span class="material-symbols-outlined">school</span>
+            <span>Binômage & Mentorat</span>
           </a>
           <a href="<?= $base ?>/messages" class="campus-nav-link">
             <span class="material-symbols-outlined">chat_bubble_outline</span>
@@ -575,8 +575,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
 
             <div class="campus-composer-input-row">
               <div class="campus-composer-avatar">
-                <span class="campus-avatar-fallback"><?= htmlspecialchars(strtoupper(mb_substr((string)($_SESSION['user_prenom'] ?? 'M'), 0, 1))) ?></span>
-                <img class="campus-avatar-img" src="<?= htmlspecialchars($sessionAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" <?= $sessionAvatarUrl === '' ? 'hidden' : '' ?> />
+                <?= renderAvatar($_SESSION['user_prenom'] ?? '', $_SESSION['user_nom'] ?? '', $sessionAvatarUrl, 40, false) ?>
               </div>
               <button type="button" class="campus-composer-trigger-btn" id="triggerComposerClick">
                 Partagez une question, un cours ou lancez un sondage avec vos camarades...
@@ -676,13 +675,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                 <!-- En-tête de la publication -->
                 <div class="campus-post-header">
                   <div class="campus-post-author-row">
-                    <div class="campus-author-avatar-wrap">
-                      <span class="campus-avatar-fallback"><?= htmlspecialchars(strtoupper(mb_substr($post['prenom'] ?? 'E', 0, 1))) ?></span>
-                      <?php if (!empty($post['avatar_url'])): ?>
-                        <img class="campus-avatar-img" src="<?= url('public/' . ltrim((string)$post['avatar_url'], '/')) ?>" alt="<?= htmlspecialchars($authorName) ?>" />
-                      <?php endif; ?>
-                      <span class="campus-online-dot"></span>
-                    </div>
+                    <?= renderAvatar($post['prenom'] ?? '', $post['nom'] ?? '', $post['avatar_url'] ?? null, 44, true) ?>
                     <div class="campus-author-meta">
                       <div class="campus-author-name-line">
                         <strong class="campus-author-name"><?= htmlspecialchars($authorName) ?></strong>
@@ -702,14 +695,36 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                     </div>
                   </div>
 
-                  <!-- Badge de type -->
-                  <?php if ($postType === 'annonce'): ?>
-                    <span class="campus-type-pill announcement">Annonce</span>
-                  <?php elseif ($postType === 'sondage' || $postType === 'question'): ?>
-                    <span class="campus-type-pill poll">Sondage</span>
-                  <?php else: ?>
-                    <span class="campus-type-pill validated">Entraide</span>
-                  <?php endif; ?>
+                  <!-- Badge de type & Bouton Signaler Haut de Carte -->
+                  <div class="campus-post-header-actions" style="display:flex; align-items:center; gap:0.6rem;">
+                    <?php if ($postType === 'annonce'): ?>
+                      <span class="campus-type-pill announcement">
+                        <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">campaign</span>
+                        Annonce
+                      </span>
+                    <?php elseif ($postType === 'sondage' || $postType === 'question'): ?>
+                      <span class="campus-type-pill poll">
+                        <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">ballot</span>
+                        Sondage
+                      </span>
+                    <?php else: ?>
+                      <span class="campus-type-pill validated">
+                        <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">forum</span>
+                        Entraide
+                      </span>
+                    <?php endif; ?>
+
+                    <!-- Bouton Signaler dans l'en-tête (Drapeau toujours visible avec libellé clair) -->
+                    <button type="button" class="campus-header-report-btn btn-report-trigger" 
+                      data-report-type="publication" 
+                      data-report-id="<?= $postId ?>" 
+                      data-report-zone="<?= (int)($post['zone_id'] ?? $currentZone['id'] ?? 0) ?>" 
+                      data-report-title="<?= htmlspecialchars($post['titre'], ENT_QUOTES, 'UTF-8') ?>"
+                      title="Signaler cette publication" aria-label="Signaler cette publication" style="color:#ef4444; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:600; padding:4px 8px; border-radius:6px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); cursor:pointer;">
+                      <span class="material-symbols-outlined" style="font-size:15px; color:#ef4444;">flag</span>
+                      <span style="color:#ef4444;">Signaler</span>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Corps du message -->
@@ -752,37 +767,59 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                     </div>
                   <?php endif; ?>
 
-                  <!-- Fiches Pièces Jointes / PDF téléchargeables -->
-                  <?php if (!empty($postAttachments[$postId])): ?>
-                    <div class="campus-attachments-container">
-                      <?php foreach ($postAttachments[$postId] as $attachment): ?>
-                        <?php $isImage = str_starts_with((string)$attachment['type_mime'], 'image/'); ?>
-                        <?php if ($isImage): ?>
-                          <div class="campus-attachment-image-card">
-                            <a href="<?= $base ?>/attachment/view/<?= (int)$attachment['id'] ?>" target="_blank" rel="noopener">
-                              <img src="<?= $base ?>/attachment/view/<?= (int)$attachment['id'] ?>" alt="<?= htmlspecialchars($attachment['nom_fichier']) ?>" loading="lazy" />
-                            </a>
-                          </div>
-                        <?php else: ?>
-                          <div class="campus-file-pill-card">
-                            <div class="campus-file-icon-box">
-                              <span class="material-symbols-outlined">picture_as_pdf</span>
-                            </div>
-                            <div class="campus-file-info">
-                              <strong class="campus-file-name"><?= htmlspecialchars($attachment['nom_fichier']) ?></strong>
-                              <span class="campus-file-desc">Document • <?= number_format(((int)$attachment['taille']) / 1048576, 2, ',', ' ') ?> Mo</span>
-                            </div>
-                            <a href="<?= $base ?>/attachment/download/<?= (int)$attachment['id'] ?>" class="campus-file-download-btn">
-                              <span class="material-symbols-outlined">download</span>
-                              <span>Télécharger</span>
-                            </a>
-                          </div>
-                        <?php endif; ?>
+                  <!-- Fiches Pièces Jointes : Images & Documents séparés proprement -->
+                  <?php
+                    $imageAttachments = [];
+                    $fileAttachments = [];
+                    if (!empty($postAttachments[$postId])) {
+                      foreach ($postAttachments[$postId] as $attachment) {
+                        if (str_starts_with((string)$attachment['type_mime'], 'image/')) {
+                          $imageAttachments[] = $attachment;
+                        } else {
+                          $fileAttachments[] = $attachment;
+                        }
+                      }
+                    }
+                  ?>
+
+                  <!-- 1. Galerie d'images moderne -->
+                  <?php if (!empty($imageAttachments)): ?>
+                    <div class="campus-post-images-gallery <?= count($imageAttachments) === 1 ? 'is-single' : (count($imageAttachments) === 2 ? 'is-grid-2' : 'is-grid-multi') ?>">
+                      <?php foreach ($imageAttachments as $idx => $imgAtt): ?>
+                        <div class="campus-post-image-item">
+                          <a href="<?= $base ?>/attachment/view/<?= (int)$imgAtt['id'] ?>" target="_blank" rel="noopener" class="campus-image-lightbox-link" title="Agrandir <?= htmlspecialchars($imgAtt['nom_fichier']) ?>">
+                            <img src="<?= $base ?>/attachment/view/<?= (int)$imgAtt['id'] ?>" alt="<?= htmlspecialchars($imgAtt['nom_fichier']) ?>" loading="lazy" />
+                            <span class="campus-image-zoom-overlay">
+                              <span class="material-symbols-outlined">zoom_in</span>
+                            </span>
+                          </a>
+                        </div>
                       <?php endforeach; ?>
                     </div>
                   <?php endif; ?>
 
-                  <!-- Sondage interactif si présent -->
+                  <!-- 2. Documents & PDF téléchargeables -->
+                  <?php if (!empty($fileAttachments)): ?>
+                    <div class="campus-post-files-list">
+                      <?php foreach ($fileAttachments as $attachment): ?>
+                        <div class="campus-file-pill-card">
+                          <div class="campus-file-icon-box">
+                            <span class="material-symbols-outlined">description</span>
+                          </div>
+                          <div class="campus-file-info">
+                            <strong class="campus-file-name"><?= htmlspecialchars($attachment['nom_fichier']) ?></strong>
+                            <span class="campus-file-desc"><?= strtoupper(pathinfo((string)$attachment['nom_fichier'], PATHINFO_EXTENSION) ?: 'DOC') ?> • <?= number_format(((int)$attachment['taille']) / 1048576, 2, ',', ' ') ?> Mo</span>
+                          </div>
+                          <a href="<?= $base ?>/attachment/download/<?= (int)$attachment['id'] ?>" class="campus-file-download-btn" title="Télécharger">
+                            <span class="material-symbols-outlined">download</span>
+                            <span>Télécharger</span>
+                          </a>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+
+                  <!-- Sondage interactif redessiné -->
                   <?php if ($postType === 'sondage' || $postType === 'question'): ?>
                     <?php
                       $options = $pollOptions[$postId] ?? [];
@@ -791,21 +828,48 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                     ?>
                     <?php if ($options): ?>
                       <form class="poll-form campus-poll-box" action="<?= $base ?>/publication/vote" method="post" data-publication-id="<?= $postId ?>">
-                        <fieldset <?= $hasVoted ? 'class="poll-has-voted"' : '' ?>>
+                        <div class="campus-poll-header">
+                          <div class="campus-poll-title-wrap">
+                            <span class="material-symbols-outlined campus-poll-icon">poll</span>
+                            <span class="campus-poll-badge-state <?= $hasVoted ? 'is-voted' : 'is-open' ?>">
+                              <?= $hasVoted ? '✓ Vote enregistré' : 'Sondage ouvert' ?>
+                            </span>
+                          </div>
+                          <span class="campus-poll-total-votes">
+                            <strong><?= $totalVotes ?></strong> vote<?= $totalVotes > 1 ? 's' : '' ?> au total
+                          </span>
+                        </div>
+
+                        <fieldset class="campus-poll-fieldset <?= $hasVoted ? 'poll-has-voted' : '' ?>">
                           <?php foreach ($options as $option): ?>
-                            <?php $votePercent = $totalVotes > 0 ? (int)round(((int)$option['votes'] / $totalVotes) * 100) : 0; ?>
-                            <label class="campus-poll-choice">
-                              <input type="radio" name="option_id" value="<?= (int)$option['id'] ?>" <?= $option['user_voted'] ? 'checked' : '' ?> required>
+                            <?php 
+                              $votePercent = $totalVotes > 0 ? (int)round(((int)$option['votes'] / $totalVotes) * 100) : 0; 
+                              $isUserChoice = (bool)$option['user_voted'];
+                            ?>
+                            <label class="campus-poll-choice <?= $isUserChoice ? 'is-selected-choice' : '' ?>">
+                              <input type="radio" name="option_id" value="<?= (int)$option['id'] ?>" <?= $isUserChoice ? 'checked' : '' ?> required>
                               <div class="campus-poll-bar" style="--vote-percent: <?= $votePercent ?>%">
-                                <span class="campus-poll-label"><?= htmlspecialchars($option['texte']) ?></span>
-                                <strong class="campus-poll-stats"><?= (int)$option['votes'] ?> vote(s) • <?= $votePercent ?>%</strong>
+                                <div class="campus-poll-label-group">
+                                  <span class="campus-poll-radio-dot"></span>
+                                  <span class="campus-poll-label"><?= htmlspecialchars($option['texte']) ?></span>
+                                  <?php if ($isUserChoice): ?>
+                                    <span class="campus-poll-my-vote">✓ Votre choix</span>
+                                  <?php endif; ?>
+                                </div>
+                                <div class="campus-poll-stats-pill">
+                                  <strong><?= $votePercent ?>%</strong>
+                                  <span>(<?= (int)$option['votes'] ?>)</span>
+                                </div>
                               </div>
                             </label>
                           <?php endforeach; ?>
                         </fieldset>
                         <input type="hidden" name="publication_id" value="<?= $postId ?>">
                         <div class="campus-poll-actions">
-                          <button class="campus-btn-primary" type="submit"><?= $hasVoted ? 'Modifier mon vote' : 'Voter' ?></button>
+                          <button class="campus-poll-btn <?= $hasVoted ? 'has-voted-btn' : 'btn-vote-now' ?>" type="submit">
+                            <span class="material-symbols-outlined"><?= $hasVoted ? 'edit' : 'how_to_vote' ?></span>
+                            <span><?= $hasVoted ? 'Modifier mon vote' : 'Voter maintenant' ?></span>
+                          </button>
                           <span class="poll-feedback" role="status" aria-live="polite"></span>
                         </div>
                       </form>
@@ -814,7 +878,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
 
                 </div>
 
-                <!-- Pied de carte : Réactions Facebook, Commentaires, Partage, Sauvegarde -->
+                <!-- Pied de carte : Réactions Facebook, Commentaires, Partage, Sauvegarde, Signaler -->
                 <div class="campus-post-footer">
                   <div class="campus-actions-left">
                     
@@ -880,17 +944,16 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                       </button>
                     </form>
 
-                    <!-- Signaler la publication (si ce n'est pas la sienne) -->
-                    <?php if ((int)$post['utilisateur_id'] !== (int)$currentUserId): ?>
-                      <button type="button" class="campus-icon-action-btn btn-report-trigger" 
-                        data-report-type="publication" 
-                        data-report-id="<?= $postId ?>" 
-                        data-report-zone="<?= (int)($post['zone_id'] ?? $currentZone['id'] ?? 0) ?>" 
-                        data-report-title="<?= htmlspecialchars($post['titre'], ENT_QUOTES, 'UTF-8') ?>"
-                        title="Signaler cette publication" aria-label="Signaler">
-                        <span class="material-symbols-outlined">flag</span>
-                      </button>
-                    <?php endif; ?>
+                    <!-- Signaler la publication (Drapeau toujours présent et visible) -->
+                    <button type="button" class="campus-action-pill btn-report-trigger" 
+                      data-report-type="publication" 
+                      data-report-id="<?= $postId ?>" 
+                      data-report-zone="<?= (int)($post['zone_id'] ?? $currentZone['id'] ?? 0) ?>" 
+                      data-report-title="<?= htmlspecialchars($post['titre'], ENT_QUOTES, 'UTF-8') ?>"
+                      title="Signaler cette publication" aria-label="Signaler" style="color:#ef4444; border:1px solid rgba(239,68,68,0.2); background:rgba(239,68,68,0.06); cursor:pointer;">
+                      <span class="material-symbols-outlined" style="font-size:15px; color:#ef4444;">flag</span>
+                      <span style="color:#ef4444;">Signaler</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1065,6 +1128,9 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
         <h3 id="drawerPostTitle" class="drawer-title" title="Publication">Publication : « Chargement... »</h3>
       </div>
       <div class="drawer-header-actions">
+        <button type="button" id="drawerReportPostBtn" class="drawer-action-btn btn-report-trigger" data-report-type="publication" data-report-id="" data-report-zone="" data-report-title="" title="Signaler cette publication" style="color:#ef4444;" aria-label="Signaler cette publication">
+          <span class="material-symbols-outlined" style="font-size:18px;">flag</span>
+        </button>
         <a id="drawerFullViewLink" href="#" class="drawer-action-btn" title="Ouvrir la publication en pleine page" target="_blank" rel="noopener">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>

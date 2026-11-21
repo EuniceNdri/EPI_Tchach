@@ -980,11 +980,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const drawerCommentForm = document.getElementById("drawerCommentForm");
   const drawerCommentInput = document.getElementById("drawerCommentInput");
 
+  const getAvatarGradient = (char) => {
+    char = (char || 'M').toUpperCase();
+    if (['A', 'B', 'C', 'D'].includes(char)) return 'linear-gradient(135deg, #0d9488 0%, #059669 100%)';
+    if (['E', 'F', 'G', 'H'].includes(char)) return 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)';
+    if (['I', 'J', 'K', 'L'].includes(char)) return 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)';
+    if (['M', 'N', 'O', 'P'].includes(char)) return 'linear-gradient(135deg, #db2777 0%, #ec4899 100%)';
+    if (['Q', 'R', 'S', 'T'].includes(char)) return 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
+    return 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)';
+  };
+
+  const renderAvatarHtml = (prenom, nom, avatarUrl, size = 32) => {
+    const fullName = `${prenom || ''} ${nom || ''}`.trim() || 'Membre';
+    const initial = (prenom || fullName || 'M').charAt(0).toUpperCase();
+    const bg = getAvatarGradient(initial);
+    const fontSize = Math.round(size * 0.42);
+
+    if (avatarUrl && avatarUrl.trim() !== '') {
+      const src = `${baseUrl}/public/${avatarUrl.trim().replace(/^\//, '')}`;
+      return `
+        <div class="campus-avatar-wrap" style="width:${size}px; height:${size}px; font-size:${fontSize}px;" title="${fullName}">
+          <img class="campus-avatar-img" src="${src}" alt="${fullName}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <span class="campus-avatar-fallback" style="display:none; background:${bg};">${initial}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="campus-avatar-wrap" style="width:${size}px; height:${size}px; font-size:${fontSize}px;" title="${fullName}">
+        <span class="campus-avatar-fallback" style="background:${bg};">${initial}</span>
+      </div>
+    `;
+  };
+
   const buildCommentHtml = (c, isPinned = false, pinLabel = "") => {
-    const cInit = (c.prenom || 'M').charAt(0).toUpperCase();
-    const cAvatar = c.author_avatar
-      ? `<img src="${baseUrl}/public/${c.author_avatar.replace(/^\//, '')}" alt="">`
-      : `<span>${cInit}</span>`;
+    const avatarHtml = renderAvatarHtml(c.prenom, c.nom, c.author_avatar, 28);
     const likes = Number(c.likes_count || 0);
     const userLiked = Boolean(c.user_liked);
     const likeIcon = userLiked ? '❤️' : '🤍';
@@ -999,7 +1028,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ${pinBadgeHtml}
         <div class="drawer-comment-header">
           <div style="display:flex; align-items:center; gap:0.5rem;">
-            <div class="drawer-mini-avatar" style="width:28px; height:28px; font-size:0.75rem;">${cAvatar}</div>
+            ${avatarHtml}
             <div>
               <span class="drawer-comment-author">${c.prenom || ''} ${c.nom || ''}</span>
             </div>
@@ -1016,7 +1045,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
             <span>Répondre</span>
           </button>
-          <button type="button" class="drawer-comment-action-btn btn-report-trigger" data-report-type="commentaire" data-report-id="${c.id}" data-report-title="${(c.prenom || '') + ' ' + (c.nom || '')}" title="Signaler ce commentaire" style="margin-left:auto; color:#94a3b8;">
+          <button type="button" class="drawer-comment-action-btn btn-report-trigger" data-report-type="commentaire" data-report-id="${c.id}" data-report-title="${(c.prenom || '') + ' ' + (c.nom || '')}" title="Signaler ce commentaire" style="margin-left:auto; color:#ef4444; background:rgba(239,68,68,0.06); padding:3px 8px; border-radius:5px;">
             <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">flag</span>
             <span>Signaler</span>
           </button>
@@ -1064,8 +1093,15 @@ document.addEventListener("DOMContentLoaded", () => {
       drawerPostTitle.textContent = `Publication : « ${titleShort} »`;
       drawerPostTitle.title = titleShort;
 
-      const authorInitial = (pub.prenom || "E").charAt(0).toUpperCase();
-      const authorAvatar = pub.author_avatar ? `<img src="${baseUrl}/public/${pub.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${authorInitial}</span>`;
+      // Bouton Signaler dans l'en-tête du panneau latéral
+      const drawerReportBtn = document.getElementById("drawerReportPostBtn");
+      if (drawerReportBtn) {
+        drawerReportBtn.setAttribute("data-report-id", publicationId);
+        drawerReportBtn.setAttribute("data-report-zone", pub.zone_id || 0);
+        drawerReportBtn.setAttribute("data-report-title", titleShort);
+      }
+
+      const authorAvatar = renderAvatarHtml(pub.prenom, pub.nom, pub.author_avatar, 36);
 
       let attachmentsHtml = "";
       if (Array.isArray(data.attachments) && data.attachments.length > 0) {
@@ -1074,16 +1110,29 @@ document.addEventListener("DOMContentLoaded", () => {
           `</div>`;
       }
 
+      const safeTitle = (pub.titre || '').replace(/"/g, '&quot;');
       drawerPostContent.innerHTML = `
-        <div class="drawer-post-author-row">
-          <div class="drawer-mini-avatar">${authorAvatar}</div>
-          <div>
-            <div class="drawer-author-name">${pub.prenom || ''} ${pub.nom || ''}</div>
-            <div class="drawer-author-meta">${pub.category_name || pub.zone_name || 'Salon'} · ${pub.date_creation || ''}</div>
+        <div class="drawer-post-author-row" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            ${authorAvatar}
+            <div>
+              <div class="drawer-author-name">${pub.prenom || ''} ${pub.nom || ''}</div>
+              <div class="drawer-author-meta">${pub.category_name || pub.zone_name || 'Salon'} · ${pub.date_creation || ''}</div>
+            </div>
           </div>
+          <button type="button" class="drawer-comment-action-btn btn-report-trigger" 
+            data-report-type="publication" 
+            data-report-id="${pub.id}" 
+            data-report-zone="${pub.zone_id || 0}" 
+            data-report-title="${safeTitle}" 
+            title="Signaler cette publication" 
+            style="color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); padding:4px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:600; cursor:pointer;">
+            <span class="material-symbols-outlined" style="font-size:14px; color:#ef4444;">flag</span>
+            <span style="color:#ef4444;">Signaler</span>
+          </button>
         </div>
-        <div style="font-weight:700; margin-bottom:0.4rem; font-size:0.95rem;">${pub.titre || ''}</div>
-        <div>${(pub.contenu || '').replace(/\n/g, '<br>')}</div>
+        <div style="font-weight:700; margin:0.6rem 0 0.4rem 0; font-size:0.95rem; color:var(--community-text);">${pub.titre || ''}</div>
+        <div style="font-size:0.88rem; line-height:1.5; color:var(--community-text-soft);">${(pub.contenu || '').replace(/\n/g, '<br>')}</div>
         ${attachmentsHtml}
       `;
 

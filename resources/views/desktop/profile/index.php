@@ -183,11 +183,7 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
 
         <div class="epi-user-menu-wrapper">
           <button type="button" class="epi-profile-pill" id="userMenuToggle" aria-label="Menu du profil utilisateur" aria-haspopup="true" aria-expanded="false">
-            <div class="epi-avatar-bubble">
-              <span class="epi-avatar-fallback"><?= htmlspecialchars($loggedInInitial) ?></span>
-              <img class="epi-avatar-image" src="<?= htmlspecialchars($loggedInAvatarUrl, ENT_QUOTES, 'UTF-8') ?>" alt="" <?= $loggedInAvatarUrl === '' ? 'hidden' : '' ?> />
-              <span class="epi-status-dot" aria-label="En ligne"></span>
-            </div>
+            <?= renderAvatar((string)($loggedInUser['prenom'] ?? 'M'), (string)($loggedInUser['nom'] ?? ''), (string)($loggedInUser['avatar_url'] ?? null), 36, true) ?>
             <div class="epi-profile-info">
               <span class="epi-profile-name"><?= htmlspecialchars($loggedInName) ?></span>
               <span class="epi-profile-role"><?= htmlspecialchars($roleLabels[$loggedInRole] ?? ucfirst($loggedInRole)) ?></span>
@@ -716,13 +712,8 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
                              data-post-status="<?= !empty($post['est_signale']) ? 'reported' : (in_array($post['statut'], ['ferme', 'resolu'], true) ? 'closed' : 'visible') ?>">
                       
                       <div class="campus-post-header">
-                        <div class="campus-post-author">
-                          <div class="campus-post-avatar-mini">
-                            <span><?= htmlspecialchars(mb_substr($sessionFullName, 0, 1)) ?></span>
-                            <?php if (!empty($user['avatar_url'])): ?>
-                              <img src="<?= htmlspecialchars(url('public/' . ltrim($user['avatar_url'], '/')), ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy">
-                            <?php endif; ?>
-                          </div>
+                        <div class="campus-post-author" style="display:flex; align-items:center; gap:0.6rem;">
+                          <?= renderAvatar((string)($user['prenom'] ?? 'M'), (string)($user['nom'] ?? ''), (string)($user['avatar_url'] ?? null), 32) ?>
                           <div>
                             <div class="campus-post-author-name"><?= htmlspecialchars($sessionFullName) ?></div>
                             <div class="campus-post-time"><?= htmlspecialchars(date('d/m/Y à H:i', strtotime($post['date_creation']))) ?></div>

@@ -41,6 +41,8 @@ if (!function_exists('controllerFile')) {
             'SearchController' => '/app/Controllers/Search/SearchController.php',
             'SignalementController' => '/app/Controllers/Moderation/SignalementController.php',
             'SocialController' => '/app/Controllers/Social/SocialController.php',
+            'BinomageController' => '/app/Controllers/Social/BinomageController.php',
+            'StoryController' => '/app/Controllers/Social/StoryController.php',
         ];
 
         if (!isset($files[$controller])) {
@@ -173,5 +175,68 @@ if (!function_exists('loadActiveFilieres')) {
                 return [[], true];
             }
         }
+    }
+}
+
+if (!function_exists('renderAvatar')) {
+    /**
+     * Génère l'HTML d'un avatar moderne avec photo ou initiale dégradée
+     *
+     * @param string $prenom Prénom
+     * @param string $nom Nom
+     * @param string|null $avatarUrl Chemin relatif ou URL de l'avatar
+     * @param int $size Taille en pixels (par défaut 42)
+     * @param bool $showDot Afficher l'indicateur en ligne
+     * @param string $extraClass Classes CSS additionnelles
+     * @return string HTML de l'avatar
+     */
+    function renderAvatar(string $prenom, string $nom = '', ?string $avatarUrl = null, int $size = 42, bool $showDot = false, string $extraClass = ''): string
+    {
+        $fullName = trim($prenom . ' ' . $nom);
+        if ($fullName === '') {
+            $fullName = 'Membre';
+        }
+        $initial = mb_strtoupper(mb_substr(trim($prenom !== '' ? $prenom : $fullName), 0, 1));
+        if ($initial === '') {
+            $initial = 'M';
+        }
+
+        // Gradients modernes basés sur l'initiale
+        $char = $initial;
+        if (in_array($char, ['A', 'B', 'C', 'D'], true)) {
+            $bg = 'linear-gradient(135deg, #0d9488 0%, #059669 100%)'; // Teal / Emerald
+        } elseif (in_array($char, ['E', 'F', 'G', 'H'], true)) {
+            $bg = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'; // Royal Blue
+        } elseif (in_array($char, ['I', 'J', 'K', 'L'], true)) {
+            $bg = 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'; // Purple / Violet
+        } elseif (in_array($char, ['M', 'N', 'O', 'P'], true)) {
+            $bg = 'linear-gradient(135deg, #db2777 0%, #ec4899 100%)'; // Pink / Rose
+        } elseif (in_array($char, ['Q', 'R', 'S', 'T'], true)) {
+            $bg = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'; // Amber / Orange
+        } else {
+            $bg = 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)'; // Cyan / Sky
+        }
+
+        $fontSize = round($size * 0.42);
+        $escapedName = htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8');
+        $classes = 'campus-avatar-wrap ' . trim($extraClass);
+
+        $dotHtml = $showDot ? '<span class="campus-online-dot"></span>' : '';
+
+        $cleanAvatar = $avatarUrl !== null ? trim($avatarUrl) : '';
+        if ($cleanAvatar !== '') {
+            $imgSrc = url('public/' . ltrim($cleanAvatar, '/'));
+            $escapedSrc = htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8');
+            return "<div class=\"{$classes}\" style=\"width:{$size}px; height:{$size}px; font-size:{$fontSize}px;\" title=\"{$escapedName}\">"
+                 . "<img class=\"campus-avatar-img\" src=\"{$escapedSrc}\" alt=\"{$escapedName}\" loading=\"lazy\" onerror=\"this.style.display='none'; this.nextElementSibling.style.display='flex';\" />"
+                 . "<span class=\"campus-avatar-fallback\" style=\"display:none; background:{$bg};\">{$initial}</span>"
+                 . $dotHtml
+                 . "</div>";
+        }
+
+        return "<div class=\"{$classes}\" style=\"width:{$size}px; height:{$size}px; font-size:{$fontSize}px;\" title=\"{$escapedName}\">"
+             . "<span class=\"campus-avatar-fallback\" style=\"background:{$bg};\">{$initial}</span>"
+             . $dotHtml
+             . "</div>";
     }
 }
