@@ -26,6 +26,8 @@ node_modules/
 !/storage/logs/.gitkeep
 /storage/cache/*
 !/storage/cache/.gitkeep
+/storage/stories/*
+!/storage/stories/.gitkeep
 /.dev-sessions/
 
 # Fichiers uploadés par les utilisateurs
