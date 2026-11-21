@@ -111,7 +111,7 @@ class RoleAccess
         }
 
         $statement = $pdo->prepare(
-            "SELECT zone.id
+            "SELECT COALESCE(report.zone_id, zone.id) AS resolved_zone_id
              FROM signalements report
              LEFT JOIN publications publication
                ON report.type_cible = 'publication' AND publication.id = report.cible_id
@@ -119,18 +119,14 @@ class RoleAccess
                ON report.type_cible = 'commentaire' AND comment.id = report.cible_id
              LEFT JOIN publications comment_publication
                ON comment_publication.id = comment.publication_id
-             JOIN categories category
+             LEFT JOIN categories category
                ON category.id = COALESCE(publication.categorie_id, comment_publication.categorie_id)
-             JOIN zones zone ON zone.id = category.zone_id
+             LEFT JOIN zones zone ON zone.id = category.zone_id
              JOIN appartenance_zones membership
-               ON membership.zone_id = zone.id
+               ON membership.zone_id = COALESCE(report.zone_id, zone.id)
               AND membership.utilisateur_id = :user_id
-              AND membership.role_dans_zone = 'delegue_de_classe'
-             JOIN utilisateurs account
-               ON account.id = membership.utilisateur_id AND account.role = 'etudiant'
+              AND membership.role_dans_zone IN ('delegue_de_classe', 'admin_zone', 'delegue_general')
              WHERE report.id = :report_id
-               AND zone.type_zone = 'filiere'
-               AND zone.est_active = 1
              LIMIT 1"
         );
         $statement->execute(['user_id' => $userId, 'report_id' => $reportId]);

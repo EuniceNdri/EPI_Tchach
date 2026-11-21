@@ -15,11 +15,17 @@
 
 if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/config/database.php';
+    if (!function_exists('url')) {
+        @require_once ROOT_PATH . '/app/Bootstrap.php';
+    }
     require_once ROOT_PATH . '/app/Models/Publications/Attachment.php';
     require_once ROOT_PATH . '/app/Models/Notifications/Notification.php';
     require_once ROOT_PATH . '/app/Models/Moderation/RoleAccess.php';
 } else {
     require_once dirname(__DIR__, 2) . '/config/database.php';
+    if (!function_exists('url')) {
+        @require_once dirname(__DIR__) . '/Bootstrap.php';
+    }
     require_once __DIR__ . '/../Models/Publications/Attachment.php';
     require_once __DIR__ . '/../Models/Notifications/Notification.php';
     require_once __DIR__ . '/../Models/Moderation/RoleAccess.php';
@@ -104,10 +110,10 @@ class ModerationService {
     }
 
     /**
-     * DÉCISION MODÉRATEUR : Avertir l'auteur de la publication
+     * DÉCISION MODÉRATEUR : Avertir l'auteur de la publication ou du compte
      *
      * @param int $reportId ID du signalement
-     * @param int $adminId ID de l'administrateur
+     * @param int $adminId ID du modérateur / administrateur
      * @param string $messageAvertissement Motif de l'avertissement
      * @return bool
      */
@@ -127,17 +133,29 @@ class ModerationService {
         // 1. Envoyer la notification d'avertissement à l'auteur
         $this->notificationModel->notifyAvertissement($authorId, $messageAvertissement, $titre);
 
-        // 2. Mettre à jour le signalement comme traité
+        // 2. Mettre à jour le signalement comme traité avec action_prise = 'avertissement'
         $stmt = $this->pdo->prepare("
             UPDATE signalements 
-            SET statut = 'traite', traite_par = :admin_id, date_traitement = NOW() 
+            SET statut = 'traite', action_prise = 'avertissement', traite_par = :admin_id, date_traitement = NOW() 
             WHERE id = :id
         ");
-
-        return $stmt->execute([
+        $success = $stmt->execute([
             'admin_id' => $adminId,
             'id'       => $reportId
         ]);
+
+        // 3. Notifier l'utilisateur ayant signalé
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement concernant \"{$titre}\" a été traité : un avertissement a été adressé par l'équipe de modération.",
+                url('profile')
+            );
+        }
+
+        return $success;
     }
 
     /**
@@ -159,6 +177,10 @@ class ModerationService {
         }
 
         $typeCible = $report['type_cible'];
+        if ($typeCible === 'utilisateur') {
+            return false; // On ne peut pas supprimer physiquement un profil via cette méthode (voir suspension)
+        }
+
         $cibleId = (int)$report['cible_id'];
         $authorId = (int)($report['cible_auteur_id'] ?? 0);
         $titre = $report['cible_titre'] ?? 'Votre publication';
@@ -179,18 +201,30 @@ class ModerationService {
         }
         Attachment::removeStoredFiles($this->pdo, $attachments);
 
-        // 3. Clôturer tous les signalements associés à cette même cible
+        // 3. Clôturer tous les signalements associés à cette même cible avec action_prise = 'suppression_contenu'
         $closeAll = $this->pdo->prepare("
             UPDATE signalements 
-            SET statut = 'traite', traite_par = :admin_id, date_traitement = NOW() 
+            SET statut = 'traite', action_prise = 'suppression_contenu', traite_par = :admin_id, date_traitement = NOW() 
             WHERE type_cible = :type_cible AND cible_id = :cible_id
         ");
-
-        return $closeAll->execute([
+        $success = $closeAll->execute([
             'admin_id'   => $adminId,
             'type_cible' => $typeCible,
             'cible_id'   => $cibleId
         ]);
+
+        // 4. Notifier l'auteur du signalement
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement concernant \"{$titre}\" a été traité : le contenu a été supprimé par l'équipe de modération.",
+                url('profile')
+            );
+        }
+
+        return $success;
     }
 
     /**
@@ -208,6 +242,7 @@ class ModerationService {
 
         $pubId = (int)$report['cible_id'];
         $authorId = (int)($report['cible_auteur_id'] ?? 0);
+        $titre = $report['cible_titre'] ?? 'Votre publication';
 
         // Verrouiller la publication
         $lock = $this->pdo->prepare("
@@ -221,7 +256,7 @@ class ModerationService {
             $this->notificationModel->create(
                 $authorId,
                 'moderation',
-                "🔒 Votre publication \"{$report['cible_titre']}\" a été verrouillée par un administrateur.",
+                "🔒 Votre publication \"{$titre}\" a été verrouillée par un modérateur.",
                 url('salon')
             );
         }
@@ -229,14 +264,166 @@ class ModerationService {
         // Marquer le signalement comme traité
         $stmt = $this->pdo->prepare("
             UPDATE signalements 
-            SET statut = 'traite', traite_par = :admin_id, date_traitement = NOW() 
+            SET statut = 'traite', action_prise = 'avertissement', traite_par = :admin_id, date_traitement = NOW() 
             WHERE id = :id
         ");
-
-        return $stmt->execute([
+        $success = $stmt->execute([
             'admin_id' => $adminId,
             'id'       => $reportId
         ]);
+
+        // Notifier le signaleur
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement concernant la publication \"{$titre}\" a été traité : elle a été verrouillée.",
+                url('profile')
+            );
+        }
+
+        return $success;
+    }
+
+    /**
+     * DÉCISION MODÉRATEUR : Expulser l'utilisateur du salon (zone)
+     *
+     * @param int $reportId ID du signalement
+     * @param int $adminId ID du modérateur
+     * @param string $motif Motif de l'expulsion
+     * @return bool
+     */
+    public function expulserDuSalon(int $reportId, int $adminId, string $motif = ''): bool {
+        if (!$this->pdo || $reportId <= 0) {
+            return false;
+        }
+
+        $report = $this->getReportDetails($reportId);
+        if (!$report || !$this->canActOnReport($reportId, $adminId)) {
+            return false;
+        }
+
+        $targetUserId = (int)($report['cible_auteur_id'] ?? 0);
+        $zoneId = (int)($report['resolved_zone_id'] ?? 0);
+        $zoneNom = !empty($report['zone_nom']) ? $report['zone_nom'] : 'ce salon';
+
+        if ($targetUserId <= 0 || $zoneId <= 0) {
+            return false;
+        }
+
+        // On ne peut pas expulser un administrateur général de la plateforme
+        if (RoleAccess::isAdministrator($this->pdo, $targetUserId)) {
+            return false;
+        }
+
+        // Supprimer l'appartenance à la zone
+        $del = $this->pdo->prepare("
+            DELETE FROM appartenance_zones 
+            WHERE zone_id = :zone_id AND utilisateur_id = :user_id
+        ");
+        $del->execute([
+            'zone_id' => $zoneId,
+            'user_id' => $targetUserId
+        ]);
+
+        // Mettre à jour le signalement
+        $stmt = $this->pdo->prepare("
+            UPDATE signalements 
+            SET statut = 'traite', action_prise = 'expulsion_salon', traite_par = :admin_id, date_traitement = NOW() 
+            WHERE id = :id
+        ");
+        $success = $stmt->execute([
+            'admin_id' => $adminId,
+            'id'       => $reportId
+        ]);
+
+        // Notifier l'utilisateur expulsé
+        $notifMsg = "Vous avez été retiré du salon \"{$zoneNom}\" par l'équipe de modération.";
+        if (!empty($motif)) {
+            $notifMsg .= " Motif : " . $motif;
+        }
+        $this->notificationModel->create(
+            $targetUserId,
+            'moderation',
+            $notifMsg,
+            url('salon')
+        );
+
+        // Notifier le signaleur
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement a été traité : l'utilisateur a été retiré du salon \"{$zoneNom}\".",
+                url('profile')
+            );
+        }
+
+        return $success;
+    }
+
+    /**
+     * DÉCISION MODÉRATEUR : Suspendre le compte de l'utilisateur (RÉSERVÉ AUX ADMINISTRATEURS GÉNÉRAUX)
+     *
+     * @param int $reportId ID du signalement
+     * @param int $adminId ID de l'administrateur exécutant l'action
+     * @param string $motif Motif de la suspension
+     * @return bool
+     */
+    public function suspendreCompte(int $reportId, int $adminId, string $motif = ''): bool {
+        if (!$this->pdo || $reportId <= 0) {
+            return false;
+        }
+
+        // RÈGLE STRICTE : Seul un administrateur général peut suspendre un compte
+        if (!RoleAccess::isAdministrator($this->pdo, $adminId)) {
+            return false;
+        }
+
+        $report = $this->getReportDetails($reportId);
+        if (!$report) {
+            return false;
+        }
+
+        $targetUserId = (int)($report['cible_auteur_id'] ?? 0);
+        if ($targetUserId <= 0) {
+            return false;
+        }
+
+        // On ne peut pas suspendre un autre administrateur
+        if (RoleAccess::isAdministrator($this->pdo, $targetUserId)) {
+            return false;
+        }
+
+        // Désactiver le compte
+        $suspendStmt = $this->pdo->prepare("UPDATE utilisateurs SET est_actif = 0 WHERE id = :id");
+        $suspendStmt->execute(['id' => $targetUserId]);
+
+        // Mettre à jour le signalement
+        $stmt = $this->pdo->prepare("
+            UPDATE signalements 
+            SET statut = 'traite', action_prise = 'suspension_compte', traite_par = :admin_id, date_traitement = NOW() 
+            WHERE id = :id
+        ");
+        $success = $stmt->execute([
+            'admin_id' => $adminId,
+            'id'       => $reportId
+        ]);
+
+        // Notifier le signaleur
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement a été traité : le compte de l'utilisateur a été suspendu par l'administration générale.",
+                url('profile')
+            );
+        }
+
+        return $success;
     }
 
     /**
@@ -252,10 +439,10 @@ class ModerationService {
             return false;
         }
 
-        // 1. Mettre le signalement en rejeté
+        // 1. Mettre le signalement en rejeté avec action_prise = 'aucune'
         $stmt = $this->pdo->prepare("
             UPDATE signalements 
-            SET statut = 'rejete', traite_par = :admin_id, date_traitement = NOW() 
+            SET statut = 'rejete', action_prise = 'aucune', traite_par = :admin_id, date_traitement = NOW() 
             WHERE id = :id
         ");
         $success = $stmt->execute([
@@ -286,6 +473,18 @@ class ModerationService {
             }
         }
 
+        // 3. Notifier l'auteur du signalement du classement sans suite
+        $reporterId = (int)($report['auteur_id'] ?? 0);
+        $titre = $report['cible_titre'] ?? 'votre signalement';
+        if ($reporterId > 0 && $reporterId !== $adminId) {
+            $this->notificationModel->create(
+                $reporterId,
+                'moderation',
+                "Votre signalement concernant \"{$titre}\" a été examiné et classé sans suite par l'équipe de modération.",
+                url('profile')
+            );
+        }
+
         return $success;
     }
 
@@ -303,13 +502,28 @@ class ModerationService {
                 CASE 
                     WHEN s.type_cible = 'publication' THEN (SELECT p.utilisateur_id FROM publications p WHERE p.id = s.cible_id)
                     WHEN s.type_cible = 'commentaire' THEN (SELECT c.utilisateur_id FROM commentaires c WHERE c.id = s.cible_id)
+                    WHEN s.type_cible = 'utilisateur' THEN s.cible_id
                     ELSE NULL
                 END AS cible_auteur_id,
                 CASE 
                     WHEN s.type_cible = 'publication' THEN (SELECT p.titre FROM publications p WHERE p.id = s.cible_id)
-                    ELSE 'Commentaire'
-                END AS cible_titre
+                    WHEN s.type_cible = 'commentaire' THEN 'Commentaire'
+                    WHEN s.type_cible = 'utilisateur' THEN (SELECT CONCAT(u.prenom, ' ', u.nom) FROM utilisateurs u WHERE u.id = s.cible_id)
+                    ELSE 'Contenu'
+                END AS cible_titre,
+                COALESCE(s.zone_id, target_category.zone_id) AS resolved_zone_id,
+                COALESCE(explicit_zone.nom, target_zone.nom) AS zone_nom
             FROM signalements s 
+            LEFT JOIN publications target_publication
+              ON s.type_cible = 'publication' AND target_publication.id = s.cible_id
+            LEFT JOIN commentaires target_comment
+              ON s.type_cible = 'commentaire' AND target_comment.id = s.cible_id
+            LEFT JOIN publications comment_publication
+              ON comment_publication.id = target_comment.publication_id
+            LEFT JOIN categories target_category
+              ON target_category.id = COALESCE(target_publication.categorie_id, comment_publication.categorie_id)
+            LEFT JOIN zones target_zone ON target_zone.id = target_category.zone_id
+            LEFT JOIN zones explicit_zone ON explicit_zone.id = s.zone_id
             WHERE s.id = :id 
             LIMIT 1
         ");

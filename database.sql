@@ -310,15 +310,23 @@ CREATE TABLE publication_tags (
 CREATE TABLE signalements (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     auteur_id        INT UNSIGNED NOT NULL,
-    type_cible       ENUM('publication','commentaire') NOT NULL,
+    type_cible       ENUM('publication','commentaire','utilisateur') NOT NULL,
     cible_id         INT UNSIGNED NOT NULL,
-    motif            TEXT NOT NULL,
+    zone_id          INT UNSIGNED DEFAULT NULL,
+    motif            VARCHAR(100) NOT NULL,
+    detail           TEXT DEFAULT NULL,
     statut           ENUM('en_attente','traite','rejete') NOT NULL DEFAULT 'en_attente',
+    action_prise     ENUM('aucune','avertissement','suppression_contenu','expulsion_salon','suspension_compte') DEFAULT NULL,
     traite_par       INT UNSIGNED DEFAULT NULL,
     date_signalement DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_traitement  DATETIME DEFAULT NULL,
     FOREIGN KEY (auteur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    FOREIGN KEY (traite_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+    FOREIGN KEY (traite_par) REFERENCES utilisateurs(id) ON DELETE SET NULL,
+    FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
+    INDEX idx_signalements_statut (statut),
+    INDEX idx_signalements_zone (zone_id),
+    INDEX idx_signalements_cible (type_cible, cible_id),
+    INDEX idx_signalements_auteur_cible (auteur_id, type_cible, cible_id, statut)
 ) ENGINE=InnoDB;
 
 -- ============================================================

@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Éléments du DOM
             const searchInput = document.getElementById("publicationSearch");
             const searchClearBtn = document.getElementById("searchClearBtn");
-            const defaultPosts = document.querySelector(".epi-main-feed .posts:not(#searchResults)");
+            const defaultPosts = document.getElementById("publicationList");
             const searchResults = document.getElementById("searchResults");
             const postForm = document.getElementById("salonPostForm");
             const attachmentInput = document.getElementById("salonPostAttachments");
@@ -1015,6 +1015,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <button type="button" class="drawer-comment-action-btn drawer-reply-btn" data-reply-author="${c.prenom || ''}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
             <span>Répondre</span>
+          </button>
+          <button type="button" class="drawer-comment-action-btn btn-report-trigger" data-report-type="commentaire" data-report-id="${c.id}" data-report-title="${(c.prenom || '') + ' ' + (c.nom || '')}" title="Signaler ce commentaire" style="margin-left:auto; color:#94a3b8;">
+            <span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">flag</span>
+            <span>Signaler</span>
           </button>
         </div>
       </div>

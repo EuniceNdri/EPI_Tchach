@@ -476,6 +476,16 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
                     <span>Demander comme mentor</span>
                   </button>
                 <?php endif; ?>
+
+                <!-- Bouton Signaler le profil -->
+                <button type="button" class="campus-profile-btn secondary btn-report-trigger" 
+                  data-report-type="utilisateur" 
+                  data-report-id="<?= (int)$user['id'] ?>" 
+                  data-report-title="<?= htmlspecialchars($user['prenom'] . ' ' . $user['nom'], ENT_QUOTES, 'UTF-8') ?>"
+                  title="Signaler ce compte" style="color:#ef4444; border-color:rgba(239, 68, 68, 0.35);">
+                  <span class="material-symbols-outlined" style="font-size:1.1rem; vertical-align:middle; margin-right:4px;">flag</span>
+                  Signaler ce profil
+                </button>
               <?php endif; ?>
             </div>
           </div>
@@ -1128,5 +1138,6 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
       });
     }
   </script>
+  <?php include ROOT_PATH . '/resources/views/desktop/partials/report-modal.php'; ?>
 </body>
 </html>

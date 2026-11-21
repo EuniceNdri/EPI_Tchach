@@ -60,6 +60,26 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       border-color: var(--admin-danger);
       transform: translateY(-1px);
     }
+    .btn-mod-expel {
+      background: rgba(234, 88, 12, 0.12);
+      border: 1px solid rgba(234, 88, 12, 0.35);
+      color: #ea580c;
+    }
+    .btn-mod-expel:hover {
+      background: rgba(234, 88, 12, 0.22);
+      border-color: #ea580c;
+      transform: translateY(-1px);
+    }
+    .btn-mod-suspend {
+      background: rgba(220, 38, 38, 0.12);
+      border: 1px solid rgba(220, 38, 38, 0.35);
+      color: #dc2626;
+    }
+    .btn-mod-suspend:hover {
+      background: rgba(220, 38, 38, 0.22);
+      border-color: #dc2626;
+      transform: translateY(-1px);
+    }
     .btn-mod-reject {
       background: var(--admin-bg);
       border: 1px solid var(--admin-border);
@@ -70,6 +90,27 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       border-color: var(--admin-primary);
       color: var(--admin-primary);
       transform: translateY(-1px);
+    }
+    .mod-filter-tab {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-md, 8px);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--admin-muted);
+      text-decoration: none;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .mod-filter-tab:hover {
+      color: var(--admin-text);
+      background: var(--admin-card);
+    }
+    .mod-filter-tab.is-active {
+      color: var(--admin-primary);
+      background: var(--admin-card);
+      border-color: var(--admin-border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
   </style>
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
@@ -100,18 +141,42 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
       </header>
 
       <div class="admin-content">
-        <!-- Bannière d'info charte (d18) -->
-        <div style="background:var(--admin-card); border:1px solid var(--admin-border); border-left:4px solid var(--admin-primary); border-radius:var(--radius-lg); padding:1.25rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; box-shadow:var(--shadow-card);">
-          <div style="display:flex; align-items:center; gap:0.85rem;">
-            <div style="width:42px; height:42px; border-radius:var(--radius-md); background:var(--admin-primary-container); display:flex; align-items:center; justify-content:center; color:var(--admin-primary); flex-shrink:0;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-            </div>
-            <div>
-              <h3 style="font-size:1.05rem; font-weight:800; color:var(--admin-text); margin:0 0 0.25rem 0;">Directives d'arbitrage & modération académique</h3>
-              <p style="font-size:0.875rem; color:var(--admin-muted); margin:0;">4 décisions disponibles : avertir l'auteur, bloquer la publication, supprimer le contenu (avec motif) ou classer le signalement.</p>
-            </div>
+        <!-- Barre d'outils et Filtres de Modération -->
+        <div style="background:var(--admin-card); border:1px solid var(--admin-border); border-radius:var(--radius-lg); padding:1rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; box-shadow:var(--shadow-card);">
+          <!-- Onglets de Statut -->
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <?php 
+              $currentStatut = $_GET['statut'] ?? 'en_attente'; 
+              $currentZoneId = (int)($_GET['zone_id'] ?? 0);
+            ?>
+            <a href="<?= $base ?>/admin/moderation?statut=en_attente<?= $currentZoneId ? '&zone_id=' . $currentZoneId : '' ?>" class="mod-filter-tab <?= ($currentStatut === 'en_attente' || $currentStatut === '') ? 'is-active' : '' ?>">
+              ⏳ En attente
+            </a>
+            <a href="<?= $base ?>/admin/moderation?statut=traite<?= $currentZoneId ? '&zone_id=' . $currentZoneId : '' ?>" class="mod-filter-tab <?= $currentStatut === 'traite' ? 'is-active' : '' ?>">
+              ✓ Traités
+            </a>
+            <a href="<?= $base ?>/admin/moderation?statut=rejete<?= $currentZoneId ? '&zone_id=' . $currentZoneId : '' ?>" class="mod-filter-tab <?= $currentStatut === 'rejete' ? 'is-active' : '' ?>">
+              ✕ Classés sans suite
+            </a>
+            <a href="<?= $base ?>/admin/moderation?statut=all<?= $currentZoneId ? '&zone_id=' . $currentZoneId : '' ?>" class="mod-filter-tab <?= $currentStatut === 'all' ? 'is-active' : '' ?>">
+              📋 Tous
+            </a>
           </div>
-          <a href="<?= $base ?>/admin/settings" class="btn-table-action">Consulter la Charte →</a>
+
+          <!-- Filtre par Salon -->
+          <?php if (!empty($allZones)): ?>
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <label for="zoneFilterSelect" style="font-size:0.85rem; font-weight:700; color:var(--admin-muted);">Salon :</label>
+              <select id="zoneFilterSelect" onchange="window.location.href=this.value" style="padding:0.45rem 0.85rem; border-radius:var(--radius-md); border:1px solid var(--admin-border); background:var(--admin-bg); color:var(--admin-text); font-size:0.85rem; font-weight:600; font-family:inherit; outline:none;">
+                <option value="<?= $base ?>/admin/moderation?statut=<?= htmlspecialchars($currentStatut) ?>">Tous les salons & filières</option>
+                <?php foreach ($allZones as $az): ?>
+                  <option value="<?= $base ?>/admin/moderation?statut=<?= htmlspecialchars($currentStatut) ?>&zone_id=<?= (int)$az['id'] ?>" <?= $currentZoneId === (int)$az['id'] ? 'selected' : '' ?>>
+                    # <?= htmlspecialchars($az['nom']) ?> (<?= htmlspecialchars($az['type_zone']) ?>)
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          <?php endif; ?>
         </div>
 
         <!-- Liste des Cartes de Signalement -->
@@ -119,11 +184,12 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
           <?php if (empty($reports)): ?>
             <div id="noReportsCard" class="admin-card" style="text-align:center; padding:3rem 1.5rem; color:var(--admin-muted);">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 0.75rem; display:block; opacity:0.6;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-              <h3 style="font-size:1.1rem; font-weight:800; color:var(--admin-dark); margin:0 0 0.5rem 0;">Aucun signalement en attente</h3>
-              <p style="font-size:0.9rem; margin:0;">Aucun contenu ne nécessite actuellement une intervention de modération.</p>
+              <h3 style="font-size:1.1rem; font-weight:800; color:var(--admin-dark); margin:0 0 0.5rem 0;">Aucun signalement trouvé</h3>
+              <p style="font-size:0.9rem; margin:0;">Aucun contenu ne correspond aux critères de filtre sélectionnés.</p>
             </div>
           <?php else: ?>
             <?php foreach ($reports as $r): 
+              $targetType = $r['type_cible'] ?? 'publication';
               $authorName = !empty($r['cible_auteur_nom']) && $r['cible_auteur_nom'] !== 'Inconnu' 
                   ? $r['cible_auteur_nom'] 
                   : (!empty($r['auteur_nom']) ? $r['auteur_nom'] : 'Auteur inconnu');
@@ -131,26 +197,51 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
               if (empty($reporterName)) {
                   $reporterName = 'Membre du forum';
               }
-              $targetType = $r['type_cible'] ?? 'publication';
-              $targetTitle = $r['cible_titre'] ?? ($targetType === 'publication' ? 'Publication' : 'Commentaire');
+              $targetTitle = $r['cible_titre'] ?? ($targetType === 'publication' ? 'Publication' : ($targetType === 'utilisateur' ? 'Profil' : 'Commentaire'));
               $targetContent = $r['cible_contenu'] ?? $r['message_contenu'] ?? 'Contenu non disponible';
+              $reportStatut = $r['statut'] ?? 'en_attente';
+              $actionPrise = $r['action_prise'] ?? null;
+              $zoneNom = $r['zone_nom'] ?? null;
+              $resolvedZoneId = (int)($r['resolved_zone_id'] ?? 0);
             ?>
             <div class="report-card" data-report-id="<?= (int)$r['id'] ?>" data-target-type="<?= htmlspecialchars($targetType) ?>">
               <div class="report-header">
                 <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
                   <span class="report-reason-badge">⚠️ <?= htmlspecialchars($r['raison'] ?? 'Signalement') ?></span>
-                  <!-- Nom de l'utilisateur / auteur du contenu -->
+                  
+                  <!-- Type cible badge -->
+                  <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:0.18rem 0.55rem; border-radius:6px; font-weight:800; text-transform:uppercase;">
+                    <?= htmlspecialchars($targetType === 'utilisateur' ? 'PROFIL MEMBRE' : $targetType) ?>
+                  </span>
+
+                  <!-- Salon contextuel si présent -->
+                  <?php if (!empty($zoneNom)): ?>
+                    <span style="font-size:0.75rem; background:rgba(37, 99, 235, 0.1); color:#2563eb; padding:0.18rem 0.55rem; border-radius:6px; font-weight:700;">
+                      # <?= htmlspecialchars($zoneNom) ?>
+                    </span>
+                  <?php endif; ?>
+
+                  <!-- Auteur ou compte ciblé -->
                   <span style="font-size:0.85rem; font-weight:700; color:var(--admin-primary); display:inline-flex; align-items:center; gap:0.4rem;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Auteur : <?= htmlspecialchars($authorName) ?>
+                    <?= $targetType === 'utilisateur' ? 'Membre :' : 'Auteur :' ?> <?= htmlspecialchars($authorName) ?>
                   </span>
-                  <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:0.15rem 0.5rem; border-radius:4px; font-weight:700; text-transform:uppercase;">
-                    <?= htmlspecialchars($targetType) ?>
-                  </span>
+
+                  <!-- Statut badge si déjà traité -->
+                  <?php if ($reportStatut === 'traite'): ?>
+                    <span style="font-size:0.75rem; background:#dcfce7; color:#166534; padding:0.18rem 0.55rem; border-radius:6px; font-weight:800;">
+                      ✓ TRAITÉ (<?= htmlspecialchars($actionPrise ?? 'action appliquée') ?>)
+                    </span>
+                  <?php elseif ($reportStatut === 'rejete'): ?>
+                    <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:0.18rem 0.55rem; border-radius:6px; font-weight:800;">
+                      ✕ CLASSÉ SANS SUITE
+                    </span>
+                  <?php endif; ?>
                 </div>
                 <span style="font-size:0.8rem; color:var(--admin-muted);"><?= htmlspecialchars($r['created_at'] ?? 'Récemment') ?></span>
               </div>
 
+              <!-- Aperçu du contenu ciblé -->
               <div class="report-content-preview">
                 <?php if (!empty($r['cible_titre']) && $targetType === 'publication'): ?>
                   <div style="font-weight:700; color:var(--admin-dark); margin-bottom:0.35rem; font-size:0.95rem;">
@@ -160,6 +251,13 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
                 <div style="color:#334155; line-height:1.5;">
                   « <?= htmlspecialchars($targetContent) ?> »
                 </div>
+
+                <!-- Détail complémentaire du signaleur si présent -->
+                <?php if (!empty($r['detail'])): ?>
+                  <div style="margin-top:0.65rem; padding:0.6rem 0.85rem; background:#f8fafc; border-left:3px solid #f59e0b; border-radius:6px; font-size:0.825rem; color:#475569;">
+                    <strong>Précision du signaleur :</strong> <?= htmlspecialchars($r['detail']) ?>
+                  </div>
+                <?php endif; ?>
               </div>
 
               <div class="report-footer" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-top:1rem; padding-top:0.85rem; border-top:1px solid #f1f5f9;">
@@ -172,9 +270,15 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
                       <?= (int)$r['total_signalements_cible'] ?> signalements
                     </span>
                   <?php endif; ?>
+                  <?php if ($reportStatut !== 'en_attente' && !empty($r['date_traitement'])): ?>
+                    <span style="color:var(--admin-muted); font-size:0.8rem; margin-left:0.75rem;">
+                      • Traité le <?= htmlspecialchars($r['date_traitement']) ?> <?= !empty($r['moderateur_prenom']) ? 'par ' . htmlspecialchars($r['moderateur_prenom'] . ' ' . $r['moderateur_nom']) : '' ?>
+                    </span>
+                  <?php endif; ?>
                 </div>
 
-                <!-- 4 Actions décisives pour le modérateur -->
+                <!-- Actions de modération (uniquement si en_attente) -->
+                <?php if ($reportStatut === 'en_attente'): ?>
                 <div class="action-buttons" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
                   <!-- Action 1 : avertiAuteur() -->
                   <button type="button" 
@@ -183,47 +287,82 @@ $asset = isset($assetBase) ? $assetBase : (isset($baseUrl) ? $baseUrl . '/public
                           data-action="avertiAuteur"
                           data-author="<?= htmlspecialchars($authorName) ?>"
                           data-title="<?= htmlspecialchars($targetTitle) ?>"
-                          title="avertiAuteur() : Notifie l'auteur et clôture le signalement">
+                          title="Avertir : Notifie l'utilisateur et clôture le signalement">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Avertir l'auteur
+                    Avertir
                   </button>
 
-                  <!-- Action 2 : bloquerPublication() -->
-                  <button type="button" 
-                          class="btn-mod-action btn-mod-lock" 
-                          data-report-id="<?= (int)$r['id'] ?>" 
-                          data-action="bloquerPublication"
-                          data-author="<?= htmlspecialchars($authorName) ?>"
-                          data-title="<?= htmlspecialchars($targetTitle) ?>"
-                          title="bloquerPublication() : Verrouille la publication, notifie l'auteur et clôture le signalement">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Bloquer la publication
-                  </button>
+                  <!-- Action 2 : supprimerContenu() (uniquement pour publication ou commentaire) -->
+                  <?php if ($targetType !== 'utilisateur'): ?>
+                    <button type="button" 
+                            class="btn-mod-action btn-mod-delete" 
+                            data-report-id="<?= (int)$r['id'] ?>" 
+                            data-action="supprimerContenu"
+                            data-author="<?= htmlspecialchars($authorName) ?>"
+                            data-title="<?= htmlspecialchars($targetTitle) ?>"
+                            title="Supprimer : Supprime le contenu de la BD, notifie l'auteur et clôture le signalement">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      Supprimer contenu
+                    </button>
+                  <?php endif; ?>
 
-                  <!-- Action 3 : supprimerContenu() -->
-                  <button type="button" 
-                          class="btn-mod-action btn-mod-delete" 
-                          data-report-id="<?= (int)$r['id'] ?>" 
-                          data-action="supprimerContenu"
-                          data-author="<?= htmlspecialchars($authorName) ?>"
-                          data-title="<?= htmlspecialchars($targetTitle) ?>"
-                          title="supprimerContenu() : Supprime le post en BD, notifie l'auteur du motif et clôture tous les signalements liés">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    Supprimer le contenu
-                  </button>
+                  <!-- Action 3 : bloquerPublication() (uniquement pour publication) -->
+                  <?php if ($targetType === 'publication'): ?>
+                    <button type="button" 
+                            class="btn-mod-action btn-mod-lock" 
+                            data-report-id="<?= (int)$r['id'] ?>" 
+                            data-action="bloquerPublication"
+                            data-author="<?= htmlspecialchars($authorName) ?>"
+                            data-title="<?= htmlspecialchars($targetTitle) ?>"
+                            title="Bloquer : Verrouille la publication et clôture le signalement">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Bloquer publication
+                    </button>
+                  <?php endif; ?>
 
-                  <!-- Action 4 : rejeterSignalement() -->
+                  <!-- Action 4 : expulserDuSalon() (si rattaché à un salon) -->
+                  <?php if ($resolvedZoneId > 0): ?>
+                    <button type="button" 
+                            class="btn-mod-action btn-mod-expel" 
+                            data-report-id="<?= (int)$r['id'] ?>" 
+                            data-action="expulserSalon"
+                            data-author="<?= htmlspecialchars($authorName) ?>"
+                            data-title="<?= htmlspecialchars($targetTitle) ?>"
+                            data-zone-id="<?= $resolvedZoneId ?>"
+                            data-zone-name="<?= htmlspecialchars($zoneNom ?? 'ce salon') ?>"
+                            title="Expulser : Retire l'utilisateur de ce salon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+                      Expulser du salon
+                    </button>
+                  <?php endif; ?>
+
+                  <!-- Action 5 : suspendreCompte() (STRICTEMENT ADMINISTRATEURS GÉNÉRAUX) -->
+                  <?php if (!empty($showAdminLinks)): ?>
+                    <button type="button" 
+                            class="btn-mod-action btn-mod-suspend" 
+                            data-report-id="<?= (int)$r['id'] ?>" 
+                            data-action="suspendreCompte"
+                            data-author="<?= htmlspecialchars($authorName) ?>"
+                            data-title="<?= htmlspecialchars($targetTitle) ?>"
+                            title="Suspendre le compte : Désactive le compte utilisateur sur la plateforme">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                      Suspendre compte
+                    </button>
+                  <?php endif; ?>
+
+                  <!-- Action 6 : rejeterSignalement() -->
                   <button type="button" 
                           class="btn-mod-action btn-mod-reject" 
                           data-report-id="<?= (int)$r['id'] ?>" 
                           data-action="rejeterSignalement"
                           data-author="<?= htmlspecialchars($authorName) ?>"
                           data-title="<?= htmlspecialchars($targetTitle) ?>"
-                          title="rejeterSignalement() : Statut 'rejeté' — Si 0 signalement restant: est_signale = 0">
+                          title="Classer sans suite : Le contenu ou comportement est jugé conforme">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-                    Rejeter le signalement
+                    Classer sans suite
                   </button>
                 </div>
+                <?php endif; ?>
               </div>
             </div>
             <?php endforeach; ?>

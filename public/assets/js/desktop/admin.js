@@ -466,6 +466,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 btnSubmitMod.style.background = "#0f172a";
                 btnSubmitMod.style.color = "#ffffff";
                 btnSubmitMod.textContent = "Rejeter le signalement";
+            } else if (action === "expulserSalon") {
+                const zoneName = this.getAttribute("data-zone-name") || "ce salon";
+                modModalTitle.textContent = `Expulser du salon ${zoneName}`;
+                modModalSubtitle.textContent = `Membre : ${author}`;
+                modModalIcon.style.background = "#ffedd5";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>`;
+                modMessageGroup.style.display = "block";
+                modMessageLabel.textContent = "Motif d'expulsion communiqué au membre";
+                modMessageInput.value = "Non-respect répété des règles de courtoisie et de déontologie dans ce salon.";
+                modMessageHint.textContent = "L'utilisateur sera immédiatement retiré des membres de ce salon.";
+                modConfirmNotice.style.display = "none";
+                btnSubmitMod.style.background = "#ea580c";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Expulser du salon";
+            } else if (action === "suspendreCompte") {
+                modModalTitle.textContent = "Suspendre définitivement le compte utilisateur";
+                modModalSubtitle.textContent = `Compte ciblé : ${author}`;
+                modModalIcon.style.background = "#fee2e2";
+                modModalIcon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
+                modMessageGroup.style.display = "block";
+                modMessageLabel.textContent = "Motif officiel de suspension administrative";
+                modMessageInput.value = "Infraction grave et répétée à la charte déontologique de l'établissement.";
+                modMessageHint.textContent = "Cette action désactivera le compte (est_actif = 0) et empêchera toute reconnexion.";
+                modConfirmNotice.style.display = "block";
+                modConfirmNotice.innerHTML = `<strong style="color:#dc2626;">⚠️ ACTION STRICTEMENT ADMINISTRATEUR :</strong> Le compte sera immédiatement désactivé sur l'ensemble de la plateforme.`;
+                btnSubmitMod.style.background = "#dc2626";
+                btnSubmitMod.style.color = "#ffffff";
+                btnSubmitMod.textContent = "Confirmer la suspension";
             }
 
             modModal.style.display = "flex";

@@ -86,10 +86,24 @@ class ModerationController {
         global $baseUrl, $base, $assetBase, $asset;
 
         $statut = $_GET['statut'] ?? null;
+        if ($statut === '' || $statut === 'all') {
+            $statut = null;
+        }
+
+        $filterZoneId = !empty($_GET['zone_id']) ? (int)$_GET['zone_id'] : null;
+
         $reports = $this->signalementModel->getAllReports(
             $statut,
-            $this->isAdministrator ? null : $this->classDelegateZones
+            $this->isAdministrator ? null : $this->classDelegateZones,
+            $filterZoneId
         );
+
+        $allZones = [];
+        if ($this->pdo instanceof PDO) {
+            $zStmt = $this->pdo->query("SELECT id, nom, type_zone FROM zones WHERE est_active = 1 ORDER BY type_zone, nom");
+            $allZones = $zStmt ? $zStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        }
+
         $activeAdminPage = 'moderation';
         $showAdminLinks = $this->isAdministrator;
         $showModerationLink = true;
@@ -100,7 +114,7 @@ class ModerationController {
 
     /**
      * Prise de décision sur un signalement
-     * Actions supportées : 'avertir', 'supprimer', 'bloquer', 'rejeter'
+     * Actions supportées : 'avertir', 'supprimer', 'bloquer', 'expulser', 'suspendre', 'rejeter'
      */
     public function decision(): void {
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
@@ -161,9 +175,9 @@ class ModerationController {
             case 'avertirAuteur':
                 $motifAvertissement = !empty($message) 
                     ? $message 
-                    : "Votre publication enfreint les règles de courtoisie et de bienséance du forum.";
+                    : "Votre contenu enfreint les règles de courtoisie et de bienséance du forum.";
                 $success = $this->moderationService->avertirAuteur($reportId, $adminId, $motifAvertissement);
-                $respMsg = "Un avertissement a été envoyé à l'auteur et le signalement a été clôturé.";
+                $respMsg = "Un avertissement a été envoyé et le signalement a été clôturé.";
                 break;
 
             case 'supprimer':
@@ -171,7 +185,7 @@ class ModerationController {
             case 'supprimerContenu':
                 $motifSuppression = !empty($message) ? $message : "Non-respect de la charte de l'école.";
                 $success = $this->moderationService->supprimerContenu($reportId, $adminId, $motifSuppression);
-                $respMsg = "La publication a été supprimée définitivement en base de données, l'auteur a été notifié du motif et tous les signalements liés ont été clôturés.";
+                $respMsg = "Le contenu a été supprimé définitivement, l'auteur a été notifié et le signalement a été clôturé.";
                 break;
 
             case 'bloquer':
@@ -181,11 +195,36 @@ class ModerationController {
                 $respMsg = "La publication a été verrouillée (fermée aux réponses), l'auteur a été notifié et le signalement a été clôturé.";
                 break;
 
+            case 'expulser':
+            case 'expulser_salon':
+            case 'expulserSalon':
+                $motifExpulsion = !empty($message) ? $message : "Infractions répétées dans ce salon.";
+                $success = $this->moderationService->expulserDuSalon($reportId, $adminId, $motifExpulsion);
+                $respMsg = $success 
+                    ? "L'utilisateur a été retiré de ce salon avec succès."
+                    : "Impossible d'expulser l'utilisateur (utilisateur introuvable ou administrateur).";
+                break;
+
+            case 'suspendre':
+            case 'suspendre_compte':
+            case 'suspendreCompte':
+                if (!$this->isAdministrator) {
+                    $success = false;
+                    $respMsg = "Seul un administrateur général peut suspendre un compte.";
+                    break;
+                }
+                $motifSuspension = !empty($message) ? $message : "Suspension administrative suite à un signalement grave.";
+                $success = $this->moderationService->suspendreCompte($reportId, $adminId, $motifSuspension);
+                $respMsg = $success
+                    ? "Le compte utilisateur a été suspendu par l'administration générale."
+                    : "Impossible de suspendre le compte (administrateur ou utilisateur introuvable).";
+                break;
+
             case 'rejeter':
             case 'classer':
             case 'rejeterSignalement':
                 $success = $this->moderationService->rejeterSignalement($reportId, $adminId);
-                $respMsg = "Le signalement a été marqué comme rejeté (publication jugée conforme).";
+                $respMsg = "Le signalement a été classé sans suite (contenu jugé conforme).";
                 break;
 
             default:
@@ -207,7 +246,7 @@ class ModerationController {
         if ($success) {
             $_SESSION['flash_success'] = $respMsg;
         } else {
-            $_SESSION['flash_error'] = "Erreur lors du traitement de l'action de modération.";
+            $_SESSION['flash_error'] = !empty($respMsg) ? $respMsg : "Erreur lors du traitement de l'action de modération.";
         }
 
         header('Location: ' . url('admin/moderation'));

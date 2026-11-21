@@ -879,6 +879,18 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                         <span class="material-symbols-outlined" style="<?= $isSaved ? 'font-variation-settings:\'FILL\' 1;' : '' ?>">bookmark</span>
                       </button>
                     </form>
+
+                    <!-- Signaler la publication (si ce n'est pas la sienne) -->
+                    <?php if ((int)$post['utilisateur_id'] !== (int)$currentUserId): ?>
+                      <button type="button" class="campus-icon-action-btn btn-report-trigger" 
+                        data-report-type="publication" 
+                        data-report-id="<?= $postId ?>" 
+                        data-report-zone="<?= (int)($post['zone_id'] ?? $currentZone['id'] ?? 0) ?>" 
+                        data-report-title="<?= htmlspecialchars($post['titre'], ENT_QUOTES, 'UTF-8') ?>"
+                        title="Signaler cette publication" aria-label="Signaler">
+                        <span class="material-symbols-outlined">flag</span>
+                      </button>
+                    <?php endif; ?>
                   </div>
                 </div>
 
@@ -1132,6 +1144,8 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
       <div class="story-viewers-list" id="storyViewersList" hidden></div>
     </div>
   </dialog>
+
+  <?php include ROOT_PATH . '/resources/views/desktop/partials/report-modal.php'; ?>
 
   <script src="<?= $asset ?>/js/desktop/stories.js?v=<?= time() ?>" defer></script>
   <script src="<?= $asset ?>/js/desktop/salon.js?v=<?= time() ?>"></script>

@@ -70,12 +70,14 @@ class SignalementController {
         }
 
         $userId = (int)$_SESSION['user_id'];
-        $cibleId = (int)($input['cible_id'] ?? $input['publication_id'] ?? 0);
+        $cibleId = (int)($input['cible_id'] ?? $input['publication_id'] ?? $input['user_id'] ?? 0);
         $typeCible = trim($input['type_cible'] ?? 'publication');
         $motif = trim($input['motif'] ?? '');
+        $detail = trim($input['detail'] ?? '');
+        $zoneId = !empty($input['zone_id']) ? (int)$input['zone_id'] : null;
 
         if ($cibleId <= 0 || empty($motif)) {
-            $msg = "Veuillez sélectionner un contenu et spécifier le motif du signalement.";
+            $msg = "Veuillez sélectionner un élément et spécifier le motif du signalement.";
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8', true, 400);
                 echo json_encode(['success' => false, 'message' => $msg]);
@@ -86,8 +88,15 @@ class SignalementController {
             exit;
         }
 
-        // 3. Exécution du signalement avec contrôle du seuil automatique
-        $result = $this->signalementModel->signaler($userId, $typeCible, $cibleId, $motif);
+        // 3. Exécution du signalement avec contrôle du seuil automatique et règles anti-abus
+        $result = $this->signalementModel->signaler(
+            $userId, 
+            $typeCible, 
+            $cibleId, 
+            $motif, 
+            $detail ?: null, 
+            $zoneId
+        );
 
         if ($isAjax) {
             header('Content-Type: application/json; charset=UTF-8', true, $result['success'] ? 200 : 400);

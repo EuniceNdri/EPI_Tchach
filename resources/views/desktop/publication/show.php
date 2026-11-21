@@ -261,6 +261,18 @@ $roleLabels = [
               <span><?= !empty($publication['saved_id']) ? 'Sauvegardé' : 'Sauvegarder' ?></span>
             </button>
           </form>
+
+          <?php if ((int)($publication['utilisateur_id'] ?? 0) !== (int)($currentUserId ?? 0)): ?>
+            <button type="button" class="epi-pill-btn btn-report-trigger" 
+              data-report-type="publication" 
+              data-report-id="<?= (int)$publication['id'] ?>" 
+              data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
+              data-report-title="<?= htmlspecialchars($publication['titre'] ?? 'Publication', ENT_QUOTES, 'UTF-8') ?>"
+              aria-label="Signaler" title="Signaler cette publication" style="color:#ef4444;">
+              <span class="material-symbols-outlined" style="font-size:16px;">flag</span>
+              <span>Signaler</span>
+            </button>
+          <?php endif; ?>
         </div>
       </article>
 
@@ -329,6 +341,17 @@ $roleLabels = [
                     <?php if (!(bool)$publication['commentaires_fermes']): ?>
                       <button type="button" class="epi-pill-btn publication-reply-toggle" aria-expanded="false">↩ Répondre</button>
                     <?php endif; ?>
+                    <?php if ((int)($comment['utilisateur_id'] ?? 0) !== (int)($currentUserId ?? 0)): ?>
+                      <button type="button" class="epi-pill-btn btn-report-trigger" 
+                        data-report-type="commentaire" 
+                        data-report-id="<?= (int)$comment['id'] ?>" 
+                        data-report-zone="<?= (int)($publication['zone_id'] ?? 0) ?>" 
+                        data-report-title="<?= htmlspecialchars($commentName, ENT_QUOTES, 'UTF-8') ?>"
+                        aria-label="Signaler" title="Signaler ce commentaire" style="margin-left:auto; color:#94a3b8;">
+                        <span class="material-symbols-outlined" style="font-size:14px;">flag</span>
+                        <span>Signaler</span>
+                      </button>
+                    <?php endif; ?>
                   </div>
                   <?php if (!(bool)$publication['commentaires_fermes']): ?>
                     <form class="discussion-comment-form publication-reply-form" action="<?= htmlspecialchars($base) ?>/comment/create" method="post" hidden>
@@ -363,6 +386,7 @@ $roleLabels = [
       </div>
     </aside>
   </main>
+  <?php include ROOT_PATH . '/resources/views/desktop/partials/report-modal.php'; ?>
   <script src="<?= htmlspecialchars($asset) ?>/js/desktop/salon.js?v=<?= (int)filemtime(ROOT_PATH . '/public/assets/js/desktop/salon.js') ?>"></script>
   <script src="<?= htmlspecialchars($asset) ?>/js/feedback.js" defer></script>
 </body>
