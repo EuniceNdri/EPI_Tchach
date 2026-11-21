@@ -390,6 +390,14 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
 
+          // Mettre à jour l'année d'études
+          if (data.user.annee) {
+            const anneeLabel = Number(data.user.annee) === 1 ? "1ère année" : `${data.user.annee}ème année`;
+            document.querySelectorAll(".profile-dynamic-annee").forEach((el) => {
+              el.textContent = anneeLabel;
+            });
+          }
+
           // 2. Fermer la modale
           window.closeProfileEditModal();
 

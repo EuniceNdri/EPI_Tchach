@@ -504,6 +504,7 @@ class ProfileController {
                     'biographie' => $biographie,
                     'filiere' => $filiere ?? ($currentUser['filiere'] ?? ''),
                     'modules' => $modules ?? ($currentUser['modules_enseignes'] ?? ''),
+                    'annee' => $annee ?? ($currentUser['annee'] ?? null),
                     'initials' => $initials,
                     'avatar_url' => !empty($_SESSION['user_avatar'])
                         ? url('public/' . ltrim((string)$_SESSION['user_avatar'], '/'))

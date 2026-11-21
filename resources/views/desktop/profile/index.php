@@ -53,6 +53,7 @@ $sessionRole = $user['role'] ?? 'etudiant';
 $sessionBio = $user['biographie'] ?? '';
 $sessionFiliere = $user['filiere'] ?? '';
 $sessionModules = $user['modules_enseignes'] ?? '';
+$sessionAnnee = (int)($user['annee'] ?? $_SESSION['user_annee'] ?? 0);
 $initials = strtoupper(mb_substr($sessionPrenom, 0, 1) . mb_substr($sessionNom, 0, 1));
 
 $loggedInUser = is_array($loggedInUser ?? null) ? $loggedInUser : [];
@@ -336,6 +337,10 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
                   <span class="campus-profile-handle">@<?= htmlspecialchars($userHandle) ?></span>
                   <span>•</span>
                   <span class="profile-dynamic-filiere"><?= htmlspecialchars($sessionFiliere ?: 'Filière non spécifiée') ?></span>
+                  <?php if ($sessionAnnee > 0): ?>
+                    <span>•</span>
+                    <span class="profile-dynamic-annee" style="color:#0d9488; font-weight:700;"><?= $sessionAnnee === 1 ? '1ère année' : $sessionAnnee . 'ème année' ?></span>
+                  <?php endif; ?>
                   <span class="campus-cas-pill">
                     <span class="campus-cas-dot"></span>
                     <span>CAS Vérifié</span>
@@ -976,14 +981,25 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
             <div class="form-group-profile">
               <label for="editFiliere">Filière d'études</label>
-              <input type="text" id="editFiliere" name="filiere" class="form-control" value="<?= htmlspecialchars($sessionFiliere) ?>" placeholder="Ex: Informatique, BTP, Mines..." />
+              <input type="text" id="editFiliere" name="filiere" class="form-control" value="<?= htmlspecialchars($sessionFiliere) ?>" placeholder="Ex: Informatique, BTP..." />
             </div>
             <div class="form-group-profile">
-              <label for="editModules">Matières clés (séparées par virgules)</label>
-              <input type="text" id="editModules" name="modules_enseignes" class="form-control" value="<?= htmlspecialchars($sessionModules) ?>" placeholder="Ex: Algorithmique, BDD, Réseaux..." />
+              <label for="editAnnee">Année d'études</label>
+              <select id="editAnnee" name="annee" class="form-control">
+                <option value="">Non spécifiée</option>
+                <option value="1" <?= $sessionAnnee === 1 ? 'selected' : '' ?>>1ère année (Mentoré)</option>
+                <option value="2" <?= $sessionAnnee === 2 ? 'selected' : '' ?>>2ème année (Mentor)</option>
+                <option value="3" <?= $sessionAnnee === 3 ? 'selected' : '' ?>>3ème année (Mentor)</option>
+                <option value="4" <?= $sessionAnnee === 4 ? 'selected' : '' ?>>4ème année (Mentor)</option>
+                <option value="5" <?= $sessionAnnee === 5 ? 'selected' : '' ?>>5ème année (Mentor)</option>
+              </select>
+            </div>
+            <div class="form-group-profile">
+              <label for="editModules">Matières clés</label>
+              <input type="text" id="editModules" name="modules_enseignes" class="form-control" value="<?= htmlspecialchars($sessionModules) ?>" placeholder="Ex: Algorithmique, BDD..." />
             </div>
           </div>
 
