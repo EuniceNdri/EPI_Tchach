@@ -962,4 +962,192 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchClearBtn) searchClearBtn.hidden = false;
     performSearch();
   }
+
+  // ============================================================
+  // VOLET LATÉRAL DE DISCUSSION & COMMENTAIRES (Side Drawer)
+  // Permet de lire et poster des commentaires tout en défilant le salon
+  // ============================================================
+  const commentsDrawer = document.getElementById("commentsSideDrawer");
+  const closeDrawerBtn = document.getElementById("closeCommentsDrawerBtn");
+  const drawerPostTitle = document.getElementById("drawerPostTitle");
+  const drawerPostContent = document.getElementById("drawerPostContent");
+  const drawerCommentsCount = document.getElementById("drawerCommentsCount");
+  const drawerCommentsList = document.getElementById("drawerCommentsList");
+  const drawerPublicationIdInput = document.getElementById("drawerPublicationId");
+  const drawerFullViewLink = document.getElementById("drawerFullViewLink");
+  const drawerCommentForm = document.getElementById("drawerCommentForm");
+  const drawerCommentInput = document.getElementById("drawerCommentInput");
+
+  const openDiscussionDrawer = async (publicationId) => {
+    if (!commentsDrawer) return;
+    commentsDrawer.hidden = false;
+    commentsDrawer.classList.add("is-open");
+    drawerPublicationIdInput.value = publicationId;
+    drawerFullViewLink.href = `${baseUrl}/publication/${publicationId}`;
+    drawerPostTitle.textContent = "Chargement de la discussion...";
+    drawerPostContent.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#64748b;">⏳ Récupération de la publication et des réponses...</div>`;
+    drawerCommentsList.innerHTML = "";
+    drawerCommentsCount.textContent = "Chargement...";
+
+    try {
+      const response = await fetch(`${baseUrl}/publication/discussion?id=${publicationId}`, {
+        headers: { "Accept": "application/json" }
+      });
+      const data = await response.json();
+      if (!data.success || !data.publication) {
+        throw new Error(data.message || "Impossible de charger la discussion.");
+      }
+
+      const pub = data.publication;
+      drawerPostTitle.textContent = pub.titre || "Publication";
+
+      const authorInitial = (pub.prenom || "E").charAt(0).toUpperCase();
+      const authorAvatar = pub.author_avatar ? `<img src="${baseUrl}/public/${pub.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${authorInitial}</span>`;
+
+      let attachmentsHtml = "";
+      if (Array.isArray(data.attachments) && data.attachments.length > 0) {
+        attachmentsHtml = `<div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.75rem;">` +
+          data.attachments.map(att => `<a href="${att.download_url}" class="campus-doc-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem;" target="_blank">📎 ${att.name}</a>`).join("") +
+          `</div>`;
+      }
+
+      drawerPostContent.innerHTML = `
+        <div class="drawer-post-author-row">
+          <div class="drawer-mini-avatar">${authorAvatar}</div>
+          <div>
+            <div class="drawer-author-name">${pub.prenom || ''} ${pub.nom || ''}</div>
+            <div class="drawer-author-meta">${pub.category_name || pub.zone_name || 'Salon'} · ${pub.date_creation || ''}</div>
+          </div>
+        </div>
+        <div style="font-weight:700; margin-bottom:0.4rem; font-size:0.95rem;">${pub.titre || ''}</div>
+        <div>${(pub.contenu || '').replace(/\n/g, '<br>')}</div>
+        ${attachmentsHtml}
+      `;
+
+      const comments = Array.isArray(data.comments) ? data.comments : [];
+      drawerCommentsCount.textContent = `${comments.length} commentaire${comments.length > 1 ? 's' : ''}`;
+
+      if (comments.length === 0) {
+        drawerCommentsList.innerHTML = `<div style="text-align:center; padding:2rem 1rem; color:var(--community-muted); font-size:0.85rem;">Aucun commentaire pour le moment. Soyez le premier à répondre !</div>`;
+      } else {
+        drawerCommentsList.innerHTML = comments.map(c => {
+          const cInit = (c.prenom || 'M').charAt(0).toUpperCase();
+          const cAvatar = c.author_avatar ? `<img src="${baseUrl}/public/${c.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${cInit}</span>`;
+          return `
+            <div class="drawer-comment-card" data-comment-id="${c.id}">
+              <div class="drawer-comment-header">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <div class="drawer-mini-avatar" style="width:26px; height:26px; font-size:0.75rem;">${cAvatar}</div>
+                  <span class="drawer-comment-author">${c.prenom || ''} ${c.nom || ''}</span>
+                </div>
+                <span class="drawer-comment-time">${c.date_creation || ''}</span>
+              </div>
+              <p class="drawer-comment-text">${(c.contenu || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            </div>
+          `;
+        }).join("");
+      }
+
+    } catch (err) {
+      drawerPostContent.innerHTML = `<div style="color:#ef4444; padding:1rem;">⚠️ ${err.message}</div>`;
+      drawerCommentsCount.textContent = "0 commentaire";
+    }
+  };
+
+  const closeDiscussionDrawer = () => {
+    if (!commentsDrawer) return;
+    commentsDrawer.classList.remove("is-open");
+    setTimeout(() => {
+      if (!commentsDrawer.classList.contains("is-open")) {
+        commentsDrawer.hidden = true;
+      }
+    }, 350);
+  };
+
+  if (closeDrawerBtn) {
+    closeDrawerBtn.addEventListener("click", closeDiscussionDrawer);
+  }
+
+  // Intercepter les clics sur les boutons de discussion/commentaires du salon
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".post-discussion-button, [data-open-drawer-discussion]");
+    if (btn) {
+      const href = btn.getAttribute("href") || "";
+      const match = href.match(/publication\/([0-9]+)/);
+      const pubId = btn.dataset.openDrawerDiscussion || (match ? match[1] : null);
+      if (pubId) {
+        e.preventDefault();
+        openDiscussionDrawer(pubId);
+      }
+    }
+  });
+
+  // Soumission AJAX du formulaire de commentaire dans le drawer
+  if (drawerCommentForm) {
+    drawerCommentForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const content = drawerCommentInput.value.trim();
+      const publicationId = drawerPublicationIdInput.value;
+      if (!content || !publicationId) return;
+
+      const submitBtn = document.getElementById("drawerSubmitCommentBtn");
+      if (submitBtn) submitBtn.disabled = true;
+
+      const formData = new FormData(drawerCommentForm);
+      formData.set("ajax", "1");
+
+      try {
+        const response = await fetch(drawerCommentForm.action, {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          body: formData
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Erreur lors de l'envoi du commentaire.");
+        }
+
+        drawerCommentInput.value = "";
+
+        // Ajouter le nouveau commentaire à la liste
+        const data = result.data || {};
+        const authorName = `${data.prenom || ''} ${data.nom || ''}`.trim() || "Vous";
+        const authorInit = authorName.charAt(0).toUpperCase();
+        const authorAvatar = data.author_avatar ? `<img src="${baseUrl}/public/${data.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${authorInit}</span>`;
+
+        const newCommentCard = document.createElement("div");
+        newCommentCard.className = "drawer-comment-card";
+        newCommentCard.innerHTML = `
+          <div class="drawer-comment-header">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <div class="drawer-mini-avatar" style="width:26px; height:26px; font-size:0.75rem;">${authorAvatar}</div>
+              <span class="drawer-comment-author">${authorName}</span>
+            </div>
+            <span class="drawer-comment-time">À l'instant</span>
+          </div>
+          <p class="drawer-comment-text">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        `;
+
+        if (drawerCommentsList.children.length === 1 && drawerCommentsList.children[0].textContent.includes("Aucun commentaire")) {
+          drawerCommentsList.innerHTML = "";
+        }
+
+        drawerCommentsList.appendChild(newCommentCard);
+        newCommentCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        const currentCount = drawerCommentsList.querySelectorAll(".drawer-comment-card").length;
+        drawerCommentsCount.textContent = `${currentCount} commentaire${currentCount > 1 ? 's' : ''}`;
+
+        const cardCommentCount = document.querySelector(`article[data-live-publication-id="${publicationId}"] [data-live-comment-count]`);
+        if (cardCommentCount) {
+          cardCommentCount.textContent = currentCount;
+        }
+
+      } catch (err) {
+        alert(err.message || "Erreur lors de l'envoi.");
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
 });

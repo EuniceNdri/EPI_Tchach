@@ -45,6 +45,8 @@ if (!isset($_SESSION) || !is_array($_SESSION)) {
 }
 $userId = (int)($_SESSION['user_id'] ?? 0);
 $userRole = strtolower(trim((string)($_SESSION['user_role'] ?? 'etudiant')));
+$storyGroups = is_array($storyGroups ?? null) ? $storyGroups : [];
+$storyCsrfToken = is_string($storyCsrfToken ?? null) ? $storyCsrfToken : '';
 
 // Nombre de messages non lus
 $unreadMessagesCount = 0;
@@ -112,6 +114,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
   
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/community-shell.css" />
   <link rel="stylesheet" href="<?= $asset ?>/css/desktop/salon.css?v=<?= time() ?>" />
+  <link rel="stylesheet" href="<?= $asset ?>/css/desktop/stories.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="<?= $asset ?>/css/feedback.css" />
   <?php include ROOT_PATH . '/resources/views/partials/theme-head.php'; ?>
 </head>
@@ -387,6 +390,40 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
           </span>
         </div>
       </div>
+
+      <section class="story-rail" aria-label="Stories du campus" data-story-csrf="<?= htmlspecialchars($storyCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+        <div class="story-rail-heading">
+          <div>
+            <h2>Stories</h2>
+            <p>Photos et messages visibles pendant 24 h</p>
+          </div>
+          <button type="button" class="story-create-button" id="openStoryComposer">
+            <span class="material-symbols-outlined">add</span>
+            <span>Ajouter</span>
+          </button>
+        </div>
+        <div class="story-bubbles">
+          <?php foreach ($storyGroups as $group):
+            $groupJson = json_encode($group, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            $initials = strtoupper(mb_substr((string)($group['name'] ?? 'E'), 0, 1));
+            $avatarPath = !empty($group['avatar_url']) ? url('public/' . ltrim((string)$group['avatar_url'], '/')) : '';
+          ?>
+            <button type="button" class="story-bubble<?= !empty($group['is_owner']) ? ' is-owner' : '' ?>" data-story-group="<?= htmlspecialchars((string)$groupJson, ENT_QUOTES, 'UTF-8') ?>">
+              <span class="story-avatar<?= empty($group['has_unseen']) && empty($group['is_owner']) ? ' is-viewed' : '' ?>">
+                <?php if ($avatarPath !== ''): ?>
+                  <img src="<?= htmlspecialchars($avatarPath, ENT_QUOTES, 'UTF-8') ?>" alt="" />
+                <?php else: ?>
+                  <span><?= htmlspecialchars($initials, ENT_QUOTES, 'UTF-8') ?></span>
+                <?php endif; ?>
+              </span>
+              <span class="story-bubble-name"><?= !empty($group['is_owner']) ? 'Votre story' : htmlspecialchars((string)$group['name'], ENT_QUOTES, 'UTF-8') ?></span>
+            </button>
+          <?php endforeach; ?>
+          <?php if (!$storyGroups): ?>
+            <p class="story-empty">Aucune story pour le moment. Partagez la première !</p>
+          <?php endif; ?>
+        </div>
+      </section>
 
       <!-- Grille des 3 Colonnes -->
       <div class="campus-3col-grid">
@@ -998,8 +1035,95 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
     </main>
   </div>
 
+  <!-- ============================================================
+       VOLET LATÉRAL DE DISCUSSION & COMMENTAIRES (Interactive Drawer)
+       S'ouvre à gauche ou en volet flottant, permettant de commenter
+       tout en continuant de défiler sur le flux du salon
+       ============================================================ -->
+  <aside id="commentsSideDrawer" class="comments-side-drawer" aria-hidden="true" hidden>
+    <div class="drawer-header">
+      <div class="drawer-header-info">
+        <span class="drawer-badge">Discussion en direct</span>
+        <h3 id="drawerPostTitle" class="drawer-title">Chargement de la publication...</h3>
+      </div>
+      <div class="drawer-header-actions">
+        <a id="drawerFullViewLink" href="#" class="drawer-action-btn" title="Ouvrir la publication en pleine page" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <button type="button" id="closeCommentsDrawerBtn" class="drawer-close-btn" aria-label="Fermer le volet de discussion">&times;</button>
+      </div>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Publication principale résumée -->
+      <div id="drawerPostContent" class="drawer-post-summary"></div>
+
+      <!-- Compteur et barre des commentaires -->
+      <div class="drawer-comments-heading">
+        <span id="drawerCommentsCount">0 commentaire</span>
+      </div>
+
+      <!-- Liste dynamique des commentaires -->
+      <div id="drawerCommentsList" class="drawer-comments-list">
+        <!-- Rempli en direct via AJAX -->
+      </div>
+    </div>
+
+    <!-- Formulaire d'envoi de commentaire immédiat -->
+    <div class="drawer-footer">
+      <form id="drawerCommentForm" action="<?= $base ?>/comment/create" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="ajax" value="1">
+        <input type="hidden" name="publication_id" id="drawerPublicationId" value="">
+        <div class="drawer-input-row">
+          <textarea name="contenu" id="drawerCommentInput" placeholder="Écrire un commentaire..." rows="2" required></textarea>
+          <button type="submit" id="drawerSubmitCommentBtn" class="drawer-send-btn" title="Envoyer le commentaire">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </aside>
+
   <?php include ROOT_PATH . '/resources/views/desktop/partials/post-composer-modal.php'; ?>
 
+  <dialog class="story-composer-dialog" id="storyComposerDialog" aria-labelledby="storyComposerTitle">
+    <form action="<?= $base ?>/stories/create" method="post" enctype="multipart/form-data" class="story-composer-form">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($storyCsrfToken, ENT_QUOTES, 'UTF-8') ?>" />
+      <button type="button" class="story-dialog-close" data-close-story-dialog aria-label="Fermer">×</button>
+      <h2 id="storyComposerTitle">Créer une story</h2>
+      <p>Elle sera supprimée automatiquement après 24 heures.</p>
+      <label for="storyText">Votre message <span>(300 caractères maximum)</span></label>
+      <textarea id="storyText" name="texte" maxlength="300" rows="4" placeholder="Quoi de neuf sur le campus ?"></textarea>
+      <label for="storyImage">Ajouter une image <span>(JPG, PNG ou WEBP, 10 Mo max.)</span></label>
+      <input id="storyImage" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
+      <label for="storyVisibility">Qui peut voir votre story ?</label>
+      <select id="storyVisibility" name="visibilite">
+        <option value="amis">Mes amis</option>
+        <option value="public">Tout le monde</option>
+      </select>
+      <button type="submit" class="story-submit-button">Publier la story</button>
+    </form>
+  </dialog>
+
+  <dialog class="story-viewer-dialog" id="storyViewerDialog" aria-label="Visionneuse de stories">
+    <div class="story-viewer">
+      <div class="story-progress" id="storyProgress"></div>
+      <div class="story-viewer-header">
+        <div class="story-viewer-author" id="storyViewerAuthor"></div>
+        <button type="button" data-close-story-dialog aria-label="Fermer la story">×</button>
+      </div>
+      <div class="story-viewer-content" id="storyViewerContent"></div>
+      <button type="button" class="story-viewer-nav previous" id="storyPrevious" aria-label="Story précédente">‹</button>
+      <button type="button" class="story-viewer-nav next" id="storyNext" aria-label="Story suivante">›</button>
+      <div class="story-viewer-footer">
+        <button type="button" class="story-view-count" id="storyViewersButton" hidden></button>
+        <button type="button" class="story-delete-button" id="storyDeleteButton" hidden>Supprimer</button>
+      </div>
+      <div class="story-viewers-list" id="storyViewersList" hidden></div>
+    </div>
+  </dialog>
+
+  <script src="<?= $asset ?>/js/desktop/stories.js?v=<?= time() ?>" defer></script>
   <script src="<?= $asset ?>/js/desktop/salon.js?v=<?= time() ?>"></script>
   <script src="<?= $asset ?>/js/feedback.js" defer></script>
 </body>

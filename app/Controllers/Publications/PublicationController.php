@@ -426,8 +426,19 @@ class PublicationController {
             $this->salonModel->synchronizePublicationSolution($publicationId);
             $this->pdo->commit();
 
+            $authorStatement = $this->pdo->prepare('SELECT prenom, nom, role, avatar_url FROM utilisateurs WHERE id = ? LIMIT 1');
+            $authorStatement->execute([$userId]);
+            $author = $authorStatement->fetch(PDO::FETCH_ASSOC);
+
             $this->respondSuccess('Commentaire ajouté avec succès.', [
                 'id' => $commentId,
+                'contenu' => $contenuFinal,
+                'date_creation' => 'À l\'instant',
+                'author_id' => $userId,
+                'prenom' => $author['prenom'] ?? '',
+                'nom' => $author['nom'] ?? '',
+                'author_role' => $author['role'] ?? '',
+                'author_avatar' => $author['avatar_url'] ?? '',
                 'attachments' => Attachment::responseMetadata($attachments),
             ]);
         } catch (PDOException | RuntimeException $exception) {
@@ -461,7 +472,7 @@ class PublicationController {
         $statement = $this->pdo->prepare("
             SELECT publication.id, publication.titre, publication.contenu, publication.date_creation,
                    publication.zone_id, publication.categorie_id, publication.est_signale, publication.commentaires_fermes,
-                   author.id AS author_id, author.prenom, author.nom, author.role AS author_role,
+                   author.id AS author_id, author.prenom, author.nom, author.role AS author_role, author.avatar_url AS author_avatar,
                    category.nom AS category_name, zone.nom AS zone_name
             FROM publications publication
             JOIN utilisateurs author ON author.id = publication.utilisateur_id
@@ -493,7 +504,7 @@ class PublicationController {
 
         $comments = $this->pdo->prepare("
             SELECT comment.id, comment.contenu, comment.date_creation, comment.est_solution,
-                   author.id AS author_id, author.prenom, author.nom, author.role AS author_role,
+                   author.id AS author_id, author.prenom, author.nom, author.role AS author_role, author.avatar_url AS author_avatar,
                    COUNT(reaction.id) AS likes_count,
                    MAX(reaction.type_reaction) AS user_reaction,
                    MAX(reaction.utilisateur_id = :user_id) AS user_liked
@@ -505,7 +516,7 @@ class PublicationController {
             WHERE comment.publication_id = :publication_id
               AND comment.est_signale = 0
             GROUP BY comment.id, comment.contenu, comment.date_creation, comment.est_solution,
-                     author.id, author.prenom, author.nom, author.role
+                     author.id, author.prenom, author.nom, author.role, author.avatar_url
             ORDER BY comment.est_solution DESC, likes_count DESC, comment.date_creation ASC
         ");
         $comments->execute(['publication_id' => $publicationId, 'user_id' => $userId]);

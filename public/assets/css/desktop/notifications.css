@@ -392,3 +392,63 @@ body.community-notifications {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* Notifications Full-Width Modern Grid */
+body.community-notifications .epi-salon-grid {
+  max-width: 1240px;
+  width: 95%;
+  margin: 1.25rem auto 3rem;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+body.community-notifications .epi-main-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+body.community-notifications .notif-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  background: var(--community-surface);
+  border: 1px solid var(--community-line);
+  border-radius: var(--community-radius-md);
+}
+
+body.community-notifications .notif-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--community-radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--community-muted);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--community-transition);
+}
+
+body.community-notifications .notif-tab:hover {
+  color: var(--community-text);
+  background: var(--community-raised);
+}
+
+body.community-notifications .notif-tab.active {
+  color: var(--community-bg, #101719);
+  background: var(--community-green, #8ed3aa);
+}
+
+body.community-notifications .notif-tab.active .notif-tab-count {
+  background: rgba(0, 0, 0, 0.15);
+  color: #101719;
+}

@@ -356,48 +356,116 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   <span>Modifier mon profil</span>
                 </button>
-              <?php elseif ($friendshipState === 'friends'): ?>
-                <a class="campus-profile-btn primary" href="<?= $base ?>/messages?user=<?= (int)$user['id'] ?>">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                  <span>Message privé</span>
+                <a class="campus-profile-btn secondary" href="<?= $base ?>/binomage">
+                  <span>🎓 Espace Binômage</span>
                 </a>
-                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                  <input type="hidden" name="action" value="remove">
-                  <button class="campus-profile-btn secondary" type="submit" onclick="return confirm('Retirer ce camarade de votre réseau ?');">Retirer des camarades</button>
-                </form>
-              <?php elseif ($friendshipState === 'incoming'): ?>
-                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                  <input type="hidden" name="action" value="accept">
-                  <button class="campus-profile-btn primary" type="submit">Accepter la demande</button>
-                </form>
-                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                  <input type="hidden" name="action" value="decline">
-                  <button class="campus-profile-btn secondary" type="submit">Décliner</button>
-                </form>
-              <?php elseif ($friendshipState === 'outgoing'): ?>
-                <button class="campus-profile-btn secondary" type="button" disabled>Demande envoyée</button>
-                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                  <input type="hidden" name="action" value="cancel">
-                  <button class="campus-profile-btn secondary" type="submit">Annuler</button>
-                </form>
               <?php else: ?>
-                <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                  <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                  <input type="hidden" name="action" value="request">
-                  <button class="campus-profile-btn primary" type="submit">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m-3-3h6"/></svg>
-                    <span>Ajouter en camarade</span>
+                <!-- 1. ACTIONS SOCIALES (AMIS) -->
+                <?php if ($friendshipState === 'friends'): ?>
+                  <a class="campus-profile-btn primary" href="<?= $base ?>/messages?user=<?= (int)$user['id'] ?>">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <span>Message privé</span>
+                  </a>
+                  <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn secondary" type="submit" onclick="return confirm('Retirer ce camarade de votre réseau ?');">Ami ✓ (Retirer)</button>
+                  </form>
+                <?php elseif ($friendshipState === 'incoming'): ?>
+                  <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                    <input type="hidden" name="action" value="accept">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn primary" type="submit">Accepter l'ami</button>
+                  </form>
+                  <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                    <input type="hidden" name="action" value="decline">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn secondary" type="submit">Décliner</button>
+                  </form>
+                <?php elseif ($friendshipState === 'outgoing'): ?>
+                  <button class="campus-profile-btn secondary" type="button" disabled>Demande d'ami envoyée</button>
+                  <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                    <input type="hidden" name="action" value="cancel">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn secondary" type="submit">Annuler</button>
+                  </form>
+                <?php else: ?>
+                  <form method="post" action="<?= $base ?>/friends/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($socialCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                    <input type="hidden" name="action" value="request">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn primary" type="submit">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m-3-3h6"/></svg>
+                      <span>Ajouter en ami</span>
+                    </button>
+                  </form>
+                <?php endif; ?>
+
+                <!-- 2. ACTIONS BINÔMAGE (MENTORAT ACADÉMIQUE SÉPARÉ) -->
+                <?php if (!empty($binomageRelation) && $binomageRelation['statut'] === 'accepte'): ?>
+                  <?php if ((int)$binomageRelation['mentor_id'] === (int)$user['id']): ?>
+                    <span class="campus-profile-btn" style="background:#0d9488; color:#fff; font-weight:700; cursor:default;">
+                      🎓 Mon Mentor
+                    </span>
+                  <?php else: ?>
+                    <span class="campus-profile-btn" style="background:#0284c7; color:#fff; font-weight:700; cursor:default;">
+                      🌱 Mon Mentoré
+                    </span>
+                  <?php endif; ?>
+                  <form method="post" action="<?= $base ?>/binomage/action" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['binomage_csrf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="action" value="terminate">
+                    <input type="hidden" name="relation_id" value="<?= (int)$binomageRelation['id'] ?>">
+                    <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                    <button class="campus-profile-btn secondary" type="submit" onclick="return confirm('Voulez-vous vraiment rompre ce binômage de mentorat ?');" title="Mettre fin au mentorat">
+                      Rompre le binômage
+                    </button>
+                  </form>
+                <?php elseif (!empty($binomageRelation) && $binomageRelation['statut'] === 'en_attente'): ?>
+                  <?php if ((int)$binomageRelation['mentore_id'] === (int)$currentUserId): ?>
+                    <button class="campus-profile-btn secondary" type="button" disabled style="opacity:0.85;">
+                      ⏳ Demande de mentor envoyée
+                    </button>
+                    <form method="post" action="<?= $base ?>/binomage/action" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['binomage_csrf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="action" value="cancel">
+                      <input type="hidden" name="relation_id" value="<?= (int)$binomageRelation['id'] ?>">
+                      <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                      <button class="campus-profile-btn secondary" type="submit">Annuler la demande</button>
+                    </form>
+                  <?php else: ?>
+                    <form method="post" action="<?= $base ?>/binomage/action" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['binomage_csrf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="action" value="accept">
+                      <input type="hidden" name="relation_id" value="<?= (int)$binomageRelation['id'] ?>">
+                      <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                      <button class="campus-profile-btn primary" type="submit" style="background:#0d9488; border-color:#0d9488;">
+                        Accepter comme mentoré
+                      </button>
+                    </form>
+                    <form method="post" action="<?= $base ?>/binomage/action" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['binomage_csrf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="action" value="refuse">
+                      <input type="hidden" name="relation_id" value="<?= (int)$binomageRelation['id'] ?>">
+                      <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+                      <button class="campus-profile-btn secondary" type="submit">Refuser</button>
+                    </form>
+                  <?php endif; ?>
+                <?php elseif (!empty($canRequestMentor)): ?>
+                  <button type="button" class="campus-profile-btn primary" onclick="document.getElementById('modalRequestMentor').style.display='flex';" style="background:#0d9488; border-color:#0d9488;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                    <span>Demander comme mentor</span>
                   </button>
-                </form>
+                <?php endif; ?>
               <?php endif; ?>
             </div>
           </div>
@@ -960,6 +1028,45 @@ $moduleList = array_filter(array_map('trim', explode(',', (string)$sessionModule
         <button type="button" class="campus-profile-btn secondary" id="cancelAvatarCropBtn">Annuler</button>
         <button type="button" class="campus-profile-btn primary" id="applyAvatarCropBtn">Valider le recadrage</button>
       </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if (!$isOwnProfile && !empty($canRequestMentor)): ?>
+  <div id="modalRequestMentor" class="modal-backdrop-profile" role="dialog" aria-modal="true" aria-labelledby="mentorModalTitle" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal-dialog-profile" style="max-width:520px; width:92%; margin:auto;">
+      <div class="modal-header-profile">
+        <div>
+          <h3 id="mentorModalTitle" style="margin:0 0 4px; font-size:1.15rem; color:var(--profile-text);">Demander comme Mentor</h3>
+          <div style="font-size:0.78rem; color:var(--profile-text-muted);">
+            Mentorat académique · <?= htmlspecialchars($sessionFullName) ?> (<?= htmlspecialchars($sessionFiliere) ?>)
+          </div>
+        </div>
+        <button type="button" class="epi-modal-close" onclick="document.getElementById('modalRequestMentor').style.display='none';">&times;</button>
+      </div>
+      <form method="post" action="<?= $base ?>/binomage/action">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['binomage_csrf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="action" value="send">
+        <input type="hidden" name="mentor_id" value="<?= (int)$user['id'] ?>">
+        <input type="hidden" name="return_url" value="profile?id=<?= (int)$user['id'] ?>">
+        
+        <div class="modal-body-profile">
+          <div style="background:var(--profile-surface, rgba(13,148,136,0.08)); border:1px solid rgba(13,148,136,0.2); padding:0.85rem; border-radius:var(--profile-radius-md); font-size:0.835rem; color:var(--profile-text-muted); line-height:1.5; margin-bottom:0.85rem;">
+            💡 <strong>Règles de binômage Polytech :</strong>
+            <br>• En tant qu'étudiant de 1ère année, vous choisissez un aîné de même filière.
+            <br>• Votre mentor pourra vous guider dans vos cours, projets et révisions.
+          </div>
+          <div class="form-group-profile">
+            <label for="mentorMessage">Message pour votre futur mentor (recommandé) :</label>
+            <textarea id="mentorMessage" name="message" class="form-control" rows="4" placeholder="Bonjour <?= htmlspecialchars($user['prenom'] ?? '') ?>, je suis en 1ère année <?= htmlspecialchars($sessionFiliere) ?> et j'aimerais beaucoup bénéficier de ton mentorat cette année..."></textarea>
+          </div>
+        </div>
+        
+        <div class="modal-footer-profile" style="display:flex; justify-content:flex-end; gap:0.5rem; padding:0.75rem 1rem;">
+          <button type="button" class="campus-profile-btn secondary" onclick="document.getElementById('modalRequestMentor').style.display='none';">Annuler</button>
+          <button type="submit" class="campus-profile-btn primary" style="background:#0d9488; border-color:#0d9488;">Envoyer la demande</button>
+        </div>
+      </form>
     </div>
   </div>
   <?php endif; ?>

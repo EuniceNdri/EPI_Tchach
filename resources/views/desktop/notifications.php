@@ -239,11 +239,17 @@ if (!function_exists('formatDateNotif')) {
           <span>Non lues</span>
           <span class="notif-tab-count" id="countUnreadTab"><?= (int)$unreadCount ?></span>
         </button>
+        <button type="button" class="notif-tab" data-filter="binomage">
+          <span>🎓 Binômage</span>
+        </button>
+        <button type="button" class="notif-tab" data-filter="friends">
+          <span>👥 Camarades</span>
+        </button>
         <button type="button" class="notif-tab" data-filter="reaction">
-          <span>Réactions</span>
+          <span>❤️ Réactions & Discussions</span>
         </button>
         <button type="button" class="notif-tab" data-filter="moderation">
-          <span>Modération & Alertes</span>
+          <span>🛡️ Modération & Alertes</span>
         </button>
       </div>
 
@@ -256,8 +262,8 @@ if (!function_exists('formatDateNotif')) {
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
             </div>
-            <h3>Aucune activité pour l'instant</h3>
-            <p>Ce n'est pas grave, vous recevrez une alerte dès qu'un membre réagit ou répond à l'une de vos publications dans les salons.</p>
+            <h3>Aucune notification pour l'instant</h3>
+            <p>Vous recevrez ici les demandes de mentorat, demandes d'amis et activités académiques de vos camarades.</p>
             <a href="<?= $base ?>/salon" class="notif-empty-btn">Explorer les salons</a>
           </div>
         <?php else: ?>
@@ -267,22 +273,53 @@ if (!function_exists('formatDateNotif')) {
             $notifId = (int)$n['id'];
 
             $iconMap = [
-              'reaction'      => '❤️',
-              'avertissement' => '⚠️',
-              'moderation'    => '🛑',
-              'reponse'       => '💬',
-              'solution'      => '✅',
-              'systeme'       => 'ℹ️',
-              'mention'       => '@'
+              'binomage'        => '🎓',
+              'binomage_request'=> '🎓',
+              'binomage_accept' => '🤝',
+              'friend_request'  => '👥',
+              'friend_accept'   => '🤝',
+              'reaction'        => '❤️',
+              'avertissement'   => '⚠️',
+              'moderation'      => '🛑',
+              'reponse'         => '💬',
+              'solution'        => '✅',
+              'systeme'         => 'ℹ️',
+              'mention'         => '@'
             ];
             $iconChar = $iconMap[$type] ?? '🔔';
 
             $categoryFilter = 'systeme';
-            if ($type === 'reaction') {
+            if (str_starts_with($type, 'binomage')) {
+                $categoryFilter = 'binomage';
+            } elseif (str_starts_with($type, 'friend') || $type === 'ami') {
+                $categoryFilter = 'friends';
+            } elseif ($type === 'reaction' || $type === 'reponse' || $type === 'mention') {
                 $categoryFilter = 'reaction';
             } elseif (in_array($type, ['moderation', 'avertissement', 'blocage'], true)) {
                 $categoryFilter = 'moderation';
             }
+
+            $badgeLabel = match($type) {
+                'binomage', 'binomage_request' => 'Binômage',
+                'binomage_accept' => 'Mentor',
+                'friend_request' => 'Camarade',
+                'friend_accept' => 'Ami',
+                'reaction' => 'Réaction',
+                'reponse' => 'Réponse',
+                'solution' => 'Solution',
+                'mention' => 'Mention',
+                'avertissement' => 'Alerte',
+                'moderation' => 'Modération',
+                default => ucfirst($type)
+            };
+
+            $actionText = match($type) {
+                'binomage', 'binomage_request' => 'Voir la demande de mentorat →',
+                'binomage_accept' => 'Voir le profil du mentor →',
+                'friend_request' => 'Voir mes demandes d’amis →',
+                'friend_accept' => 'Consulter le profil →',
+                default => 'Accéder au contenu →'
+            };
           ?>
             <article class="notif-card <?= $isUnread ? 'unread' : 'read' ?>" 
                  data-notif-id="<?= $notifId ?>" 
@@ -290,25 +327,24 @@ if (!function_exists('formatDateNotif')) {
                  data-group="<?= $categoryFilter ?>" 
                  data-unread="<?= $isUnread ? '1' : '0' ?>">
               
-              <div class="notif-type-icon <?= $type ?>">
+              <div class="notif-type-icon <?= $type ?>" style="font-size:1.25rem;">
                 <?= $iconChar ?>
               </div>
 
               <div class="notif-content-area">
                 <div class="notif-card-header">
-                  <span class="notif-type-badge <?= $type ?>"><?= ucfirst($type) ?></span>
+                  <span class="notif-type-badge <?= $type ?>"><?= $badgeLabel ?></span>
                   <span class="notif-time"><?= formatDateNotif($n['date_creation'] ?? 'now') ?></span>
                 </div>
 
-                <div class="notif-message-text">
+                <div class="notif-message-text" style="font-size:0.92rem; font-weight:600;">
                   <?= htmlspecialchars($n['contenu'] ?? '') ?>
                 </div>
 
                 <div class="notif-card-footer">
                   <?php if (!empty($n['lien'])): ?>
-                    <a href="<?= htmlspecialchars($n['lien']) ?>" class="notif-action-link">
-                      <span>Accéder au contenu</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <a href="<?= htmlspecialchars($n['lien']) ?>" class="notif-action-link" style="font-weight:700;">
+                      <span><?= $actionText ?></span>
                     </a>
                   <?php endif; ?>
 
@@ -533,10 +569,14 @@ if (!function_exists('formatDateNotif')) {
             let visible = true;
             if (filter === "unread") {
               visible = isUnread;
+            } else if (filter === "binomage") {
+              visible = (group === "binomage" || type.startsWith("binomage"));
+            } else if (filter === "friends") {
+              visible = (group === "friends" || type.startsWith("friend") || type === "ami");
             } else if (filter === "reaction") {
-              visible = (type === "reaction");
+              visible = (group === "reaction" || type === "reaction" || type === "reponse" || type === "mention");
             } else if (filter === "moderation") {
-              visible = (group === "moderation");
+              visible = (group === "moderation" || type === "moderation" || type === "avertissement" || type === "blocage");
             }
 
             card.style.display = visible ? "flex" : "none";

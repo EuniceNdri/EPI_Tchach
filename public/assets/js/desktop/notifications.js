@@ -45,7 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const isUnread = card.dataset.unread === "1";
       const matches = activeFilter === "all"
         || (activeFilter === "unread" && isUnread)
-        || (activeFilter === "reaction" && card.dataset.type === "reaction")
+        || (activeFilter === "binomage" && (card.dataset.group === "binomage" || (card.dataset.type || "").startsWith("binomage")))
+        || (activeFilter === "friends" && (card.dataset.group === "friends" || (card.dataset.type || "").startsWith("friend") || card.dataset.type === "ami"))
+        || (activeFilter === "reaction" && (card.dataset.group === "reaction" || card.dataset.type === "reaction" || card.dataset.type === "reponse"))
         || (activeFilter === "moderation" && card.dataset.group === "moderation");
       card.hidden = !matches;
     });

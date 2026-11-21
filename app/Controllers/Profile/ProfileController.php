@@ -14,12 +14,14 @@ if (defined('ROOT_PATH')) {
     require_once ROOT_PATH . '/app/Models/Identity/Avatar.php';
     require_once ROOT_PATH . '/app/Models/Salon/Salon.php';
     require_once ROOT_PATH . '/app/Models/Social/Social.php';
+    require_once ROOT_PATH . '/app/Models/Social/Binomage.php';
 } else {
     require_once dirname(__DIR__, 2) . '/Models/Identity/User.php';
     require_once dirname(__DIR__, 2) . '/Models/Notifications/Notification.php';
     require_once dirname(__DIR__, 2) . '/Models/Identity/Avatar.php';
     require_once dirname(__DIR__, 2) . '/Models/Salon/Salon.php';
     require_once dirname(__DIR__, 2) . '/Models/Social/Social.php';
+    require_once dirname(__DIR__, 2) . '/Models/Social/Binomage.php';
 }
 
 class ProfileController {
@@ -58,6 +60,7 @@ class ProfileController {
             $_SESSION['user_filiere'] = $user['filiere'];
             $_SESSION['user_modules'] = $user['modules_enseignes'];
             $_SESSION['user_avatar'] = $user['avatar_url'] ?? null;
+            $_SESSION['user_annee'] = $user['annee'] ?? null;
         }
 
         $isOwnProfile = ($currentUserId && $targetUserId == $currentUserId);
@@ -66,8 +69,28 @@ class ProfileController {
         if ($pdo instanceof PDO && !$isOwnProfile) {
             $friendshipStatus = (new Social($pdo))->getFriendship((int)$currentUserId, (int)$targetUserId);
         }
+        $targetMentorRelation = null;
+        $targetMentoreeRelation = null;
+        $binomageRelation = null;
+        $canRequestMentor = false;
+        $mentorEligibilityReason = '';
+        if ($pdo instanceof PDO) {
+            $binomage = new Binomage($pdo);
+            $targetMentorRelation = $binomage->getMentor((int)$targetUserId);
+            $targetMentees = $binomage->getMentees((int)$targetUserId);
+            $targetMentoreeRelation = $targetMentees[0] ?? null;
+            if (!$isOwnProfile) {
+                $binomageRelation = $binomage->getRelationBetween((int)$currentUserId, (int)$targetUserId);
+                $eligibility = $binomage->checkEligibility((int)$currentUserId, (int)$targetUserId);
+                $canRequestMentor = (bool)($eligibility['eligible'] ?? false);
+                $mentorEligibilityReason = (string)($eligibility['reason'] ?? '');
+            }
+        }
         if (empty($_SESSION['social_csrf'])) {
             $_SESSION['social_csrf'] = bin2hex(random_bytes(32));
+        }
+        if (empty($_SESSION['binomage_csrf'])) {
+            $_SESSION['binomage_csrf'] = bin2hex(random_bytes(32));
         }
         $socialCsrfToken = $_SESSION['social_csrf'];
         $unreadMessagesCount = $pdo instanceof PDO
@@ -387,6 +410,10 @@ class ProfileController {
         $biographie = trim($_POST['biographie'] ?? '');
         $filiere = isset($_POST['filiere']) ? trim((string)$_POST['filiere']) : null;
         $modules = isset($_POST['modules_enseignes']) ? trim((string)$_POST['modules_enseignes']) : null;
+        $annee = filter_input(INPUT_POST, 'annee', FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 5],
+        ]);
+        $annee = $annee !== false && $annee !== null ? (int)$annee : null;
         $nouveauMotDePasse = $_POST['nouveau_mot_de_passe'] ?? '';
 
         $updateError = '';
@@ -411,7 +438,8 @@ class ProfileController {
                     $avatarUrl,
                     filiere: $filiere,
                     modules_enseignes: $modules,
-                    removeAvatar: $removeAvatar && $avatarUrl === null
+                    removeAvatar: $removeAvatar && $avatarUrl === null,
+                    annee: $annee
                 )) {
                     Avatar::removeStoredFile($avatarUrl);
                     $updateError = 'La mise à jour du profil a échoué.';
@@ -454,6 +482,7 @@ class ProfileController {
         $_SESSION['user_nom'] = $nom;
         $_SESSION['user_prenom'] = $prenom;
         $_SESSION['user_bio'] = $biographie;
+        $_SESSION['user_annee'] = $annee;
         if ($filiere !== null) {
             $_SESSION['user_filiere'] = $filiere;
         }
