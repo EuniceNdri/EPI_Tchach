@@ -964,13 +964,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // VOLET LATÉRAL DE DISCUSSION & COMMENTAIRES (Side Drawer)
+  // PANNEAU LATÉRAL À DROITE : DISCUSSION & COMMENTAIRES (Option A)
   // Permet de lire et poster des commentaires tout en défilant le salon
   // ============================================================
   const commentsDrawer = document.getElementById("commentsSideDrawer");
   const closeDrawerBtn = document.getElementById("closeCommentsDrawerBtn");
+  const drawerCommentsHeaderCount = document.getElementById("drawerCommentsHeaderCount");
   const drawerPostTitle = document.getElementById("drawerPostTitle");
   const drawerPostContent = document.getElementById("drawerPostContent");
+  const drawerPinnedContainer = document.getElementById("drawerPinnedCommentContainer");
   const drawerCommentsCount = document.getElementById("drawerCommentsCount");
   const drawerCommentsList = document.getElementById("drawerCommentsList");
   const drawerPublicationIdInput = document.getElementById("drawerPublicationId");
@@ -978,14 +980,69 @@ document.addEventListener("DOMContentLoaded", () => {
   const drawerCommentForm = document.getElementById("drawerCommentForm");
   const drawerCommentInput = document.getElementById("drawerCommentInput");
 
+  const buildCommentHtml = (c, isPinned = false, pinLabel = "") => {
+    const cInit = (c.prenom || 'M').charAt(0).toUpperCase();
+    const cAvatar = c.author_avatar
+      ? `<img src="${baseUrl}/public/${c.author_avatar.replace(/^\//, '')}" alt="">`
+      : `<span>${cInit}</span>`;
+    const likes = Number(c.likes_count || 0);
+    const userLiked = Boolean(c.user_liked);
+    const likeIcon = userLiked ? '❤️' : '🤍';
+    const cardClass = isPinned ? 'drawer-pinned-card' : 'drawer-comment-card';
+
+    const pinBadgeHtml = isPinned
+      ? `<div class="drawer-pinned-badge">📌 ${pinLabel}</div>`
+      : '';
+
+    return `
+      <div class="${cardClass}" data-comment-id="${c.id}" data-live-comment-id="${c.id}">
+        ${pinBadgeHtml}
+        <div class="drawer-comment-header">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <div class="drawer-mini-avatar" style="width:28px; height:28px; font-size:0.75rem;">${cAvatar}</div>
+            <div>
+              <span class="drawer-comment-author">${c.prenom || ''} ${c.nom || ''}</span>
+            </div>
+          </div>
+          <span class="drawer-comment-time">${c.date_creation || ''}</span>
+        </div>
+        <p class="drawer-comment-text">${(c.contenu || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        <div class="drawer-comment-actions">
+          <button type="button" class="drawer-comment-action-btn ${userLiked ? 'is-voted' : ''}" data-toggle-reaction data-target-type="commentaire" data-target-id="${c.id}" data-current-reaction="${userLiked ? 'like' : ''}" aria-label="Aimer ce commentaire">
+            <span class="epi-btn-reaction-icon">${likeIcon}</span>
+            <span data-live-comment-likes>${likes}</span>
+          </button>
+          <button type="button" class="drawer-comment-action-btn drawer-reply-btn" data-reply-author="${c.prenom || ''}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+            <span>Répondre</span>
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
   const openDiscussionDrawer = async (publicationId) => {
     if (!commentsDrawer) return;
+
+    // Mise en surbrillance de la carte active dans le fil
+    document.querySelectorAll(".campus-post-card.is-active-discussion").forEach(el => el.classList.remove("is-active-discussion"));
+    const activeCard = document.querySelector(`article[data-live-publication-id="${publicationId}"]`);
+    if (activeCard) {
+      activeCard.classList.add("is-active-discussion");
+    }
+
     commentsDrawer.hidden = false;
     commentsDrawer.classList.add("is-open");
     drawerPublicationIdInput.value = publicationId;
     drawerFullViewLink.href = `${baseUrl}/publication/${publicationId}`;
-    drawerPostTitle.textContent = "Chargement de la discussion...";
-    drawerPostContent.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#64748b;">⏳ Récupération de la publication et des réponses...</div>`;
+    if (drawerCommentsHeaderCount) drawerCommentsHeaderCount.textContent = "Commentaires (...)";
+    drawerPostTitle.textContent = "Publication : « Chargement... »";
+    drawerPostTitle.title = "Publication";
+    drawerPostContent.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#64748b;">⏳ Récupération de la discussion...</div>`;
+    if (drawerPinnedContainer) {
+      drawerPinnedContainer.hidden = true;
+      drawerPinnedContainer.innerHTML = "";
+    }
     drawerCommentsList.innerHTML = "";
     drawerCommentsCount.textContent = "Chargement...";
 
@@ -999,7 +1056,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const pub = data.publication;
-      drawerPostTitle.textContent = pub.titre || "Publication";
+      const titleShort = (pub.titre || "Publication").trim();
+      drawerPostTitle.textContent = `Publication : « ${titleShort} »`;
+      drawerPostTitle.title = titleShort;
 
       const authorInitial = (pub.prenom || "E").charAt(0).toUpperCase();
       const authorAvatar = pub.author_avatar ? `<img src="${baseUrl}/public/${pub.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${authorInitial}</span>`;
@@ -1025,38 +1084,65 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       const comments = Array.isArray(data.comments) ? data.comments : [];
-      drawerCommentsCount.textContent = `${comments.length} commentaire${comments.length > 1 ? 's' : ''}`;
+      const totalCount = comments.length;
+      if (drawerCommentsHeaderCount) {
+        drawerCommentsHeaderCount.textContent = `Commentaires (${totalCount})`;
+      }
+      drawerCommentsCount.textContent = `${totalCount} commentaire${totalCount > 1 ? 's' : ''}`;
 
-      if (comments.length === 0) {
+      if (totalCount === 0) {
+        if (drawerPinnedContainer) drawerPinnedContainer.hidden = true;
         drawerCommentsList.innerHTML = `<div style="text-align:center; padding:2rem 1rem; color:var(--community-muted); font-size:0.85rem;">Aucun commentaire pour le moment. Soyez le premier à répondre !</div>`;
       } else {
-        drawerCommentsList.innerHTML = comments.map(c => {
-          const cInit = (c.prenom || 'M').charAt(0).toUpperCase();
-          const cAvatar = c.author_avatar ? `<img src="${baseUrl}/public/${c.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${cInit}</span>`;
-          return `
-            <div class="drawer-comment-card" data-comment-id="${c.id}">
-              <div class="drawer-comment-header">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                  <div class="drawer-mini-avatar" style="width:26px; height:26px; font-size:0.75rem;">${cAvatar}</div>
-                  <span class="drawer-comment-author">${c.prenom || ''} ${c.nom || ''}</span>
-                </div>
-                <span class="drawer-comment-time">${c.date_creation || ''}</span>
-              </div>
-              <p class="drawer-comment-text">${(c.contenu || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
-            </div>
-          `;
+        // Recherche d'un commentaire épinglé (solution ou plus grand nombre de likes >= 3)
+        let pinnedIndex = comments.findIndex(c => Number(c.est_solution) === 1);
+        let pinLabel = "Solution";
+
+        if (pinnedIndex === -1) {
+          // Si aucune solution, vérifier si le commentaire ayant le max de likes en a au moins 3
+          let maxLikes = 0;
+          let maxLikesIndex = -1;
+          comments.forEach((c, idx) => {
+            const lk = Number(c.likes_count || 0);
+            if (lk >= 3 && lk > maxLikes) {
+              maxLikes = lk;
+              maxLikesIndex = idx;
+            }
+          });
+          if (maxLikesIndex !== -1) {
+            pinnedIndex = maxLikesIndex;
+            pinLabel = "Épinglé (plus de likes)";
+          }
+        }
+
+        if (pinnedIndex !== -1 && drawerPinnedContainer) {
+          const pinnedComment = comments[pinnedIndex];
+          drawerPinnedContainer.innerHTML = buildCommentHtml(pinnedComment, true, pinLabel);
+          drawerPinnedContainer.hidden = false;
+        } else if (drawerPinnedContainer) {
+          drawerPinnedContainer.hidden = true;
+          drawerPinnedContainer.innerHTML = "";
+        }
+
+        // Afficher les commentaires réguliers
+        drawerCommentsList.innerHTML = comments.map((c, idx) => {
+          if (idx === pinnedIndex) return ""; // Déjà mis en avant dans l'encart épinglé
+          return buildCommentHtml(c, false);
         }).join("");
       }
 
     } catch (err) {
       drawerPostContent.innerHTML = `<div style="color:#ef4444; padding:1rem;">⚠️ ${err.message}</div>`;
+      if (drawerCommentsHeaderCount) drawerCommentsHeaderCount.textContent = "Commentaires (0)";
       drawerCommentsCount.textContent = "0 commentaire";
+      if (drawerPinnedContainer) drawerPinnedContainer.hidden = true;
     }
   };
 
   const closeDiscussionDrawer = () => {
     if (!commentsDrawer) return;
     commentsDrawer.classList.remove("is-open");
+    document.querySelectorAll(".campus-post-card.is-active-discussion").forEach(el => el.classList.remove("is-active-discussion"));
     setTimeout(() => {
       if (!commentsDrawer.classList.contains("is-open")) {
         commentsDrawer.hidden = true;
@@ -1068,16 +1154,76 @@ document.addEventListener("DOMContentLoaded", () => {
     closeDrawerBtn.addEventListener("click", closeDiscussionDrawer);
   }
 
-  // Intercepter les clics sur les boutons de discussion/commentaires du salon
+  // Fermer le panneau avec la touche Échap
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && commentsDrawer && commentsDrawer.classList.contains("is-open")) {
+      closeDiscussionDrawer();
+    }
+  });
+
+  // Action Répondre dans le panneau : préremplit @Nom et donne le focus
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".post-discussion-button, [data-open-drawer-discussion]");
+    const replyBtn = e.target.closest(".drawer-reply-btn");
+    if (replyBtn) {
+      e.preventDefault();
+      const author = replyBtn.dataset.replyAuthor || "";
+      if (drawerCommentInput) {
+        const prefix = author ? `@${author} ` : "";
+        if (!drawerCommentInput.value.startsWith(prefix)) {
+          drawerCommentInput.value = prefix + drawerCommentInput.value;
+        }
+        drawerCommentInput.focus();
+        drawerCommentInput.setSelectionRange(drawerCommentInput.value.length, drawerCommentInput.value.length);
+      }
+    }
+  });
+
+  // Raccourci clavier dans le textarea : Entrée pour envoyer (Maj+Entrée pour nouvelle ligne)
+  if (drawerCommentInput && drawerCommentForm) {
+    drawerCommentInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        drawerCommentForm.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+      }
+    });
+  }
+
+  // Intercepter les clics sur les cartes ou boutons de discussion du salon
+  document.addEventListener("click", (e) => {
+    // 1. Bouton spécifique [data-open-drawer-discussion] ou lien de discussion
+    const btn = e.target.closest("[data-open-drawer-discussion]");
     if (btn) {
-      const href = btn.getAttribute("href") || "";
-      const match = href.match(/publication\/([0-9]+)/);
-      const pubId = btn.dataset.openDrawerDiscussion || (match ? match[1] : null);
+      const pubId = btn.dataset.openDrawerDiscussion;
       if (pubId) {
         e.preventDefault();
         openDiscussionDrawer(pubId);
+        return;
+      }
+    }
+
+    // 2. Clic sur le titre de la publication dans le fil si c'est une discussion
+    const postTitleLink = e.target.closest(".campus-post-title-link");
+    if (postTitleLink) {
+      const postCard = postTitleLink.closest(".campus-post-card");
+      if (postCard && postCard.dataset.postType === "discussion") {
+        e.preventDefault();
+        const pubId = postCard.dataset.livePublicationId || postCard.dataset.publicationCard;
+        if (pubId) {
+          openDiscussionDrawer(pubId);
+          return;
+        }
+      }
+    }
+
+    // 3. Clic général sur la carte si l'utilisateur clique hors boutons interactifs
+    const postCard = e.target.closest(".campus-post-card");
+    if (postCard && postCard.dataset.postType === "discussion") {
+      const isInteractive = e.target.closest("button, a, input, textarea, select, .epi-reaction-picker, .campus-code-block, fieldset");
+      if (!isInteractive) {
+        const pubId = postCard.dataset.livePublicationId || postCard.dataset.publicationCard;
+        if (pubId) {
+          openDiscussionDrawer(pubId);
+        }
       }
     }
   });
@@ -1112,35 +1258,40 @@ document.addEventListener("DOMContentLoaded", () => {
         // Ajouter le nouveau commentaire à la liste
         const data = result.data || {};
         const authorName = `${data.prenom || ''} ${data.nom || ''}`.trim() || "Vous";
-        const authorInit = authorName.charAt(0).toUpperCase();
-        const authorAvatar = data.author_avatar ? `<img src="${baseUrl}/public/${data.author_avatar.replace(/^\//, '')}" alt="">` : `<span>${authorInit}</span>`;
-
-        const newCommentCard = document.createElement("div");
-        newCommentCard.className = "drawer-comment-card";
-        newCommentCard.innerHTML = `
-          <div class="drawer-comment-header">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <div class="drawer-mini-avatar" style="width:26px; height:26px; font-size:0.75rem;">${authorAvatar}</div>
-              <span class="drawer-comment-author">${authorName}</span>
-            </div>
-            <span class="drawer-comment-time">À l'instant</span>
-          </div>
-          <p class="drawer-comment-text">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
-        `;
+        const commentObj = {
+          id: data.id || Date.now(),
+          prenom: data.prenom || 'Vous',
+          nom: data.nom || '',
+          author_avatar: data.author_avatar || '',
+          date_creation: "À l'instant",
+          contenu: content,
+          likes_count: 0,
+          user_liked: false
+        };
 
         if (drawerCommentsList.children.length === 1 && drawerCommentsList.children[0].textContent.includes("Aucun commentaire")) {
           drawerCommentsList.innerHTML = "";
         }
 
-        drawerCommentsList.appendChild(newCommentCard);
-        newCommentCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = buildCommentHtml(commentObj, false);
+        const newCard = tempDiv.firstElementChild;
+        drawerCommentsList.appendChild(newCard);
+        newCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-        const currentCount = drawerCommentsList.querySelectorAll(".drawer-comment-card").length;
+        const currentCount = drawerCommentsList.querySelectorAll(".drawer-comment-card").length + (drawerPinnedContainer && !drawerPinnedContainer.hidden ? 1 : 0);
+        if (drawerCommentsHeaderCount) {
+          drawerCommentsHeaderCount.textContent = `Commentaires (${currentCount})`;
+        }
         drawerCommentsCount.textContent = `${currentCount} commentaire${currentCount > 1 ? 's' : ''}`;
 
         const cardCommentCount = document.querySelector(`article[data-live-publication-id="${publicationId}"] [data-live-comment-count]`);
         if (cardCommentCount) {
           cardCommentCount.textContent = currentCount;
+        }
+
+        if (typeof window.showFeedback === "function") {
+          window.showFeedback("Commentaire publié !", "success");
         }
 
       } catch (err) {

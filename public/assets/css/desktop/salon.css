@@ -2963,34 +2963,51 @@ body.community-shell .epi-salon-grid {
 
 
 /* ============================================================
- * VOLET LATÉRAL DE DISCUSSION & COMMENTAIRES (Drawer interactif)
+ * PANNEAU LATÉRAL À DROITE : DISCUSSION & COMMENTAIRES (Option A)
+ * S'ouvre à droite tout en laissant le fil central actif et scrollable
  * ============================================================ */
 .comments-side-drawer {
   position: fixed;
   top: 60px;
-  left: 0;
+  right: 0;
+  left: auto;
   bottom: 0;
-  width: 440px;
-  max-width: 96vw;
+  width: 450px;
+  max-width: 95vw;
   background: var(--community-surface, #ffffff);
-  border-right: 1px solid var(--community-border, #e2e8f0);
-  box-shadow: 12px 0 35px rgba(0, 0, 0, 0.15);
+  border-left: 1px solid var(--community-border, #e2e8f0);
+  border-right: none;
+  box-shadow: -12px 0 35px rgba(0, 0, 0, 0.15);
   z-index: 1050;
   display: flex;
   flex-direction: column;
-  transform: translateX(-100%);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 [data-theme="dark"] .comments-side-drawer {
   background: #0f172a;
-  border-right-color: #1e293b;
-  box-shadow: 12px 0 35px rgba(0, 0, 0, 0.5);
+  border-left-color: #1e293b;
+  box-shadow: -12px 0 35px rgba(0, 0, 0, 0.55);
 }
 
 .comments-side-drawer.is-open {
   transform: translateX(0);
+}
+
+/* Mise en valeur du post actif dans le fil */
+.campus-post-card.is-active-discussion {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.25), 0 8px 24px rgba(13, 148, 136, 0.12) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.campus-action-pill.post-discussion-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--community-muted, #64748b);
 }
 
 .drawer-header {
@@ -3001,6 +3018,7 @@ body.community-shell .epi-salon-grid {
   align-items: center;
   background: var(--community-surface-card, #f8fafc);
   flex-shrink: 0;
+  gap: 0.75rem;
 }
 
 [data-theme="dark"] .drawer-header {
@@ -3153,6 +3171,41 @@ body.community-shell .epi-salon-grid {
   gap: 0.85rem;
 }
 
+.drawer-pinned-container {
+  margin-bottom: 0.5rem;
+}
+
+.drawer-pinned-card {
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.08), rgba(16, 185, 129, 0.04));
+  border: 1.5px solid #0d9488;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  animation: fadeInComment 0.25s ease-out;
+}
+
+[data-theme="dark"] .drawer-pinned-card {
+  background: rgba(13, 148, 136, 0.15);
+  border-color: #14b8a6;
+}
+
+.drawer-pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #0d9488;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .drawer-pinned-badge {
+  color: #2dd4bf;
+}
+
 .drawer-comment-card {
   background: var(--community-surface-card, #f8fafc);
   border: 1px solid var(--community-border, #e2e8f0);
@@ -3208,6 +3261,48 @@ body.community-shell .epi-salon-grid {
   color: #cbd5e1;
 }
 
+.drawer-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--community-border, #e2e8f0);
+}
+
+[data-theme="dark"] .drawer-comment-actions {
+  border-top-color: #334155;
+}
+
+.drawer-comment-action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--community-muted, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.drawer-comment-action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0d9488;
+}
+
+[data-theme="dark"] .drawer-comment-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #38bdf8;
+}
+
+.drawer-comment-action-btn.is-voted {
+  color: #ef4444;
+}
+
 .drawer-footer {
   padding: 0.85rem 1.25rem;
   border-top: 1px solid var(--community-border, #e2e8f0);
@@ -3252,15 +3347,17 @@ body.community-shell .epi-salon-grid {
 }
 
 .drawer-send-btn {
-  width: 40px;
   height: 40px;
+  padding: 0 1rem;
   border-radius: 10px;
   background: #0d9488;
   color: #fff;
   border: none;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s ease;
@@ -3268,5 +3365,11 @@ body.community-shell .epi-salon-grid {
 
 .drawer-send-btn:hover {
   background: #0f766e;
-  transform: scale(1.05);
+  transform: translateY(-1px);
+}
+
+.drawer-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }

@@ -671,7 +671,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
               $codeText = $hasCodeBlock ? trim($codeMatches[2]) : '';
               $cleanContent = $hasCodeBlock ? preg_replace('/```([a-zA-Z0-9]*)\n?(.*?)```/s', '', $content) : $content;
             ?>
-              <article class="campus-post-card <?= $post['statut'] === 'epingle' ? 'is-pinned-card' : '' ?>" id="publication-<?= $postId ?>" data-publication-card="<?= $postId ?>" data-live-publication-id="<?= $postId ?>">
+              <article class="campus-post-card <?= $post['statut'] === 'epingle' ? 'is-pinned-card' : '' ?>" id="publication-<?= $postId ?>" data-publication-card="<?= $postId ?>" data-live-publication-id="<?= $postId ?>" data-post-type="<?= htmlspecialchars($postType) ?>" data-publication-id="<?= $postId ?>">
                 
                 <!-- En-tête de la publication -->
                 <div class="campus-post-header">
@@ -715,7 +715,7 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                 <!-- Corps du message -->
                 <div class="campus-post-body">
                   <h3 class="campus-post-title">
-                    <a href="<?= $base ?>/publication/<?= $postId ?>">
+                    <a href="<?= $base ?>/publication/<?= $postId ?>" class="campus-post-title-link" <?= $postType === 'discussion' ? 'data-open-drawer-discussion="' . $postId . '"' : '' ?>>
                       <?= htmlspecialchars($post['titre']) ?>
                     </a>
                   </h3>
@@ -849,11 +849,18 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
                       </button>
                     </div>
 
-                    <!-- Bouton Commentaires -->
-                    <a class="campus-action-pill post-discussion-button" href="<?= $base ?>/publication/<?= $postId ?>" aria-label="Commentaires">
-                      <span class="material-symbols-outlined">chat_bubble_outline</span>
-                      <span><span data-live-comment-count><?= (int)$post['comments_count'] ?></span> commentaires</span>
-                    </a>
+                    <!-- Bouton Commentaires / Discussion -->
+                    <?php if ($postType === 'discussion'): ?>
+                      <button type="button" class="campus-action-pill post-discussion-button" data-open-drawer-discussion="<?= $postId ?>" aria-label="Commentaires">
+                        <span class="material-symbols-outlined">chat_bubble_outline</span>
+                        <span><span data-live-comment-count><?= (int)$post['comments_count'] ?></span> commentaires</span>
+                      </button>
+                    <?php else: ?>
+                      <span class="campus-action-pill post-discussion-disabled" title="Espace de discussion fermé pour les annonces et sondages">
+                        <span class="material-symbols-outlined">comments_disabled</span>
+                        <span>Pas de discussion</span>
+                      </span>
+                    <?php endif; ?>
                   </div>
 
                   <div class="campus-actions-right">
@@ -1036,27 +1043,29 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
   </div>
 
   <!-- ============================================================
-       VOLET LATÉRAL DE DISCUSSION & COMMENTAIRES (Interactive Drawer)
-       S'ouvre à gauche ou en volet flottant, permettant de commenter
-       tout en continuant de défiler sur le flux du salon
+       PANNEAU LATÉRAL À DROITE : DISCUSSION & COMMENTAIRES (Option A)
+       S'ouvre à droite tout en laissant le fil central actif et scrollable
        ============================================================ -->
   <aside id="commentsSideDrawer" class="comments-side-drawer" aria-hidden="true" hidden>
     <div class="drawer-header">
       <div class="drawer-header-info">
-        <span class="drawer-badge">Discussion en direct</span>
-        <h3 id="drawerPostTitle" class="drawer-title">Chargement de la publication...</h3>
+        <span id="drawerCommentsHeaderCount" class="drawer-badge">Commentaires (0)</span>
+        <h3 id="drawerPostTitle" class="drawer-title" title="Publication">Publication : « Chargement... »</h3>
       </div>
       <div class="drawer-header-actions">
         <a id="drawerFullViewLink" href="#" class="drawer-action-btn" title="Ouvrir la publication en pleine page" target="_blank" rel="noopener">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
-        <button type="button" id="closeCommentsDrawerBtn" class="drawer-close-btn" aria-label="Fermer le volet de discussion">&times;</button>
+        <button type="button" id="closeCommentsDrawerBtn" class="drawer-close-btn" aria-label="Fermer le panneau de discussion" title="Fermer [X]">&times;</button>
       </div>
     </div>
 
     <div class="drawer-body">
       <!-- Publication principale résumée -->
       <div id="drawerPostContent" class="drawer-post-summary"></div>
+
+      <!-- Encart Solution / Épinglé (plus de likes) -->
+      <div id="drawerPinnedCommentContainer" class="drawer-pinned-container" hidden></div>
 
       <!-- Compteur et barre des commentaires -->
       <div class="drawer-comments-heading">
@@ -1075,9 +1084,10 @@ $sessionAvatarUrl = !empty($_SESSION['user_avatar'])
         <input type="hidden" name="ajax" value="1">
         <input type="hidden" name="publication_id" id="drawerPublicationId" value="">
         <div class="drawer-input-row">
-          <textarea name="contenu" id="drawerCommentInput" placeholder="Écrire un commentaire..." rows="2" required></textarea>
+          <textarea name="contenu" id="drawerCommentInput" placeholder="Écrire un commentaire... (Entrée pour envoyer, Maj+Entrée pour saut de ligne)" rows="2" required></textarea>
           <button type="submit" id="drawerSubmitCommentBtn" class="drawer-send-btn" title="Envoyer le commentaire">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span class="drawer-send-label">Envoyer</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
       </form>
